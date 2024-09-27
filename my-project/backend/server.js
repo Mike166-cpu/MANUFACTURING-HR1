@@ -11,12 +11,9 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors()); // Enable CORS for all origins
 app.use(bodyParser.json());
-
+app.use(express.json());
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI, { 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true 
-})
+mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB connected"))
 .catch(err => console.error("MongoDB connection error:", err));
 
@@ -78,6 +75,23 @@ app.post("/login", async (req, res) => {
         res.status(500).json({ message: "Error logging in", error });
     }
 });
+
+app.get("/getAllUsers", async(req,res) => {
+    try {
+        const users = await User.find({});
+
+        if(!users){
+            return res.status(400).json({success:false ,message:"Not found"});
+        }
+    
+        res.status(200).json(users);
+    } catch (error) {
+        console.log(error.message); 
+    }
+   
+});
+
+
 
 // Start the server
 app.listen(PORT, () => {
