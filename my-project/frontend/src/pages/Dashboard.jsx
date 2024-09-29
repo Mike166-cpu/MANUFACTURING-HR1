@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  Filler,
 } from "chart.js";
 
 // Register the necessary components for Chart.js
@@ -23,8 +24,11 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
+  Filler, 
   ArcElement // Register the ArcElement for the pie chart
 );
+
+
 
 const Dashboard = () => {
   useEffect(() => {
@@ -114,7 +118,7 @@ const Dashboard = () => {
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       <div
         className={`flex-1 transition-all duration-300 ${
-          isSidebarOpen ? "ml-64" : "ml-0"
+          isSidebarOpen ? "ml-80" : "ml-0"
         }`}
       >
         <Navbar toggleSidebar={toggleSidebar} />

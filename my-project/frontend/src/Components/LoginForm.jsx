@@ -17,7 +17,7 @@ const LoginForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       const response = await fetch("http://localhost:5000/login", {
         method: "POST",
@@ -26,7 +26,7 @@ const LoginForm = () => {
         },
         body: JSON.stringify({ username, password }),
       });
-
+  
       if (!response.ok) {
         const data = await response.json();
         setError(data.message || "Login failed");
@@ -34,7 +34,14 @@ const LoginForm = () => {
         setTimeout(() => setShake(false), 500);
         return;
       }
-
+  
+      const data = await response.json(); // Get the response data
+      console.log("Login response data:", data); // Log the response data
+  
+      // Save the firstName and lastName to localStorage
+      localStorage.setItem("firstName", data.firstName); // This could be undefined
+      localStorage.setItem("lastName", data.lastName); // This could also be undefined
+  
       navigate("/dashboard");
     } catch (error) {
       setError("An error occurred during login.");
@@ -42,11 +49,14 @@ const LoginForm = () => {
       setTimeout(() => setShake(false), 500);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-500">
       <div
-        className={`bg-white rounded-lg shadow-lg p-10 w-full max-w-md ${shake ? "shake" : ""}`}
+        className={`bg-white rounded-lg shadow-lg p-10 w-full max-w-md ${
+          shake ? "shake" : ""
+        }`}
       >
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
           Sign In
@@ -117,6 +127,12 @@ const LoginForm = () => {
             Sign Up
           </Link>
         </p>
+      </div>
+
+      <div className="p-4">
+        <h1 className="text-[100px] font-black ">
+          Human <br /> Resources{" "}
+        </h1>
       </div>
     </div>
   );

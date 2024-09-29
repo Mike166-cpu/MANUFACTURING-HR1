@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"; // Update icon imports
 import { Link } from "react-router-dom"; // Import Link
 
 const SignUpForm = () => {
+  useEffect(() => {
+    document.title = "Signup - HR1";
+  }, []);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -35,13 +39,13 @@ const SignUpForm = () => {
 
     if (!validatePassword(password)) {
       setError(
-        "Password must be at least 8 characters long, contain at least one uppercase letter, one number, and one special character."
+        "Password must be at least 8 character long, contain at least one uppercase letter, one number, and one special character."
       );
       return;
     }
 
     try {
-      const response = await fetch("http://localhost:5000/signup", {  
+      const response = await fetch("http://localhost:5000/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,8 +55,8 @@ const SignUpForm = () => {
 
       if (response.ok) {
         console.log("User created successfully!");
-        setError(""); // Clear error on successful submission
-        // Optionally reset form data here
+        alert("Sign-up successful! Welcome aboard.");
+        setError("");
         setFormData({
           firstName: "",
           lastName: "",
@@ -77,7 +81,8 @@ const SignUpForm = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-500">
       <div className="bg-white rounded-lg shadow-lg p-10 w-full max-w-4xl">
-        {" "} {/* Increased max width */}
+        {" "}
+        {/* Increased max width */}
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
           Sign Up
         </h2>
@@ -140,7 +145,7 @@ const SignUpForm = () => {
             <input
               type="text"
               name="suffix"
-              placeholder="Jr."
+              placeholder="*Optional"
               value={formData.suffix}
               onChange={handleChange}
               className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
@@ -219,7 +224,7 @@ const SignUpForm = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="********"
+                placeholder=""
                 value={formData.password}
                 onChange={handleChange}
                 className="input input-bordered w-full p-3 rounded focus:outline-none"

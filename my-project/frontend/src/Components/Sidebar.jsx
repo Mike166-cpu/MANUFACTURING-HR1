@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { LuLayoutDashboard, LuPackage, LuBox } from "react-icons/lu";
 import { RiArchiveDrawerLine, RiPagesLine } from "react-icons/ri";
 import { BsChatLeft } from "react-icons/bs";
+import { ImDrawer } from "react-icons/im";
 import { IoDesktopSharp } from "react-icons/io5";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -17,12 +18,18 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const handleNavigation = (path) => {
     setActivePage(path);
     navigate(path);
-    toggleSidebar(); // Close sidebar after navigation
+    toggleSidebar();
+  };
+
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+
+  const toggleAccordion = () => {
+    setIsAccordionOpen(!isAccordionOpen);
   };
 
   return (
     <div
-      className={`fixed left-0 top-0 w-64 bg-white h-full shadow-lg z-50 transform ${
+      className={`fixed left-0 top-0 w-80 bg-white h-full shadow-lg z-50 transform ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       } transition-transform duration-300 ease-in-out`}
     >
@@ -34,37 +41,54 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </div>
           <div
             className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-              activePage === "/dashboard" ? "bg-gray-200 text-black" : "hover:bg-gray-200"
+              activePage === "/dashboard"
+                ? "bg-gray-200 text-black"
+                : "hover:bg-gray-200"
             }`}
             onClick={() => handleNavigation("/dashboard")}
           >
             <IoDesktopSharp size="1.4rem" />
-            <span className="font-semibold text-[0.875rem] pl-[5px]">Dashboard</span>
+            <span className="font-semibold text-[0.875rem] pl-[5px]">
+              Dashboard
+            </span>
           </div>
         </div>
 
         <ul className="mt-4 space-y-4">
           <li>
-            <span className="text-gray-400 text-sm font-semibold">Apps</span>
+            <span className="text-gray-400 text-sm font-semibold">Modules</span>
 
             <div
-              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-                activePage === "/employeerecords" ? "bg-gray-300 text-black" : "hover:bg-gray-200"
-              }`}
-              onClick={() => handleNavigation("/employeerecords")}
+              onClick={toggleAccordion}
+              className="text-[0.875rem] font-medium cursor-pointer p-4 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md flex items-center "
             >
-              <LuPackage size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">Employee Records Management</span>
+              <IoDesktopSharp size="1.4rem" />
+              <span className="pl-[5px]">Employee Record Management</span>
+            </div>
+            {isAccordionOpen && (
+              <div className=" bg-white flex flex-col justify-center">
+               <span className="text-[0.875remm] font-medium cursor-pointer p-4 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md ">
+                <span className="">Employee Information</span>
+               </span>
+              </div>
+            )}
+
+            <div className="p-1 ">
+              <hr className="w-full mx-auto" />
             </div>
 
             <div
               className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-                activePage === "/compliance" ? "bg-gray-300 text-black" : "hover:bg-gray-200"
+                activePage === "/compliance"
+                  ? "bg-gray-300 text-black"
+                  : "hover:bg-gray-200"
               }`}
               onClick={() => handleNavigation("/compliance")}
             >
               <RiArchiveDrawerLine size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">HR Compliance</span>
+              <span className="font-semibold text-[0.875rem] pl-[5px]">
+                HR Compliance
+              </span>
             </div>
 
             <div
@@ -72,7 +96,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               onClick={() => handleNavigation("/onboarding")}
             >
               <BsChatLeft size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">Onboarding</span>
+              <span className="font-semibold text-[0.875rem] pl-[5px]">
+                Onboarding
+              </span>
             </div>
 
             <div
@@ -80,15 +106,19 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               onClick={() => handleNavigation("/offboarding")}
             >
               <RiPagesLine size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">Offboarding</span>
+              <span className="font-semibold text-[0.875rem] pl-[5px]">
+                Offboarding
+              </span>
             </div>
 
             <div
               className="flex items-center p-2 hover:bg-gray-200 rounded-md"
-              onClick={() => handleNavigation("/attendance")}
+              onClick={() => handleNavigation("/attendancetime")}
             >
               <LuBox size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">Attendance and Time Tracking</span>
+              <span className="font-semibold text-[0.875rem] pl-[5px]">
+                Attendance and Time Tracking
+              </span>
             </div>
           </li>
         </ul>

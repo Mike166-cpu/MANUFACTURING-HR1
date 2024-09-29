@@ -1,14 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
 
 const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   const [isBellOpen, setIsBellOpen] = useState(false);
+  const [initials, setInitials] = useState("");
   const navigate = useNavigate();
+
+  // On component mount, get firstName and lastName from localStorage
+  useEffect(() => {
+    const firstName = localStorage.getItem("firstName");
+    const lastName = localStorage.getItem("lastName");
+
+    console.log("First Name:", firstName); // Log first name
+    console.log("Last Name:", lastName); // Log last name
+
+    if (firstName && lastName) {
+      const initials = `${firstName[0]}${lastName[0]}`;
+      setInitials(initials.toUpperCase());
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("firstName");
+    localStorage.removeItem("lastName");
     navigate("/login", { replace: true });
   };
 
@@ -45,19 +62,15 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
 
       {/* Profile and Notification Icons */}
       <div className="flex-none gap-2 ml-auto">
-
-        {/* Profile Avatar */}
+        {/* Profile Avatar with Initials */}
         <div className="dropdown dropdown-end">
           <div
             tabIndex={0}
             role="button"
             className="btn btn-ghost btn-circle avatar"
           >
-            <div className="w-10 rounded-full">
-              <img
-                alt="User avatar"
-                src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-              />
+            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-lg font-bold p-[4px]">
+              {initials}
             </div>
           </div>
           <ul
