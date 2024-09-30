@@ -60,22 +60,19 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
             <div
               onClick={toggleAccordion}
-              className="text-[0.875rem] font-medium cursor-pointer p-4 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md flex items-center "
+              className="text-[0.875rem] font-medium cursor-pointer p-2 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md flex justify-start items-start"
             >
               <IoDesktopSharp size="1.4rem" />
-              <span className="pl-[5px]">Employee Record Management</span>
+              <span className="pl-[12px]">Employee Record Management</span>
             </div>
+            <hr className="p-1 opacity-0"/>
             {isAccordionOpen && (
-              <div className=" bg-white flex flex-col justify-center">
-               <span className="text-[0.875remm] font-medium cursor-pointer p-4 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md ">
-                <span className="">Employee Information</span>
-               </span>
+              <div className=" bg-white flex flex-col justify-center text-[0.875rem] font-medium cursor-pointer p-2 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md">
+                  
+                  <span className="flex justify-center align-center">Employee Information</span>
               </div>
             )}
-
-            <div className="p-1 ">
-              <hr className="w-full mx-auto" />
-            </div>
+            <hr className="p-1 opacity-0"/>
 
             <div
               className={`flex items-center p-2 rounded-md transition-all duration-200 ${
