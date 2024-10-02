@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 
-const AttendanceTime = () => {
+const EmployeeInfo = () => {
   useEffect(() => {
-    document.title = "Attendance and Time Tracking  ";
+    document.title = "Employee Records Management";
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -23,7 +23,9 @@ const AttendanceTime = () => {
           >
             <Navbar toggleSidebar={toggleSidebar} />
             <div className="p-4">
-              <h1 className="text-2xl font-bold">Attendance and Time Tracking</h1>
+              <h1 className="text-2xl font-bold">
+                Employee Information
+              </h1>
             </div>
           </div>
         </div>
@@ -32,4 +34,4 @@ const AttendanceTime = () => {
   );
 };
 
-export default AttendanceTime;
+export default EmployeeInfo;

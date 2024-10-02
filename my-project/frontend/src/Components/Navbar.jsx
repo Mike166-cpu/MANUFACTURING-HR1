@@ -69,7 +69,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
             role="button"
             className="btn btn-ghost btn-circle avatar"
           >
-            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-lg font-bold p-[4px]">
+            <div className="w-10 h-10 rounded-full bg-[#FF76CE] flex items-center justify-center text-white text-lg font-normal p-[4px]">
               {initials}
             </div>
           </div>

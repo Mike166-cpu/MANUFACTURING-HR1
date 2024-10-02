@@ -5,6 +5,7 @@ import { BsChatLeft } from "react-icons/bs";
 import { ImDrawer } from "react-icons/im";
 import { IoDesktopSharp } from "react-icons/io5";
 import { useLocation, useNavigate } from "react-router-dom";
+import { MdKeyboardArrowRight } from "react-icons/md";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -21,7 +22,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     toggleSidebar();
   };
 
-  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false); // Renamed state
 
   const toggleAccordion = () => {
     setIsAccordionOpen(!isAccordionOpen);
@@ -58,22 +59,23 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <li>
             <span className="text-gray-400 text-sm font-semibold">Modules</span>
 
+            {/*EMPLOYEE RECORDS MANAGEMENT */}
             <div
-              onClick={toggleAccordion}
-              className="text-[0.875rem] font-medium cursor-pointer p-2 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md flex justify-start items-start"
+              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
+                activePage === "/employeerecords"
+                  ? "bg-gray-300 text-black"
+                  : "hover:bg-gray-200"
+              }`}
+              onClick={() => handleNavigation("/employeerecords")}
             >
-              <IoDesktopSharp size="1.4rem" />
-              <span className="pl-[12px]">Employee Record Management</span>
+              <ImDrawer size="1.4rem" />
+              <span className="font-semibold text-[0.875rem] pl-[5px]">
+                Employee Records
+              </span>
             </div>
-            <hr className="p-1 opacity-0"/>
-            {isAccordionOpen && (
-              <div className=" bg-white flex flex-col justify-center text-[0.875rem] font-medium cursor-pointer p-2 bg-base-500 hover:bg-gray-300 transition-all duration-200 rounded-md">
-                  
-                  <span className="flex justify-center align-center">Employee Information</span>
-              </div>
-            )}
-            <hr className="p-1 opacity-0"/>
+            <hr className="p-1 opacity-0" />
 
+            {/*HR COMPLIANCE SECTION */}
             <div
               className={`flex items-center p-2 rounded-md transition-all duration-200 ${
                 activePage === "/compliance"
@@ -82,41 +84,62 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               }`}
               onClick={() => handleNavigation("/compliance")}
             >
-              <RiArchiveDrawerLine size="1.4rem" />
+              <RiPagesLine size="1.4rem" />
               <span className="font-semibold text-[0.875rem] pl-[5px]">
                 HR Compliance
               </span>
             </div>
+            <hr className="p-1 opacity-0" />
 
+            {/*ONBOARDING SECTION */}
             <div
-              className="flex items-center p-2 hover:bg-gray-200 rounded-md"
+              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
+                activePage === "/onboarding"
+                  ? "bg-gray-300 text-black"
+                  : "hover:bg-gray-200"
+              }`}
               onClick={() => handleNavigation("/onboarding")}
             >
-              <BsChatLeft size="1.4rem" />
+              <LuBox size="1.4rem" />
               <span className="font-semibold text-[0.875rem] pl-[5px]">
                 Onboarding
               </span>
             </div>
+            <hr className="p-1 opacity-0" />
 
+            {/*OFFBOARDING SECTION */}
             <div
-              className="flex items-center p-2 hover:bg-gray-200 rounded-md"
+              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
+                activePage === "/offboarding"
+                  ? "bg-gray-300 text-black"
+                  : "hover:bg-gray-200"
+              }`}
               onClick={() => handleNavigation("/offboarding")}
             >
-              <RiPagesLine size="1.4rem" />
+              <LuPackage size="1.4rem" />
               <span className="font-semibold text-[0.875rem] pl-[5px]">
                 Offboarding
               </span>
             </div>
+            <hr className="p-1 opacity-0" />
 
+            {/*Attendance and time tracking*/}
             <div
-              className="flex items-center p-2 hover:bg-gray-200 rounded-md"
+              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
+                activePage === "/atattendancetimete"
+                  ? "bg-gray-300 text-black"
+                  : "hover:bg-gray-200"
+              }`}
               onClick={() => handleNavigation("/attendancetime")}
             >
-              <LuBox size="1.4rem" />
+              <RiArchiveDrawerLine size="1.4rem" />
               <span className="font-semibold text-[0.875rem] pl-[5px]">
-                Attendance and Time Tracking
+                Attendance and Time tracking
               </span>
             </div>
+            <hr className="p-1 opacity-0" />
+
+            
           </li>
         </ul>
       </div>

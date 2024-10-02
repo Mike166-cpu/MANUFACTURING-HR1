@@ -15,7 +15,6 @@ import {
   Filler,
 } from "chart.js";
 
-// Register the necessary components for Chart.js
 ChartJS.register(
   LineElement,
   PointElement,
@@ -25,7 +24,7 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler, 
-  ArcElement // Register the ArcElement for the pie chart
+  ArcElement 
 );
 
 
@@ -124,7 +123,7 @@ const Dashboard = () => {
         <Navbar toggleSidebar={toggleSidebar} />
         {/* MAIN CONTENT */}
         <div className="p-4">
-          <h1 className="text-2xl font-bold mb-6">Welcome to the Dashboard</h1>
+          <h1 className="text-2xl font-bold mb-6 pb-4">Welcome to the Dashboard</h1>
 
           {/* Line Graph and Pie Chart */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
