@@ -3,8 +3,7 @@ const router = express.Router();
 const Employee = require("../models/Employee"); // Ensure this path is correct
 const bcrypt = require("bcrypt"); // Import bcrypt for password comparison
 
-// Add Employee Route
-// Add Employee Route
+
 router.post("/add", async (req, res) => {
   try {
     const employeeData = req.body;
@@ -47,5 +46,16 @@ router.post("/login-employee", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+router.get("/", async (req, res) => {
+  try {
+    const employees = await Employee.find(); // Fetch all employees from the "employee" collection
+    res.status(200).json(employees); // Return the employees as JSON
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ message: "Error fetching employees" });
+  }
+});
+
 
 module.exports = router;

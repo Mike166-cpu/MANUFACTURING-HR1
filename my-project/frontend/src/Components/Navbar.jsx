@@ -12,10 +12,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   useEffect(() => {
     const firstName = localStorage.getItem("firstName");
     const lastName = localStorage.getItem("lastName");
-
-    console.log("First Name:", firstName); // Log first name
-    console.log("Last Name:", lastName); // Log last name
-
+    
     if (firstName && lastName) {
       const initials = `${firstName[0]}${lastName[0]}`;
       setInitials(initials.toUpperCase());
