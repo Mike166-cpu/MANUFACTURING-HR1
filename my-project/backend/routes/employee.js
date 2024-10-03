@@ -10,34 +10,28 @@ router.post("/add", async (req, res) => {
     const employeeData = req.body;
 
     // Hash the password before saving
-    employeeData.employee_password = await bcrypt.hash(employeeData.employee_password, 10);
-    
+    employeeData.employee_password = await bcrypt.hash(
+      employeeData.employee_password,
+      10
+    );
+
     const newEmployee = new Employee(employeeData);
     await newEmployee.save();
-    res.status(201).json({ message: "Employee added successfully!", employee: newEmployee });
+    res
+      .status(201)
+      .json({ message: "Employee added successfully!", employee: newEmployee });
   } catch (error) {
     console.error("Error while adding employee:", error);
-    res.status(500).json({ message: "Error adding employee", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error adding employee", error: error.message });
   }
 });
-
 
 router.post("/login-employee", async (req, res) => {
   const { employee_username, employee_password } = req.body;
 
   try {
-    // Log incoming data
-    console.log("Login attempt with:", req.body);
-
-    const employee = await Employee.findOne({ employee_username });
-    if (!employee) {
-      console.log("Employee not found");
-      return res.status(404).json({ message: "Employee not found" });
-    }
-
-    // Log found employee
-    console.log("Found employee:", employee);
-
     const isPasswordValid = await bcrypt.compare(
       employee_password,
       employee.employee_password
@@ -47,7 +41,6 @@ router.post("/login-employee", async (req, res) => {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    console.log("Login successful for:", employee_username);
     res.status(200).json({ message: "Login successful!" });
   } catch (error) {
     console.error("Login error:", error);
