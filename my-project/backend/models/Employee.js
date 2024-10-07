@@ -13,6 +13,25 @@ const employeeSchema = new mongoose.Schema({
   employee_dateOfBirth: { type: Date, required: true },
   employee_gender: { type: String, required: true },
   employee_department: { type: String, required: true },
+  time_in: { type: Date },
+  time_out: { type: Date },
+  total_hours: { type: Number },
+}, { timestamps: true });
+
+employeeSchema.pre('save', async function(next) {
+  if (!this.isModified('employee_password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.employee_password = await bcrypt.hash(this.employee_password, salt);
+    next();
+  } catch(err) {
+    next(err);
+  }
 });
+
+employeeSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.employee_password);
+};
 
 module.exports = mongoose.model('Employee', employeeSchema, 'employee');

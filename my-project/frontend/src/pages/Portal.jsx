@@ -1,8 +1,13 @@
+import { useEffect } from "react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
 const Portal = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "JJM MANUFACTURING - Portal";
+  },[]);
 
   const admin = () => {
     navigate("/login");
@@ -12,13 +17,13 @@ const Portal = () => {
     navigate("/employeelogin");
   };
   return (
-    <div className="relative flex flex-col justify-center items-center h-screen bg-gradient-to-r from-blue-300 to-purple-200 overflow-hidden">
+    <div className="relative flex flex-col justify-center items-center h-screen overflow-hidden">
       {/* Vector-like design */}
       <div className="absolute inset-0 opacity-20 bg-[url('https://www.svgrepo.com/show/303002/abstract-shapes.svg')] bg-no-repeat bg-center bg-cover"></div>
 
       {/* Centered Title */}
-      <h1 className="text-4xl font-bold mb-8 text-white text-center z-10">
-        Welcome to the Employee Portal
+      <h1 className="text-4xl font-bold mb-8 text-black text-center z-10">
+        Welcome to the JJM Manufacturing Portal
       </h1>
 
       {/* Card Grid */}

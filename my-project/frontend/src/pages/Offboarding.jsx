@@ -1,16 +1,26 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 
 const Offboarding = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.title = "Offboarding";
-  });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
+  }, [navigate]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
   return (
     <div>
       <div className="flex">
@@ -27,7 +37,7 @@ const Offboarding = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Offboarding
+export default Offboarding;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
+import { useNavigate } from "react-router-dom";
 
 const Onboarding = () => {
   useEffect(() => {
@@ -11,6 +12,17 @@ const Onboarding = () => {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Offboarding";
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
+  }, [navigate]);
   return (
     <div>
       <div className="flex">

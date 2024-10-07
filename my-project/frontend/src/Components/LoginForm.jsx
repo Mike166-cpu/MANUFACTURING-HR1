@@ -35,21 +35,21 @@ const LoginForm = () => {
         return;
       }
   
-      const data = await response.json(); // Get the response data
-      console.log("Login response data:", data); // Log the response data
+      const data = await response.json(); 
+      console.log("Login response data:", data); 
+
+      // Store the token in local storage
+      localStorage.setItem("token", data.token); // Store the token received from the server
+      localStorage.setItem("firstName", data.firstName); 
+      localStorage.setItem("lastName", data.lastName); 
   
-      // Save the firstName and lastName to localStorage
-      localStorage.setItem("firstName", data.firstName); // This could be undefined
-      localStorage.setItem("lastName", data.lastName); // This could also be undefined
-  
-      navigate("/dashboard");
+      navigate("/dashboard"); // Redirect to dashboard after successful login
     } catch (error) {
       setError("An error occurred during login.");
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }
   };
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-500">

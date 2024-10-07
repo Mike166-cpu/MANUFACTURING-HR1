@@ -13,18 +13,36 @@ import Portal from "./pages/Portal";
 import EmployeeSignupForm from "./pages/EmployeeSingupForm";
 import EmployeeLoginForm from "./pages/EmployeeLoginForm";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import IncidentReport from "./pages/submodules/IncidentReport.jsx";
+import IncidentReportForm from "./pages/submodules/IncidentReportForm.jsx";
+import FileIncident from "./pages/submodules/FileIncident.jsx";
+import CompanyPolicy from "./pages/submodules/CompanyPolicy.jsx";
+import TimeTracking from "./pages/submodules/Timetracking.jsx";
+
 
 function App() {
   return (
     <Router>
       <Routes>
+
+        {/*DEFAULT ROUTE*/}
         <Route path="/" element={<Portal />} />
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/signup" element={<SignUpForm />} />
+
+        {/*EMPLOYEE PAGE*/}
         <Route path="/employeesignup" element={<EmployeeSignupForm />} />
         <Route path="/employeelogin" element={<EmployeeLoginForm />} />
         <Route path="/employeesignup" element={<EmployeeSignupForm />} />
         <Route path="/employeedashboard" element={<EmployeeDashboard />} />
+        <Route path="/fileincident" element={<FileIncident />} />
+        <Route path="/companypolicy" element={<CompanyPolicy />} />
+        <Route path="/timeTracking" element={<TimeTracking />} />
+
+
+        {/*ADMIN PAGE*/}
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/signup" element={<SignUpForm />} />
+        <Route path="/incidentreport" element={<IncidentReport />} />
+        <Route path="/reportform" element={<IncidentReportForm />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/employeerecords" element={<EmployeeRecords />} />
         <Route path="/compliance" element={<Compliance />} />

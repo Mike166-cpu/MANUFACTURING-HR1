@@ -1,26 +1,46 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Import Navigate
+import EmployeeNavbar from "../Components/EmployeeNavbar";
+import Swal from "sweetalert2";
+
 
 const EmployeeDashboard = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Sidebar state
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      // Show SweetAlert if not logged in
+      Swal.fire({
+        title: "Not Logged In",
+        text: "You are not logged in. Redirecting to Login Page",
+        icon: "warning",
+        confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/employeelogin");
+      });
+    }
+  }, [navigate]);
+
+  const handleSidebarToggle = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div>
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
-        <div className="card w-full max-w-4xl bg-base-100 shadow-xl">
-          <div className="card-body">
-            <h2 className="card-title text-center text-2xl">
-              Welcome to the Dashboard!
-            </h2>
-            <p className="text-center mt-4">
-              You are now logged in. Here you can manage your employee data,
-              view records, and access other features.
-            </p>
-
-            {/* Add more dashboard features here */}
-            <div className="mt-8 flex justify-center gap-4">
-              <button className="btn btn-primary">View Employee Records</button>
-              <button className="btn btn-secondary">Manage Compliance</button>
-              <button className="btn btn-accent">View Reports</button>
-            </div>
-          </div>
+      <EmployeeNavbar
+        onSidebarToggle={handleSidebarToggle}
+        isSidebarOpen={isSidebarOpen}
+      />
+      <div
+        className={`transition-all duration-300 ease-in-out flex-grow p-4 ${
+          isSidebarOpen ? "ml-64" : "ml-0"
+        }`}
+      >
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
         </div>
       </div>
     </div>

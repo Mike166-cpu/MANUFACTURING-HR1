@@ -82,7 +82,6 @@ const SignUpForm = () => {
     <div className="min-h-screen flex items-center justify-center bg-base-500">
       <div className="bg-white rounded-lg shadow-lg p-10 w-full max-w-4xl">
         {" "}
-        {/* Increased max width */}
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
           Sign Up
         </h2>
@@ -90,7 +89,6 @@ const SignUpForm = () => {
           <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
         )}
         <form onSubmit={handleSubmit}>
-          {/* First Name, Last Name, Middle Name Fields in One Line */}
           <div className="mb-4 flex space-x-4">
             <div className="flex-1">
               <label className="block text-gray-700 text-sm font-semibold mb-2">
@@ -215,7 +213,7 @@ const SignUpForm = () => {
             />
           </div>
 
-          {/* Password Field with Show/Hide Feature */}
+          {/*Password Field*/}
           <div className="mb-6 relative">
             <label className="block text-gray-700 text-sm font-semibold mb-2">
               Password

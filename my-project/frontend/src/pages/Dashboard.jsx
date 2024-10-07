@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2"; 
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 import { Line, Pie } from "react-chartjs-2";
@@ -23,16 +25,29 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler, 
-  ArcElement 
+  Filler,
+  ArcElement
 );
 
-
-
 const Dashboard = () => {
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.title = "Dashboard";
-  }, []); // Add dependency array for useEffect
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({
+        title: "Not Logged In",
+        text: "You are not logged in. Redirecting to login page...",
+        icon: "warning",
+        confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/login");
+      });
+    }
+  }, [navigate]);
+
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -149,44 +164,60 @@ const Dashboard = () => {
             {/* Card 1 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
-                <h2 className="text-lg font-semibold text-gray-700">Total Users</h2>
+                <h2 className="text-lg font-semibold text-gray-700">
+                  Total Users
+                </h2>
                 <p className="text-3xl font-bold text-gray-900">1,234</p>
               </div>
               <div className="bg-blue-100 p-2 rounded-b-lg">
-                <p className="text-center text-sm text-blue-600">+ 25% from last month</p>
+                <p className="text-center text-sm text-blue-600">
+                  + 25% from last month
+                </p>
               </div>
             </div>
 
             {/* Card 2 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
-                <h2 className="text-lg font-semibold text-gray-700">Total Sales</h2>
+                <h2 className="text-lg font-semibold text-gray-700">
+                  Total Sales
+                </h2>
                 <p className="text-3xl font-bold text-gray-900">$56,789</p>
               </div>
               <div className="bg-green-100 p-2 rounded-b-lg">
-                <p className="text-center text-sm text-green-600">+ 10% from last month</p>
+                <p className="text-center text-sm text-green-600">
+                  + 10% from last month
+                </p>
               </div>
             </div>
 
             {/* Card 3 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
-                <h2 className="text-lg font-semibold text-gray-700">Total Revenue</h2>
+                <h2 className="text-lg font-semibold text-gray-700">
+                  Total Revenue
+                </h2>
                 <p className="text-3xl font-bold text-gray-900">$98,765</p>
               </div>
               <div className="bg-purple-100 p-2 rounded-b-lg">
-                <p className="text-center text-sm text-purple-600">+ 15% from last month</p>
+                <p className="text-center text-sm text-purple-600">
+                  + 15% from last month
+                </p>
               </div>
             </div>
 
             {/* Card 4 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
-                <h2 className="text-lg font-semibold text-gray-700">New Signups</h2>
+                <h2 className="text-lg font-semibold text-gray-700">
+                  New Signups
+                </h2>
                 <p className="text-3xl font-bold text-gray-900">45</p>
               </div>
               <div className="bg-yellow-100 p-2 rounded-b-lg">
-                <p className="text-center text-sm text-yellow-600">+ 5 from last month</p>
+                <p className="text-center text-sm text-yellow-600">
+                  + 5 from last month
+                </p>
               </div>
             </div>
           </div>

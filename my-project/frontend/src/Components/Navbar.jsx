@@ -2,17 +2,17 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
+import { MdListAlt } from "react-icons/md";
 
 const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   const [isBellOpen, setIsBellOpen] = useState(false);
   const [initials, setInitials] = useState("");
   const navigate = useNavigate();
 
-  // On component mount, get firstName and lastName from localStorage
   useEffect(() => {
     const firstName = localStorage.getItem("firstName");
     const lastName = localStorage.getItem("lastName");
-    
+
     if (firstName && lastName) {
       const initials = `${firstName[0]}${lastName[0]}`;
       setInitials(initials.toUpperCase());
@@ -33,8 +33,8 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
 
   return (
     <div
-      className={`navbar bg-base-100 sticky top-0 z-10 transition-all duration-300 shadow-md ${
-        isSidebarOpen ? "ml-64" : "ml-0"
+      className={`navbar bg-white sticky top-0 z-10 transition-all duration-300 shadow-md rounded-lg ${
+        isSidebarOpen ? "ml-80" : "ml-0"
       }`}
     >
       {/* Hamburger Menu for toggling sidebar */}
@@ -55,11 +55,24 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
             />
           </svg>
         </button>
+        <div className="flex items-center space-x-2">
+          <input
+            type="text"
+            placeholder="Search..."
+            className="input input-bordered w-full max-w-xs"
+          />
+          <button className="btn btn-primary">Search</button>
+        </div>
       </div>
 
-      {/* Profile and Notification Icons */}
+
       <div className="flex-none gap-2 ml-auto">
-        {/* Profile Avatar with Initials */}
+        <div className="relative">
+          <button className="btn btn-ghost btn-circle">
+            <FontAwesomeIcon icon={faBell} className="text-gray-600 text-lg" />
+          </button>
+        </div>
+
         <div className="dropdown dropdown-end">
           <div
             tabIndex={0}

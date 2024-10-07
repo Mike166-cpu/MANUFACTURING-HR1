@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
+import { useNavigate } from "react-router-dom";
 
 const AttendanceTime = () => {
   useEffect(() => {
@@ -11,6 +12,17 @@ const AttendanceTime = () => {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Offboarding";
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
+  }, [navigate]);
   return (
     <div>
       <div>
@@ -23,7 +35,9 @@ const AttendanceTime = () => {
           >
             <Navbar toggleSidebar={toggleSidebar} />
             <div className="p-4">
-              <h1 className="text-2xl font-bold">Attendance and Time Tracking</h1>
+              <h1 className="text-2xl font-bold">
+                Attendance and Time Tracking
+              </h1>
             </div>
           </div>
         </div>

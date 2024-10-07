@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const EmployeeSignupForm = () => {
   const [formData, setFormData] = useState({
@@ -40,7 +41,7 @@ const EmployeeSignupForm = () => {
     console.log("Form Data:", formData); // Log the form data before sending
 
     try {
-      const response = await fetch('http://localhost:5000/api/employee/add', {
+      const response = await fetch("http://localhost:5000/api/employee/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,7 +55,7 @@ const EmployeeSignupForm = () => {
       }
 
       const data = await response.json();
-      console.log(data.message); 
+      console.log(data.message);
       alert("Login successful! Welcome aboard!");
     } catch (error) {
       console.error(error);
@@ -286,6 +287,17 @@ const EmployeeSignupForm = () => {
               <button type="submit" className="btn btn-primary">
                 Signup
               </button>
+
+              <p className="text-center mt-4">
+                Already have an account?
+                <Link
+                  to="/employeelogin"
+                  className="text-green-600 hover:underline"
+                >
+                  {" "}
+                  Sign Up
+                </Link>
+              </p>
             </div>
           </form>
         </div>

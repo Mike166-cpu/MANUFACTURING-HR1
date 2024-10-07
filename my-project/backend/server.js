@@ -2,17 +2,22 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
+const incidentReportRoute = require('./routes/incidentReport');
 const employeeRoutes = require("./routes/employee");
-
 const corsMiddleware = require("./middleware/corsMiddleware");
 const jsonParserMiddleware = require("./middleware/jsonParserMiddleware");
 
+
 const app = express();
+app.use(express.json()); // Use JSON parsing
 const PORT = process.env.PORT || 5000;
 
 app.use(corsMiddleware());
 app.use(jsonParserMiddleware());
+
 app.use("/api/employee", employeeRoutes);
+app.use('/api/incidentreport', incidentReportRoute);
+
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -20,6 +25,7 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 const User = require("./models/User");
+
 
 // Signup route for Admin
 app.post("/signup", async (req, res) => {

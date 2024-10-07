@@ -2,18 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-
 /* Add this CSS for the shake animation */
 @keyframes shake {
-    0% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    50% { transform: translateX(5px); }
-    75% { transform: translateX(-5px); }
-    100% { transform: translateX(0); }
+  0% {
+    transform: translateX(0);
   }
-  
-  .shake {
-    animation: shake 0.2s ease-in-out;
+  25% {
+    transform: translateX(-5px);
   }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-5px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
 
-  
+.shake {
+  animation: shake 0.2s ease-in-out;
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar {
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: transparent transparent; /* For Firefox */
+}
+
+/* For Chrome, Safari, and Edge */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px; /* Set scrollbar width */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent; /* Set thumb to transparent */
+  border-radius: 4px; /* Optional: round the edges */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Set track to transparent */
+}
+
