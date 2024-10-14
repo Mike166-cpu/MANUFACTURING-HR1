@@ -4,7 +4,7 @@ const timeTrackingSchema = new mongoose.Schema({
   employee_username: { type: String, required: true },
   time_in: { type: Date, required: true },
   time_out: { type: Date },
-  total_hours: { type: Number },
+  total_hours: { type: String },
 });
 
 const TimeTracking = mongoose.model('TimeTracking', timeTrackingSchema);

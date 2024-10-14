@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2"; 
+import Swal from "sweetalert2";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 import { Line, Pie } from "react-chartjs-2";
@@ -35,7 +35,7 @@ const Dashboard = () => {
   useEffect(() => {
     document.title = "Dashboard";
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",
@@ -47,7 +47,6 @@ const Dashboard = () => {
       });
     }
   }, [navigate]);
-
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -138,11 +137,9 @@ const Dashboard = () => {
         <Navbar toggleSidebar={toggleSidebar} />
         {/* MAIN CONTENT */}
         <div className="p-4">
-          <h1 className="text-2xl font-bold mb-6 pb-4">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold mb-6 pb-4">Welcome to Dashboard</h1>
 
-          {/* Line Graph and Pie Chart */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Line Graph */}
             <div className="bg-white shadow-lg p-4 rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <h2 className="text-lg font-semibold text-gray-700 mb-4">
                 Sales and Expenses Over Time
@@ -150,7 +147,6 @@ const Dashboard = () => {
               <Line data={lineData} options={lineOptions} />
             </div>
 
-            {/* Pie Chart */}
             <div className="bg-white shadow-lg p-4 rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <h2 className="text-lg font-semibold text-gray-700 mb-4">
                 Traffic Sources
@@ -159,9 +155,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Cards Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Card 1 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
                 <h2 className="text-lg font-semibold text-gray-700">
@@ -176,7 +170,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Card 2 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
                 <h2 className="text-lg font-semibold text-gray-700">
@@ -191,7 +184,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Card 3 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
                 <h2 className="text-lg font-semibold text-gray-700">
@@ -206,7 +198,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Card 4 */}
             <div className="bg-white shadow-lg rounded-lg overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
               <div className="p-4">
                 <h2 className="text-lg font-semibold text-gray-700">

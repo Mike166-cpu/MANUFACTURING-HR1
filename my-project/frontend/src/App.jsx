@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import LoginForm from "./Components/LoginForm";
 import SignUpForm from "./Components/SignUpForm";
@@ -17,7 +18,8 @@ import IncidentReport from "./pages/submodules/IncidentReport.jsx";
 import IncidentReportForm from "./pages/submodules/IncidentReportForm.jsx";
 import FileIncident from "./pages/submodules/FileIncident.jsx";
 import CompanyPolicy from "./pages/submodules/CompanyPolicy.jsx";
-import TimeTracking from "./pages/submodules/Timetracking.jsx";
+import TimeTracking from "./pages/submodules/TimeTracking.jsx";
+import EditProfile from "./pages/submodules/EditProfile.jsx";
 
 
 function App() {
@@ -36,6 +38,7 @@ function App() {
         <Route path="/fileincident" element={<FileIncident />} />
         <Route path="/companypolicy" element={<CompanyPolicy />} />
         <Route path="/timeTracking" element={<TimeTracking />} />
+        <Route path="/profile" element={<EditProfile />} />
 
 
         {/*ADMIN PAGE*/}

@@ -11,7 +11,7 @@ const IncidentReportTable = () => {
   useEffect(() => {
     document.title = "Dashboard";
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",

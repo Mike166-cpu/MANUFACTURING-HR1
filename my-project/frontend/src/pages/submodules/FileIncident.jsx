@@ -6,7 +6,7 @@ import axios from "axios";
 const FileIncident = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Sidebar state
 
-  const authToken = localStorage.getItem("authToken");
+  const authToken = localStorage.getItem("employeeToken");
   if (!authToken) {
     return <Navigate to="/employeelogin" replace />;
   }

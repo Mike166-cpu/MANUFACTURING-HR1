@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import logo from "../../src/assets/logo-2.png";
 
 const EmployeeLoginForm = () => {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ const EmployeeLoginForm = () => {
   });
 
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
 
   const handleChange = (e) => {
     setFormData({
@@ -20,7 +22,7 @@ const EmployeeLoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-  
+
     try {
       const response = await fetch(
         "http://localhost:5000/api/employee/login-employee",
@@ -32,26 +34,36 @@ const EmployeeLoginForm = () => {
           body: JSON.stringify(formData),
         }
       );
-  
-      console.log("Response status:", response.status);
       const data = await response.json();
-      console.log("Response data:", data);
-  
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Login failed");
+        throw new Error("Login failed");
       }
-  
+
       // Store employee data in local storage
-      localStorage.setItem("authToken", data.token); // Optional if you're using tokens
+      localStorage.setItem("employeeToken", data.token);
       localStorage.setItem("employeeFirstName", data.employee_firstname);
       localStorage.setItem("employeeLastName", data.employee_lastname);
-      localStorage.setItem("employeeUsername", data.employee_username); // Ensure this line is present
-  
-      // Retrieve username from local storage
+      localStorage.setItem("employeeUsername", data.employee_username);
+      localStorage.setItem("employeeEmail", data.employee_email);
+      localStorage.setItem("employeeDepartment", data.employee_department);
+      localStorage.setItem(
+        "employeeMiddleName",
+        data.employee_middlename || ""
+      );
+      localStorage.setItem("employeeSuffix", data.employee_suffix || "");
+      localStorage.setItem("employeePhone", data.employee_phone || "");
+      localStorage.setItem("employeeAddress", data.employee_address || "");
+      localStorage.setItem(
+        "employeeDateOfBirth",
+        data.employee_dateOfBirth || ""
+      );
+      localStorage.setItem("employeeGender", data.employee_gender || "");
+
       const employeeUsername = localStorage.getItem("employeeUsername");
-  
+
       console.log(data.message);
+      console.log(data);
       alert(`Login successful! Welcome back, ${employeeUsername}!`);
       navigate("/employeedashboard");
     } catch (error) {
@@ -59,61 +71,92 @@ const EmployeeLoginForm = () => {
       setError(error.message);
     }
   };
-  
+
   return (
-    <div className="flex justify-center items-start min-h-screen pt-10">
-      <div className="card w-full max-w-md bg-base-100 shadow-xl mx-auto">
-        <div className="card-body">
-          <h2 className="card-title text-center justify-center font-bold">
-            Employee Login
+    <div className="flex justify-center items-center min-h-screen bg-blue-300 bg-opacity-15 overflow-auto">
+      <div className="card w-full max-w-md lg:max-w-sm bg-white shadow-lg rounded-xl p-6 border mx-4">
+        <div className="flex justify-center gap-x-2 pb-4">
+          <img
+            src={logo}
+            alt="jjm logo"
+            className="w-12 h-12 rounded-full border-2"
+          />
+          <h2 className="text-2xl lg:text-3xl font-medium text-center text-gray-600 mt-1">
+            LOGIN
           </h2>
-          <form onSubmit={handleSubmit}>
-            <div className="form-control mt-4">
-              <label className="label">
-                <span className="label-text">Username</span>
-              </label>
-              <input
-                type="text"
-                name="employee_username"
-                value={formData.employee_username}
-                onChange={handleChange}
-                placeholder="Enter your username"
-                className="input input-bordered"
-                required
-              />
-            </div>
-            <div className="form-control mt-4">
-              <label className="label">
-                <span className="label-text">Password</span>
-              </label>
-              <input
-                type="password"
-                name="employee_password"
-                value={formData.employee_password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className="input input-bordered"
-                required
-              />
-            </div>
-            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-            <div className="form-control mt-6">
-              <button type="submit" className="btn btn-primary">
-                Login
-              </button>
-              <p className="text-center mt-4">
-                Don't have an account?
-                <Link
-                  to="/employeesignup"
-                  className="text-green-600 hover:underline"
-                >
-                  {" "}
-                  Sign Up
-                </Link>
-              </p>
-            </div>
-          </form>
         </div>
+
+        {error && (
+          <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
+        )}
+        <form onSubmit={handleSubmit} className="mt-4">
+          <label className="text-sm">Username</label>
+          <div className="form-control mb-4">
+            <input
+              type="text"
+              name="employee_username"
+              value={formData.employee_username}
+              onChange={handleChange}
+              placeholder="Username"
+              className="input input-bordered h-12 rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+          </div>
+          <div className="form-control mb-4 relative">
+            <div className="flex gap-x-">
+              <label className="block text-gray-700 text-sm mb-2">
+                Password
+              </label>
+
+              <label className="block text-sm mb-2 justify-end ml-auto text-green-600">
+                Forgot Password?
+              </label>
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              name="employee_password"
+              value={formData.employee_password}
+              onChange={handleChange}
+              placeholder="Password"
+              className=" input input-bordered h-12 rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500 pr-10"
+              required
+            />
+            <div className="flex text-sm justify-end items-center mt-2">
+              <input
+                type="checkbox"
+                id="show-password"
+                checked={showPassword}
+                onChange={() => setShowPassword(!showPassword)}
+                className="mr-2 h-4 w-4 cursor-pointer"
+              />
+              <label
+                htmlFor="show-password"
+                className="text-gray-600 cursor-pointer"
+              >
+                Show Password
+              </label>
+            </div>
+          </div>
+
+          <div className="form-control">
+            <button
+              type="submit"
+              className="btn btn-primary rounded-md bg-blue-600 hover:bg-blue-700 text-white py-2 w-full"
+            >
+              Login
+            </button>
+            <p className="text-center mt-4 text-gray-600 text-sm">
+              Don't have an account?
+              <Link
+                to="/employeesignup"
+                className="text-blue-600 hover:underline"
+              >
+                {" "}
+                Sign Up
+              </Link>
+            </p>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -18,6 +18,24 @@ app.use(jsonParserMiddleware());
 app.use("/api/employee", employeeRoutes);
 app.use('/api/incidentreport', incidentReportRoute);
 
+const cors = require('cors');
+
+const allowedOrigins = ['http://localhost:3000', 'https://hr1.jjm-manufacturing.com'];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: 'GET,POST,PUT,DELETE',
+  credentials: true,
+}));
+
+
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -25,6 +43,11 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 const User = require("./models/User");
+
+app.get("/", (req, res) => {
+  res.send("Hello world ");
+});
+
 
 
 // Signup route for Admin

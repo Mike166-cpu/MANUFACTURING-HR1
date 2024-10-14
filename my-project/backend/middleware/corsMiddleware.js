@@ -1,5 +1,5 @@
-const cors = require("cors");
+    const cors = require("cors");
 
-const corsMiddleware = () => cors(); // Enable CORS for all origins
+    const corsMiddleware = () => cors(); 
 
-module.exports = corsMiddleware;
+    module.exports = corsMiddleware;

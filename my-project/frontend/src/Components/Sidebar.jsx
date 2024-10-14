@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { LuLayoutDashboard, LuPackage, LuBox } from "react-icons/lu";
+import { LuPackage } from "react-icons/lu";
 import { RiArchiveDrawerLine, RiPagesLine } from "react-icons/ri";
-import { BsChatLeft } from "react-icons/bs";
 import { ImDrawer } from "react-icons/im";
-import { IoDesktopSharp } from "react-icons/io5";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MdListAlt } from "react-icons/md";
-import Divider from "@mui/material/Divider";
+import { TbReport } from "react-icons/tb";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa";
 import { FaUsers } from "react-icons/fa";
+import { RxDashboard } from "react-icons/rx";
+import logo from "../../src/assets/logo-2.png";
+import { TbChalkboard } from "react-icons/tb";
+
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -37,26 +39,30 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   return (
     <div
-      className={`fixed left-0 top-0 w-80 bg-white h-full shadow-lg z-50 transform ${
+      className={`fixed left-0 top-0 w-80  h-full shadow-lg z-50 transform ${
         isOpen ? "translate-x-0" : "-translate-x-full"
-      } transition-transform duration-300 ease-in-out`}
+      }  transition-transform duration-300 ease-in-out bg-gradient-to-r from-white/100 to-transparent backdrop-blur-lg`}
     >
       <div className="p-4 bg-base-500 h-full overflow-y-auto custom-scrollbar">
-        <div className="mt-4 space-y-4">
-          <div className="flex items-center justify-center">
-            <LuLayoutDashboard size="2.5rem" />
-            <h1 className="font-extrabold text-xl pt-1 pl-3">Dashboard</h1>
+        <div className="mt-1 space-y-4">
+          <div className="flex items-start justify-start">
+            <img
+              src={logo}
+              alt="jjm logo"
+              className="w-12 h-12 rounded-full border-2"
+            />
+            <h1 className="font-extrabold text-l pl-3 pt-3">Admin Dashboard</h1>
           </div>
+          <hr />
           <div
             className={`flex items-center p-2 rounded-md transition-all duration-200 ${
               activePage === "/dashboard"
-                ? "bg-gray-200 text-black"
-                : "hover:bg-gray-200"
+                ? "bg-gray-200 text-black shadow-md" : "hover:bg-gray-200 hover:shadow-md"
             }`}
             onClick={() => handleNavigation("/dashboard")}
           >
-            <IoDesktopSharp size="1.4rem" />
-            <span className="font-semibold text-[0.875rem] pl-[5px]">
+            <RxDashboard size="1.4rem" />
+            <span className="font-semibold text-[15px] pl-[5px]">
               Dashboard
             </span>
           </div>
@@ -64,7 +70,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
         <ul className="mt-4 space-y-4">
           <li>
-            <span className="text-gray-400 text-sm font-semibold">Modules</span>
+            <span className="text-gray-400 text-[11px] font-medium">MODULES</span>
 
             {/*EMPLOYEE RECORDS MANAGEMENT */}
             <div
@@ -72,7 +78,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               onClick={toggleSubmenu}
             >
               <ImDrawer size="1.4rem" />
-              <span className="font-bold text-[0.875rem] pl-[5px]">
+              <span className="font-semibold text-[0.875rem] pl-[7px] pt-2">
                 Employee Records
               </span>
               {isSubmenuOpen ? (
@@ -94,25 +100,18 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                     }`}
                     onClick={() => handleNavigation("/employeeInfo")}
                   >
-                    <FaUsers size="1.4rem" />
-                    <span className="ml-2 font-medium">
-                      Employee List
-                    </span>
-                  </div>
-                  <hr className="p-1 opacity-0" />
-                  <div className="submenu-item w-full p-2 hover:bg-gray-300 cursor-pointer rounded-md">
-                    Add Employee
+                    <FaUsers className="ml-5" size="1.4rem" />
+                    <span className="ml-3 font-medium">Employee List</span>
                   </div>
                 </div>
-                <hr className="p-1 opacity-0" />
               </div>
             )}
 
             {/*HR COMPLIANCE SECTION */}
-            <Divider />
-            <div>
-              <span className="text-sm font-medium text-gray-400">
-                Company Policy
+
+            <div className="mt-3">
+              <span className="text-[11px] font-medium text-gray-400">
+                COMPANY POLICIES
               </span>
             </div>
             <div
@@ -120,7 +119,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               onClick={toggleCompliance}
             >
               <RiPagesLine size="1.4rem" />
-              <span className="font-bold text-[0.875rem] pl-[5px]">
+              <span className="font-semibold text-[0.875rem] pl-[5px]">
                 HR Compliance
               </span>
               {isComplianceOpen ? (
@@ -142,8 +141,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                     }`}
                     onClick={() => handleNavigation("/compliance")}
                   >
-                    <MdListAlt size="1.4rem" />
-                    <span className="font-semibold text-[0.875rem] pl-[5px]">
+                    <MdListAlt size="1.4rem" className="ml-5" />
+                    <span className="font-semibold text-[0.875rem] ml-1">
                       Compliance List
                     </span>
                   </div>
@@ -156,8 +155,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                     }`}
                     onClick={() => handleNavigation("/incidentreport")}
                   >
-                    <MdListAlt size="1.4rem" />
-                    <span className="font-semibold text-[0.875rem] pl-[5px]">
+                    <TbReport size="1.4rem" className="ml-5" />
+                    <span className="font-semibold text-[0.875rem] ml-1">
                       Incident Report
                     </span>
                   </div>
@@ -167,7 +166,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             )}
 
             {/*ONBOARDING SECTION */}
-            <Divider />
+            <div className="mt-3">
+              <span className="text-[11px] font-medium text-gray-400">
+                ONBOARDING & OFFBOARDING PROCESS
+              </span>
+            </div>
             <div
               className={`flex items-center p-2 rounded-md transition-all duration-200 ${
                 activePage === "/onboarding"
@@ -176,7 +179,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               }`}
               onClick={() => handleNavigation("/onboarding")}
             >
-              <LuBox size="1.4rem" />
+              <TbChalkboard size="1.4rem" />
               <span className="font-semibold text-[0.875rem] pl-[5px]">
                 Onboarding
               </span>
@@ -200,6 +203,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <hr className="p-1 opacity-0" />
 
             {/*Attendance and time tracking*/}
+            <div className="mt-3">
+              <span className="text-[11px] font-medium text-gray-400">
+                ATTENDANCE AND TIME TRACKING
+              </span>
+            </div>
             <div
               className={`flex items-center p-2 rounded-md transition-all duration-200 ${
                 activePage === "/atattendancetimete"

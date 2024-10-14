@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
-import { MdListAlt } from "react-icons/md";
+import { FaRegUserCircle } from "react-icons/fa";
+import { FiSettings } from "react-icons/fi";
+import { MdLogout } from "react-icons/md";
+
 
 const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
-  const [isBellOpen, setIsBellOpen] = useState(false);
   const [initials, setInitials] = useState("");
   const navigate = useNavigate();
 
@@ -18,7 +20,6 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
       setInitials(initials.toUpperCase());
     }
   }, []);
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("firstName");
@@ -26,14 +27,9 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
     navigate("/login", { replace: true });
   };
 
-  // Toggle the bell dropdown
-  const toggleBellDropdown = () => {
-    setIsBellOpen((prev) => !prev);
-  };
-
   return (
     <div
-      className={`navbar bg-white sticky top-0 z-10 transition-all duration-300 shadow-md rounded-lg ${
+      className={`navbar bg-white sticky top-0 z-10 transition-all duration-300 shadow-md ${
         isSidebarOpen ? "ml-80" : "ml-0"
       }`}
     >
@@ -65,7 +61,6 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
         </div>
       </div>
 
-
       <div className="flex-none gap-2 ml-auto">
         <div className="relative">
           <button className="btn btn-ghost btn-circle">
@@ -73,7 +68,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
           </button>
         </div>
 
-        <div className="dropdown dropdown-end">
+        <div className="dropdown dropdown-end mr-5">
           <div
             tabIndex={0}
             role="button"
@@ -88,13 +83,22 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
             className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
           >
             <li>
-              <a className="justify-between">Profile</a>
+              <a>
+                {" "}
+                <FaRegUserCircle size={"18px"} />
+                Profile
+              </a>
             </li>
             <li>
-              <a>Settings</a>
+              <a>
+                {" "}
+                <FiSettings size={"18px"} />
+                Settings
+              </a>
             </li>
             <li>
               <a onClick={handleLogout} className="text-red-600">
+              <MdLogout size={"18px"}/>
                 Logout
               </a>
             </li>
