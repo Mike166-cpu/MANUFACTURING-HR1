@@ -63,7 +63,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           >
             <RxDashboard size="1.4rem" />
             <span className="font-semibold text-[15px] pl-[5px]">
-              Dashboard
+              Home
             </span>
           </div>
         </div>

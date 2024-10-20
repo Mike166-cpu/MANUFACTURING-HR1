@@ -179,7 +179,7 @@ router.post("/time-out", async (req, res) => {
 // Fetch all time tracking records
 router.get("/time-tracking", async (req, res) => {
   try {
-    const records = await TimeTracking.find(); // Fetch all records
+    const records = await TimeTracking.find();
     res.status(200).json(records);
   } catch (error) {
     console.error("Error fetching all time tracking records:", error);
@@ -202,7 +202,7 @@ router.get("/time-tracking/:username", async (req, res) => {
 
 // Delete time tracking record
 router.delete("/time-tracking/:id", async (req, res) => {
-  const { id } = req.params; // Get the record ID from the URL
+  const { id } = req.params; 
 
   try {
     const deletedRecord = await TimeTracking.findByIdAndDelete(id);
@@ -277,13 +277,11 @@ router.put("/employee/:username/change-password", async (req, res) => {
       return res.status(404).json({ message: "Employee not found." });
     }
 
-    // Verify current password
     const isPasswordValid = await bcrypt.compare(currentPassword, employee.employee_password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Current password is incorrect." });
     }
 
-    // Hash the new password
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     employee.employee_password = hashedNewPassword;
 
@@ -323,5 +321,44 @@ router.put("/:username", async (req, res) => {
 });
 
 
+// Fetch current user data
+router.get("/current-user", async (req, res) => {
+  const { employee_username } = req.user; // Assuming you have user data stored in req.user (via authentication middleware)
+
+  try {
+    const employee = await Employee.findOne({ employee_username });
+    if (!employee) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      employee_firstname: employee.employee_firstname,
+      employee_lastname: employee.employee_lastname,
+      employee_email: employee.employee_email,
+      employee_phone: employee.employee_phone,
+      employee_address: employee.employee_address,
+      employee_department: employee.employee_department,
+      employee_dateOfBirth: employee.employee_dateOfBirth,
+      employee_gender: employee.employee_gender,
+    });
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get('/profile/:username', async (req, res) => {
+  try {
+    const employee = await Employee.findOne({ employee_username: req.params.username });
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+    res.json(employee);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;
+

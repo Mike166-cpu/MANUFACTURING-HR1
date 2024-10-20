@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import EmployeeNavbar from "../../Components/EmployeeNavbar";
 import { MdOutlineAccountCircle } from "react-icons/md";
 import { IoMdLock } from "react-icons/io";
+import EmployeeSidebar from "../../Components/EmployeeSidebar";
+import EmployeeNav from "../../Components/EmployeeNav";
 
 const EditProfile = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeSection, setActiveSection] = useState("editProfile"); // Toggle between Edit Profile and Change Password
+  const [isMenuOpen, setIsMenuOpen] = useState(true);
+  const [activeSection, setActiveSection] = useState("personalInformation");
 
-  // State to hold the employee's profile data
   const [employeeData, setEmployeeData] = useState({
     employee_firstname: "",
     employee_middlename: "",
@@ -23,14 +23,12 @@ const EditProfile = () => {
     employee_department: "",
   });
 
-  // Password state
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  // Fetch data from localStorage when the component mounts
   useEffect(() => {
     const employeeFirstName = localStorage.getItem("employeeFirstName");
     const employeeMiddleName = localStorage.getItem("employeeMiddleName");
@@ -44,7 +42,6 @@ const EditProfile = () => {
     const employeeGender = localStorage.getItem("employeeGender");
     const employeeDepartment = localStorage.getItem("employeeDepartment");
 
-    // Set the data into the state
     setEmployeeData({
       employee_firstname: employeeFirstName || "",
       employee_middlename: employeeMiddleName || "",
@@ -60,254 +57,405 @@ const EditProfile = () => {
     });
   }, []);
 
-  // Handle input change for each field
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEmployeeData({
-      ...employeeData,
+    setEmployeeData((prevData) => ({
+      ...prevData,
       [name]: value,
-    });
+    }));
   };
 
-  // Handle password input change
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData({
-      ...passwordData,
+    setPasswordData((prevData) => ({
+      ...prevData,
       [name]: value,
-    });
+    }));
   };
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleSubmitPersonalInfo = (e) => {
+    e.preventDefault();
+    console.log("Personal Information:", employeeData);
+  };
+
+  const handleSubmitPassword = (e) => {
+    e.preventDefault();
+    console.log("Password Data:", passwordData);
+  };
+
+  const [profileImage, setProfileImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState("");
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setProfileImage(file);
+    setPreviewImage(URL.createObjectURL(file));
+  };
+
   return (
-    <div className="h-screen">
-      <EmployeeNavbar
+    <div className="flex">
+      <EmployeeSidebar
         onSidebarToggle={handleSidebarToggle}
         isSidebarOpen={isSidebarOpen}
       />
       <div
-        className={`transition-all duration-300 ease-in-out flex-grow ${
-          isSidebarOpen ? "ml-64" : "ml-0"
+        className={`flex-grow transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "ml-72" : "ml-0"
         }`}
       >
-        {/*MAIN CONTENT*/}
-        <div className="flex w-full h-screen">
-          {/* Sidebar */}
-          <div
-            className={`transition-all duration-300 ease-in-out p-2 h-screen${
-              isSidebarOpen ? "w-96 md:w-96 " : "w-64 md:w-96 "
-            }`}
-          >
-            <ul>
-              <h1 className="text-2xl font-bold py-8">Settings</h1>
-              <div className="flex gap-2">
-                <div
-                  className={`cursor-pointer font-normal text-sm p-2 mb-2 w-full flex gap-2 ${
-                    activeSection === "editProfile"
-                      ? "bg-blue-100 text-gray-800 rounded-md"
-                      : ""
-                  }`}
-                  onClick={() => setActiveSection("editProfile")}
-                >
-                  <div>
-                    <MdOutlineAccountCircle className="w-6 h-6" />
-                  </div>
-                  Profile <br /> Manage your public profile and private
-                  information
-                </div>
-              </div>
+        <EmployeeNav
+          onSidebarToggle={handleSidebarToggle}
+          isSidebarOpen={isSidebarOpen}
+        />
+        {/* MAIN CONTENT */}
+        <div className="p-8 bg-slate-100 min-h-screen">
+          <h1 className="text-2xl font-semibold mb-6">Edit Profile</h1>
 
-              <div className="flex gap-2">
-                <div
-                  className={`cursor-pointer font-normal text-sm p-2 mb-2 w-full flex gap-2 ${
-                    activeSection === "changePassword"
-                      ? "bg-blue-100 text-gray-800 rounded-md"
-                      : ""
-                  }`}
-                  onClick={() => setActiveSection("changePassword")}
-                >
-                  <div>
-                    <IoMdLock className="w-6 h-6" />
-                  </div>
-                  Security <br /> Manage your password
-                </div>
-              </div>
-            </ul>
+          {/* Navigation Tabs */}
+          <div className="mb-6">
+            <nav className="flex border-b border-gray-200">
+              <button
+                onClick={() => setActiveSection("personalInformation")}
+                className={`mr-6 pb-2 ${
+                  activeSection === "personalInformation"
+                    ? "border-b-2 border-blue-600 text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
+              >
+                <MdOutlineAccountCircle className="inline-block mr-1" />
+                Personal Information
+              </button>
+              <button
+                onClick={() => setActiveSection("changePassword")}
+                className={`mr-6 pb-2 ${
+                  activeSection === "changePassword"
+                    ? "border-b-2 border-blue-600 text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
+              >
+                <IoMdLock className="inline-block mr-1" />
+                Change Password
+              </button>
+            </nav>
           </div>
 
-          {/* Main Content Area */}
-          <div className="flex p-6 w-full bg-gray-100">
-            {activeSection === "editProfile" ? (
-              <div>
-                <h2 className="text-2xl font-medium mb-4">Account</h2>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  {/* Form Fields */}
+          {/* Conditional Rendering Based on Active Section */}
+          {activeSection === "personalInformation" && (
+            <form onSubmit={handleSubmitPersonalInfo} className="space-y-6">
+       
+              {/* Personal Information Container */}
+             
+              <div className="bg-white p-6 rounded shadow">
+              <div className="mb-6">
+                <h2 className="text-xl font-medium mb-4">Profile Picture</h2>
+                <div className="flex items-center">
+                  <div className="mr-4">
+                    {previewImage ? (
+                      <img
+                        src={previewImage}
+                        alt="Profile Preview"
+                        className="w-24 h-24 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 bg- rounded-full flex items-center justify-center">
+                        <MdOutlineAccountCircle size={50} />
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+              </div>
+                <h2 className="text-xl font-medium mb-4">
+                  Personal Information
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="font-medium">First Name</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_firstname"
+                    >
+                      First Name
+                    </label>
                     <input
                       type="text"
+                      id="employee_firstname"
                       name="employee_firstname"
                       value={employeeData.employee_firstname}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm "
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="font-medium ">Middle Name</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_middlename"
+                    >
+                      Middle Name
+                    </label>
                     <input
                       type="text"
+                      id="employee_middlename"
                       name="employee_middlename"
                       value={employeeData.employee_middlename}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Last Name</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_lastname"
+                    >
+                      Last Name
+                    </label>
                     <input
                       type="text"
+                      id="employee_lastname"
                       name="employee_lastname"
                       value={employeeData.employee_lastname}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Suffix</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_suffix"
+                    >
+                      Suffix
+                    </label>
                     <input
                       type="text"
+                      id="employee_suffix"
                       name="employee_suffix"
                       value={employeeData.employee_suffix}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label className="font">Username</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_username"
+                    >
+                      Username
+                    </label>
                     <input
                       type="text"
+                      id="employee_username"
                       name="employee_username"
                       value={employeeData.employee_username}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Email</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_email"
+                    >
+                      Email
+                    </label>
                     <input
                       type="email"
+                      id="employee_email"
                       name="employee_email"
                       value={employeeData.employee_email}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Phone</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_phone"
+                    >
+                      Phone
+                    </label>
                     <input
-                      type="text"
+                      type="tel"
+                      id="employee_phone"
                       name="employee_phone"
                       value={employeeData.employee_phone}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Address</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_address"
+                    >
+                      Address
+                    </label>
                     <input
                       type="text"
+                      id="employee_address"
                       name="employee_address"
                       value={employeeData.employee_address}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Date of Birth</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_dateOfBirth"
+                    >
+                      Date of Birth
+                    </label>
                     <input
                       type="date"
+                      id="employee_dateOfBirth"
                       name="employee_dateOfBirth"
                       value={employeeData.employee_dateOfBirth}
                       onChange={handleInputChange}
-                      className="input input-bordered w-full text-sm"
-                      readOnly
+                      className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label className="font-medium">Gender</label>
-                    <input
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_gender"
+                    >
+                      Gender
+                    </label>
+                    <select
+                      id="employee_gender"
                       name="employee_gender"
-                      value={employeeData.employee_gende}
+                      value={employeeData.employee_gender}
                       onChange={handleInputChange}
-                      className="select select-bordered w-full text-sm"
-                    />
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                   <div>
-                    <label className="font">Department:</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="employee_department"
+                    >
+                      Department
+                    </label>
                     <input
                       type="text"
+                      id="employee_department"
                       name="employee_department"
                       value={employeeData.employee_department}
                       onChange={handleInputChange}
-                      className="input input-border w-full text-sm"
-                      readOnly
+                      className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                   </div>
                 </div>
-                <button className="btn btn-primary mt-4">Save Changes</button>
               </div>
-            ) : (
-              <div className="pt-5">
-                <h2 className="text-xl font-medium mb-4">Change Password</h2>
-                <div className="grid grid-cols-1 gap-2">
+
+              {/* Submit Button */}
+              <div className="text-right">
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          )}
+
+          {activeSection === "changePassword" && (
+            <form onSubmit={handleSubmitPassword} className="space-y-6">
+              {/* Change Password Container */}
+              <div className="bg-white p-6 rounded shadow">
+                <h2 className="text-xl font-medium mb-4 flex items-center">
+                  <IoMdLock className="mr-2" /> Change Password
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="font-medium text-sm">
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="currentPassword"
+                    >
                       Current Password
                     </label>
                     <input
                       type="password"
+                      id="currentPassword"
                       name="currentPassword"
                       value={passwordData.currentPassword}
                       onChange={handlePasswordChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="font-medium text-sm">New Password</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="newPassword"
+                    >
+                      New Password
+                    </label>
                     <input
                       type="password"
+                      id="newPassword"
                       name="newPassword"
                       value={passwordData.newPassword}
                       onChange={handlePasswordChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="font-medium text-sm">
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      htmlFor="confirmPassword"
+                    >
                       Confirm New Password
                     </label>
                     <input
                       type="password"
+                      id="confirmPassword"
                       name="confirmPassword"
                       value={passwordData.confirmPassword}
                       onChange={handlePasswordChange}
-                      className="input input-bordered w-full text-sm"
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      required
                     />
-                    <span className="text-sm pt-1 hover:underline cursor-pointer">Forgot password?</span>
                   </div>
                 </div>
-                <button className="btn btn-primary mt-4">
+              </div>
+
+              {/* Submit Button */}
+              <div className="text-right">
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors"
+                >
                   Change Password
                 </button>
               </div>
-            )}
-          </div>
+            </form>
+          )}
         </div>
-
-        {/*END OF MAIN CONTENT*/}
+        {/* MAIN CONTENT */}
       </div>
     </div>
   );

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { FaMoon, FaSun } from "react-icons/fa";
 
 const Portal = () => {
   const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "JJM MANUFACTURING - Portal";
+    document.title = "JJM Manufacturing - Portal";
   }, []);
 
   // Toggle dark mode
@@ -37,29 +38,12 @@ const Portal = () => {
       {/* Dark Mode Toggle Button */}
       <button
         onClick={toggleDarkMode}
-        className="absolute top-4 right-4 bg-gray-200 dark:bg-gray-700 p-2 rounded-full shadow-lg z-20"
+        className="absolute top-4 right-4 border-b-gray-700 bg-gray-300 dark:bg-gray-700 p-2 rounded-lg shadow-xl z-20"
       >
         {darkMode ? (
-          // Moon Icon for Dark Mode
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-yellow-400"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M10 2a8 8 0 00-.647 15.993A8 8 0 0010 2z" />
-            <path d="M12.576 14.823A8 8 0 019.174 18c-.017 0-.033-.004-.05-.004a9.979 9.979 0 01-.036-1.577A8.012 8.012 0 0012 10c.52 0 1.027.054 1.514.154A7.982 7.982 0 0112.576 14.823zM10 4a6 6 0 000 12 6 6 0 000-12z" />
-          </svg>
+          <FaSun className="h-5 w-5 text-yellow-400" />
         ) : (
-          // Sun Icon for Light Mode
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-gray-800"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M10 6a4 4 0 100 8 4 4 0 000-8zm2 10h-4v-2h4v2zm3-3.464l-1.414 1.414-1.414-1.414 1.414-1.414L15 12.536zM12.536 5l1.414 1.414-1.414 1.414L11 6.414 12.536 5zm1.414-1.414l1.414-1.414 1.414 1.414-1.414 1.414L14 3.086zm-8.485 8.485L3.086 15l-1.414-1.414 1.414-1.414L5 12.536zM4.586 5l1.414 1.414-1.414 1.414L3.172 6.414 4.586 5z" />
-          </svg>
+          <FaMoon className="h-5 w-5 text-gray-800" />
         )}
       </button>
 

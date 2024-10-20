@@ -20,6 +20,9 @@ import FileIncident from "./pages/submodules/FileIncident.jsx";
 import CompanyPolicy from "./pages/submodules/CompanyPolicy.jsx";
 import TimeTracking from "./pages/submodules/TimeTracking.jsx";
 import EditProfile from "./pages/submodules/EditProfile.jsx";
+import OnboardingFeedback from "./pages/submodules/OnboardingFeedback.jsx";
+import NotFound from "./pages/NotFound.jsx";
+import Profile from "./pages/submodules/Profile.jsx";
 
 
 function App() {
@@ -39,6 +42,8 @@ function App() {
         <Route path="/companypolicy" element={<CompanyPolicy />} />
         <Route path="/timeTracking" element={<TimeTracking />} />
         <Route path="/profile" element={<EditProfile />} />
+        <Route path="/feedback" element={<OnboardingFeedback />} />
+        <Route path="/userProfile" element={<Profile />}></Route>
 
 
         {/*ADMIN PAGE*/}
@@ -53,7 +58,10 @@ function App() {
         <Route path="/offboarding" element={<Offboarding />} />
         <Route path="/attendancetime" element={<AttendanceTime />} />
         <Route path="/employeeInfo" element={<EmployeeInfo />} />
-        <Route path="*" element={<LoginForm />} />
+
+        
+        {/*404 not found*/}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import EmployeeNavbar from "../Components/EmployeeNavbar";
+import EmployeeSidebar from "../Components/EmployeeSidebar";
+import EmployeeNav from "../Components/EmployeeNav";
 import Swal from "sweetalert2";
-import { RotatingLines } from 'react-loader-spinner';
+import { RotatingLines } from "react-loader-spinner";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import {
@@ -24,17 +25,19 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [timeRecords, setTimeRecords] = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [tasks, setTasks] = useState([]); // New: Task/Project state
+  const [announcements, setAnnouncements] = useState([]); // New: Announcements state
 
   const navigate = useNavigate();
 
   useEffect(() => {
+    document.title = "Dashboard - Home";
     const authToken = localStorage.getItem("employeeToken");
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
-    const department = localStorage.getItem("employee_department") || "Unknown";
+    const department = localStorage.getItem("employeeDepartment") || "Unknown";
 
     if (!authToken) {
-      // Show SweetAlert if not logged in
       Swal.fire({
         title: "Not Logged In",
         text: "You are not logged in. Redirecting to Login Page",
@@ -44,11 +47,12 @@ const EmployeeDashboard = () => {
         navigate("/employeelogin");
       });
     } else {
-      // Set employee details from localStorage
       setEmployeeFirstName(firstName);
       setEmployeeLastName(lastName);
       setEmployeeDepartment(department);
-      fetchTimeTrackingRecords(); // Fetch time records
+      fetchTimeTrackingRecords();
+      fetchTasks();
+      fetchAnnouncements();
     }
   }, [navigate]);
 
@@ -101,8 +105,8 @@ const EmployeeDashboard = () => {
       }
 
       if (record.total_hours) {
-        const hours = Math.floor(record.total_hours / 3600); // Convert total_hours to hours
-        const minutes = Math.floor((record.total_hours % 3600) / 60); // Get remaining minutes
+        const hours = Math.floor(record.total_hours / 3600);
+        const minutes = Math.floor((record.total_hours % 3600) / 60);
         grouped[dateKey].totalHours += hours;
         grouped[dateKey].totalMinutes += minutes;
       }
@@ -111,22 +115,35 @@ const EmployeeDashboard = () => {
     const chartDataArray = Object.keys(grouped).map((date) => {
       const totalHours =
         grouped[date].totalHours + Math.floor(grouped[date].totalMinutes / 60);
-      const totalMinutes = grouped[date].totalMinutes % 60; // Remaining minutes after converting to hours
+      const totalMinutes = grouped[date].totalMinutes % 60;
 
       return {
         date,
-        hours: `${totalHours}h ${totalMinutes}m`, // Format as "Xh Ym"
+        hours: `${totalHours}h ${totalMinutes}m`,
         totalHours: (
           grouped[date].totalHours +
           grouped[date].totalMinutes / 60
-        ).toFixed(2), // Total hours for the chart
+        ).toFixed(2),
       };
     });
 
-    // Sort the data by date ascending
     chartDataArray.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     setChartData(chartDataArray);
+  };
+
+  const fetchTasks = () => {
+    setTasks([
+      { name: "Project A", status: "In Progress", deadline: "2024-10-20" },
+      { name: "Task B", status: "Completed", deadline: "2024-10-10" },
+    ]);
+  };
+
+  const fetchAnnouncements = () => {
+    setAnnouncements([
+      { message: "Company holiday on 2024-11-01", date: "2024-10-15" },
+      { message: "HR Policy update", date: "2024-10-10" },
+    ]);
   };
 
   if (loading) {
@@ -142,66 +159,84 @@ const EmployeeDashboard = () => {
       </div>
     );
   }
+
   return (
-    <div>
-      <EmployeeNavbar
+    <div className="flex">
+      <EmployeeSidebar
         onSidebarToggle={handleSidebarToggle}
         isSidebarOpen={isSidebarOpen}
       />
       <div
-        className={`transition-all duration-300 ease-in-out flex-grow ${
-          isSidebarOpen ? "ml-64" : "ml-0"
-        } p-4`}
+        className={`flex-grow transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "ml-72" : "ml-0"
+        }`}
       >
-        <div className="w-full flex items-start justify-between mt-1 shadow-md p-5 rounded-lg">
-          <h2 className="flex text-2xl font-bold pt-4">Dashboard</h2>
-        </div>
-        <div className="flex justify-start py-5 flex-wrap gap-8">
-          {/* TIME TRACKING SUMMARY*/}
-          <div className="card w-full max-w-md bg-white border rounded-lg p-6 text-xs">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-              Your time tracking summary
-            </h2>
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis
-                    label={{
-                      value: "Hours",
-                      angle: -90,
-                      position: "insideLeft",
-                    }}
-                  />
-                  <Tooltip
-                    formatter={(value) => [value, "Total Hours Worked"]}
-                  />
-                  <Legend />
-                  <Bar
-                    dataKey="totalHours"
-                    fill="#8884d8"
-                    name="Total Hours Worked"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div>No time records available.</div>
-            )}
+        <EmployeeNav
+          onSidebarToggle={handleSidebarToggle}
+          isSidebarOpen={isSidebarOpen}
+        />
+        <div
+          className={`transition-all duration-300 ease-in-out flex-grow ${
+            isSidebarOpen ? "ml-0" : "ml-0"
+          } p-4`}
+        >
+          <div className="rounded-lg border shadow-sm py-5 px-5">
+            <h1 className="font-bold text-lg">
+              <span className="font-normal">Welcome back,</span>{" "}
+              {employeeFirstName
+                ? employeeFirstName
+                : "First name not available"}
+              !
+            </h1>
+            <Link to="/timetracking" className="text-blue text-sm underline-500 hover:underline hover:text-blue-600">
+              Start your time tracking now.
+            </Link>
           </div>
 
-          {/* Calendar Card */}
-          <div className=" card w-full max-w-md border  bg-white rounded-lg p-6 items-center">
-            <h2 className="text-xl font-bold text-center text-gray-800 mb-4">
-              Calendar
-            </h2>
-            <Calendar
-              onChange={(date) => console.log(date)}
-              value={new Date()}
-            />
-          </div>
+          <div className="flex flex-col md:flex-row justify-start py-5 flex-wrap gap-4 md:gap-8">
+            <div className="card w-full max-w-xs md:max-w-md bg-white border rounded-lg p-6 text-xs">
+              <h1 className="text-xl font medium pb-2 text-center">
+                Time tracking summary
+              </h1>
 
-          {/* TIME TRACKING SUMMARY*/}
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis
+                      label={{
+                        value: "Hours",
+                        angle: -90,
+                        position: "insideLeft",
+                      }}
+                    />
+                    <Tooltip
+                      formatter={(value) => [value, "Total Hours Worked"]}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="totalHours"
+                      fill="#8884d8"
+                      name="Total Hours Worked"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div>No time records available.</div>
+              )}
+            </div>
+
+            <div className="card w-full max-w-xs md:max-w-md border bg-white rounded-lg p-6 items-center">
+              <h2 className="text-xl font-bold text-center text-gray-800 mb-4">
+                Calendar
+              </h2>
+              <Calendar
+                onChange={(date) => console.log(date)}
+                value={new Date()}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

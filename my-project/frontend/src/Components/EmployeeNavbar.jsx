@@ -5,7 +5,7 @@ import { TfiDashboard } from "react-icons/tfi";
 import { FaRegUserCircle } from "react-icons/fa";
 import { FaRegBell } from "react-icons/fa";
 import { FaRegUser } from "react-icons/fa6";
-import { TbReportAnalytics } from "react-icons/tb";
+import { VscFeedback } from "react-icons/vsc";
 import logo from "../../src/assets/logo-2.png";
 import { TbFileReport } from "react-icons/tb";
 import { TfiTime } from "react-icons/tfi";
@@ -232,6 +232,23 @@ const EmployeeNavbar = ({ onSidebarToggle, isSidebarOpen }) => {
             </li>
           </ul>
         </div>
+
+        <div>
+          <ul className="menu p-3 text-black ">
+            <span className="font-medium text-xs text-gray-400 tracking-wide">
+              ONBOARDING
+            </span>
+            <li className="p-1">
+              <Link
+                to="/feedback"
+                className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md"
+              >
+                <VscFeedback className="w-5 h-5" />
+                Onboarding Feedback
+              </Link>
+            </li>
+          </ul>
+        </div>
       </div>
       {/**END OF SIDEBAR/}
 
@@ -243,8 +260,8 @@ const EmployeeNavbar = ({ onSidebarToggle, isSidebarOpen }) => {
         }`}
       >
         {/* Navbar */}
-        <div className="navbar bg-base-100 shadow-md">
-          <div className="flex-1 gap-3">
+        <div className="navbar bg-base-100 shadow-md w-full flex flex-wrap items-center justify-between p-2 md:p-4">
+          <div className="flex-1 flex items-center gap-3">
             {/* Hamburger Menu Icon */}
             <button
               onClick={onSidebarToggle}
@@ -252,7 +269,7 @@ const EmployeeNavbar = ({ onSidebarToggle, isSidebarOpen }) => {
             >
               <CiMenuBurger />
             </button>
-            <label className="input input-bordered flex items-center ">
+            <label className="input input-bordered flex items-center">
               <input type="text" className="grow" placeholder="Search" />
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -269,7 +286,7 @@ const EmployeeNavbar = ({ onSidebarToggle, isSidebarOpen }) => {
             </label>
           </div>
 
-          <div className="flex-none gap-2 ">
+          <div className="flex-none gap-2">
             <span className="text-md font-sm font-medium">
               {currentTime} | {currentDate}{" "}
             </span>

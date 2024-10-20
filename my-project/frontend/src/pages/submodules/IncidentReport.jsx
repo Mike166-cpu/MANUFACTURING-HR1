@@ -37,7 +37,7 @@ const IncidentReportTable = () => {
         const response = await axios.get(
           "http://localhost:5000/api/incidentreport"
         );
-        console.log("Fetched incidents:", response.data);
+        console.log("Fetched incidents:", response.data); // Check the console to see if employeeUsername is included
         setIncidents(response.data);
       } catch (error) {
         console.error("Error fetching incident reports:", error);
@@ -50,13 +50,9 @@ const IncidentReportTable = () => {
   const handleResolve = async (id) => {
     try {
       console.log("Resolving incident:", id);
-      const response = await axios.patch(
-        `http://localhost:5000/api/incidentreport/${id}`,
-        {
-          status: "Resolved",
-        }
-      );
-      console.log("Resolve response:", response.data);
+      await axios.patch(`http://localhost:5000/api/incidentreport/${id}`, {
+        status: "Resolved",
+      });
       setIncidents(
         incidents.map((incident) =>
           incident._id === id ? { ...incident, status: "Resolved" } : incident
@@ -70,13 +66,9 @@ const IncidentReportTable = () => {
   const handleUnresolve = async (id) => {
     try {
       console.log("Marking incident as pending:", id);
-      const response = await axios.patch(
-        `http://localhost:5000/api/incidentreport/${id}`,
-        {
-          status: "Pending",
-        }
-      );
-      console.log("Unresolve response:", response.data);
+      await axios.patch(`http://localhost:5000/api/incidentreport/${id}`, {
+        status: "Pending",
+      });
       setIncidents(
         incidents.map((incident) =>
           incident._id === id ? { ...incident, status: "Pending" } : incident
@@ -87,34 +79,53 @@ const IncidentReportTable = () => {
     }
   };
 
+  const Breadcrumbs = ({ items }) => {
+    return (
+      <nav>
+        <ol className="list-reset flex">
+          {items.map((item, index) => (
+            <li key={index} className="flex items-center">
+              <span className="text-blue-800 text-sm font-normal">
+                {item.label}
+              </span>
+              {index < items.length - 1 && <span className="mx-2">{">"}</span>}
+            </li>
+          ))}
+        </ol>
+      </nav>
+    );
+  };
+
+  const breadcrumbItems = [
+    { label: "HR Compliance" },
+    { label: "Incident Report", className: "font-bold" },
+  ];
+
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
 
-      {/* Main content area */}
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ${
           isSidebarOpen ? "ml-80" : "ml-0"
         }`}
       >
-        {/* Navbar */}
         <Navbar toggleSidebar={toggleSidebar} className="sticky top-0 z-10" />
 
-        {/* Main content with scrolling */}
         <div className="flex-1 overflow-y-auto p-5 bg-base-500">
-          <div className="">
-            <h2 className="text-3xl font-bold mb-4">
-              Workplace Incident Report
+          <div className="border p-5 rounded-lg">
+            <h2 className="text-2xl font-bold">
+              Workplace Incident Reports
+              <Breadcrumbs items={breadcrumbItems} />
             </h2>
           </div>
-
-          {/* Incident Report Table */}
-          <table className="table w-full bg-gray-100">
+          <table className="table w-full border mt-5">
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Incident Description</th>
+                <th>Location</th>
+                <th>Type of Incident</th> <th>Submitted By</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -124,6 +135,9 @@ const IncidentReportTable = () => {
                 <tr key={incident._id}>
                   <td>{new Date(incident.date).toLocaleDateString()}</td>
                   <td>{incident.description}</td>
+                  <td>{incident.location}</td>
+                  <td>{incident.reportType}</td>{" "}
+                  <td>{incident.employeeUsername || "N/A"}</td>
                   <td>
                     <span
                       className={`badge ${

@@ -2,11 +2,11 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
-const incidentReportRoute = require('./routes/incidentReport');
+const incidentReportRoute = require("./routes/incidentReport");
 const employeeRoutes = require("./routes/employee");
 const corsMiddleware = require("./middleware/corsMiddleware");
 const jsonParserMiddleware = require("./middleware/jsonParserMiddleware");
-
+const policyRoutes = require("./routes/policyRoutes");
 
 const app = express();
 app.use(express.json()); // Use JSON parsing
@@ -16,26 +16,31 @@ app.use(corsMiddleware());
 app.use(jsonParserMiddleware());
 
 app.use("/api/employee", employeeRoutes);
-app.use('/api/incidentreport', incidentReportRoute);
+app.use("/api/incidentreport", incidentReportRoute);
+app.use("/api/policies", policyRoutes);
 
-const cors = require('cors');
+const cors = require("cors");
 
-const allowedOrigins = ['http://localhost:3000', 'https://hr1.jjm-manufacturing.com'];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://hr1.jjm-manufacturing.com",
+];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  methods: 'GET,POST,PUT,DELETE',
-  credentials: true,
-}));
-
-
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg =
+          "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+    methods: "GET,POST,PUT,DELETE",
+    credentials: true,
+  })
+);
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -47,8 +52,6 @@ const User = require("./models/User");
 app.get("/", (req, res) => {
   res.send("Hello world ");
 });
-
-
 
 // Signup route for Admin
 app.post("/signup", async (req, res) => {

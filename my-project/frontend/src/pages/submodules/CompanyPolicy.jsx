@@ -1,176 +1,174 @@
-import React, { useState } from "react";
-import { Navigate } from "react-router-dom"; // Import Navigate
-import EmployeeNavbar from "../../Components/EmployeeNavbar";
+import React, { useEffect, useState } from "react";
+import { Navigate, Link } from "react-router-dom";
+import EmployeeSidebar from "../../Components/EmployeeSidebar";
+import EmployeeNav from "../../Components/EmployeeNav";
 
 const CompanyPolicy = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Sidebar state
+  useEffect(() => {
+    document.title = "Company Policy";
+  });
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [policies, setPolicies] = useState([]);
+  const [acknowledgedPolicies, setAcknowledgedPolicies] = useState([]);
+  const employeeUsername = localStorage.getItem("employeeUsername");
   const authToken = localStorage.getItem("employeeToken");
-  if (!authToken) {
-    return <Navigate to="/employeelogin" replace />;
-  }
+
+  useEffect(() => {
+    const fetchPolicies = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/policies/fetch"
+        );
+        const data = await response.json();
+        setPolicies(data);
+      } catch (error) {
+        console.error("Error fetching policies:", error);
+      }
+    };
+
+    const fetchAcknowledgedPolicies = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/policies/acknowledged/${employeeUsername}`
+        );
+        const acknowledgedData = await response.json();
+
+        console.log("Acknowledged Policies Response:", acknowledgedData);
+
+        if (Array.isArray(acknowledgedData)) {
+          const acknowledgedPolicyIds = acknowledgedData.map(
+            (policy) => policy.policy_id
+          );
+          setAcknowledgedPolicies(acknowledgedPolicyIds);
+        } else {
+          console.error("Expected an array but received:", acknowledgedData);
+          setAcknowledgedPolicies([]);
+        }
+      } catch (error) {
+        console.error("Error fetching acknowledged policies:", error);
+      }
+    };
+
+    fetchPolicies();
+    fetchAcknowledgedPolicies();
+  }, [employeeUsername]);
+
+  const acknowledgePolicy = async (policyId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/policies/acknowledge/${policyId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ employee_username: employeeUsername }),
+        }
+      );
+
+      if (response.ok) {
+        setAcknowledgedPolicies((prevAcknowledged) => [
+          ...prevAcknowledged,
+          policyId,
+        ]);
+        alert("Policy acknowledged successfully");
+      } else {
+        const data = await response.json();
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error("Error acknowledging policy:", error);
+    }
+  };
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const [policies, setPolicies] = useState([
-    {
-      id: 1,
-      title: "Workplace Safety",
-      acknowledged: false,
-      content:
-        "This policy ensures the safety of all employees by following guidelines and best practices in the workplace...",
-    },
-    {
-      id: 2,
-      title: "Code of Conduct",
-      acknowledged: false,
-      content:
-        "All employees are expected to maintain high standards of conduct at all times. This policy outlines...",
-    },
-    {
-      id: 3,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-    {
-      id: 4,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-    {
-      id: 5,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-    {
-      id: 6,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-    {
-      id: 7,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-  ]);
+  if (!authToken) {
+    return <Navigate to="/employeelogin" replace />;
+  }
 
-  const [selectedPolicy, setSelectedPolicy] = useState(null);
-
-  const handleAcknowledge = (id) => {
-    setPolicies(
-      policies.map((policy) =>
-        policy.id === id
-          ? { ...policy, acknowledged: !policy.acknowledged }
-          : policy
-      )
+  const Breadcrumbs = ({ items }) => {
+    return (
+      <nav className="pl-5">
+        <ol className="list-reset flex">
+          {items.map((item, index) => (
+            <li key={index} className="flex items-center">
+              <span className="text-blue-800 text-sm">{item.label}</span>
+              {index < items.length - 1 && <span className="mx-2">{">"}</span>}
+            </li>
+          ))}
+        </ol>
+      </nav>
     );
   };
 
-  const handleViewPolicy = (id) => {
-    const policy = policies.find((policy) => policy.id === id);
-    setSelectedPolicy(selectedPolicy?.id === id ? null : policy);
-  };
+  const breadcrumbItems = [{ label: "HR Compliance" }, { label: "Policies" , className: "font-bold"  }];
 
   return (
     <div>
       <div>
-        <EmployeeNavbar
+        <EmployeeSidebar
           onSidebarToggle={handleSidebarToggle}
           isSidebarOpen={isSidebarOpen}
         />
         <div
-          className={`transition-all duration-300 ease-in-out flex-grow p-4 ${
-            isSidebarOpen ? "ml-64" : "ml-0"
+          className={`flex-grow transition-all duration-300 ease-in-out ${
+            isSidebarOpen ? "ml-72" : "ml-0"
           }`}
         >
-          {" "}
+          <EmployeeNav
+            onSidebarToggle={handleSidebarToggle}
+            isSidebarOpen={isSidebarOpen}
+          />{" "}
           <div className="flex-1 overflow-y-auto bg-base-500">
-            <div className="">
-              <h2 className="text-3xl font-bold mb-4 pl-5 pt-5">
-                Company Policies
-              </h2>
+            <div className="border rounded-lg m-5 py-5">
+              <h2 className="text-2xl font-bold pl-5 ">Company Policies</h2>
+              <Breadcrumbs items={breadcrumbItems} />
             </div>
 
-            {/*MAIN CONTENT */}
-            <div className="h-full">
-              <div className="overflow-x-auto p-6 rounded-lg">
-                <table className="table w-full bg-gray-100 rounded-lg">
-                  <thead>
-                    <tr className="bg-blue-800 text-white">
-                      <th className="rounded-tl-lg">Policy</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                      <th className="rounded-tr-lg">View</th>
+            {/* MAIN CONTENT */}
+            <div className="p-5">
+              <table className="table-auto w-full">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b">Title</th>
+                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b">Description</th>
+                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {policies.map((policy) => (
+                    <tr key={policy._id}>
+                      <td className="border-b px-4 py-2 font-bold text-sm">
+                        {policy.title}
+                      </td>
+                      <td className="border-b px-4 py-2 text-sm ">
+                        {policy.description}
+                      </td>
+                      <td className="border-b px-4 py-2">
+                        <button
+                          onClick={() => acknowledgePolicy(policy._id)}
+                          disabled={acknowledgedPolicies.includes(policy._id)}
+                          className={`w-full px-4 py-2 rounded ${
+                            acknowledgedPolicies.includes(policy._id)
+                              ? "bg-green-600 text-white text-sm cursor-not-allowed rounded-3xl"
+                              : "bg-blue-500 hover:bg-blue-700 text-white"
+                          }`}
+                        >
+                          {acknowledgedPolicies.includes(policy._id)
+                            ? "Done"
+                            : "Acknowledge"}
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {policies.map((policy) => (
-                      <React.Fragment key={policy.id}>
-                        <tr>
-                          <td>{policy.title}</td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                policy.acknowledged
-                                  ? "badge-success"
-                                  : "badge-warning"
-                              }`}
-                            >
-                              {policy.acknowledged ? "Acknowledged" : "Pending"}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              className={`btn ${
-                                policy.acknowledged
-                                  ? "btn-error"
-                                  : "btn-primary"
-                              } btn-sm`}
-                              onClick={() => handleAcknowledge(policy.id)}
-                            >
-                              {policy.acknowledged ? "Revoke" : "Acknowledge"}
-                            </button>
-                          </td>
-                          <td>
-                            <button
-                              className="btn btn-outline btn-sm"
-                              onClick={() => handleViewPolicy(policy.id)}
-                            >
-                              {selectedPolicy?.id === policy.id
-                                ? "Hide"
-                                : "View Policy"}
-                            </button>
-                          </td>
-                        </tr>
-                        {selectedPolicy?.id === policy.id && (
-                          <tr>
-                            <td colSpan="4" className="p-4 bg-white border-t">
-                              <div className="whitespace-pre-wrap">
-                                <strong>{policy.title}:</strong> <br />
-                                {policy.content}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            {/*END OF MAIN CONTENT*/}
+            {/* END OF MAIN CONTENT */}
           </div>
         </div>
       </div>

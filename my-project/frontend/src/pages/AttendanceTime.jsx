@@ -46,7 +46,6 @@ const AttendanceTime = () => {
     fetchAllTimeTrackingRecords();
   }, []);
 
-  // Helper function to format time as HH:MM:SS with leading zeros
   const formatTime = (time) => {
     const date = new Date(time);
     const hours = String(date.getHours()).padStart(2, "0");
@@ -55,7 +54,6 @@ const AttendanceTime = () => {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-  // Helper function to format total hours in HH:MM:SS from seconds
   const formatTotalHours = (seconds) => {
     const hours = Math.floor(seconds / 3600)
       .toString()
@@ -105,7 +103,7 @@ const AttendanceTime = () => {
       return "Today";
     }
 
-    return formattedDate; // e.g., "Monday, October 10, 2024"
+    return formattedDate;
   };
 
   return (
@@ -118,7 +116,6 @@ const AttendanceTime = () => {
       >
         <Navbar toggleSidebar={toggleSidebar} />
 
-        {/* Main Content */}
         <div className="p-4">
           <h2 className="text-xl font-semibold mb-4">Admin Records</h2>
 
@@ -147,7 +144,7 @@ const AttendanceTime = () => {
                   </thead>
                   <tbody>
                     {groupedRecords[date]
-                      .sort((a, b) => new Date(b.time_in) - new Date(a.time_in)) // Sort records by time_in in descending order
+                      .sort((a, b) => new Date(b.time_in) - new Date(a.time_in)) 
                       .map((record, index) => (
                         <tr key={index} className="text-sm">
                           <td className="border-b border-gray-300 px-4 py-2">

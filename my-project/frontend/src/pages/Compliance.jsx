@@ -3,13 +3,17 @@ import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import axios from "axios";
 
 const Compliance = () => {
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [viewMode, setViewMode] = useState("view");
+  const [policies, setPolicies] = useState([]);
+  const [editingPolicy, setEditingPolicy] = useState(null); // Track the policy being edited
 
   useEffect(() => {
     document.title = "Dashboard";
-
     const token = localStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
@@ -21,159 +25,285 @@ const Compliance = () => {
         navigate("/login");
       });
     }
+    fetchPolicies();
   }, [navigate]);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const fetchPolicies = () => {
+    axios
+      .get("http://localhost:5000/api/policies/fetch")
+      .then((response) => {
+        setPolicies(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching policies:", error);
+      });
+  };
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const [policies, setPolicies] = useState([
-    {
-      id: 1,
-      title: "Workplace Safety",
-      acknowledged: false,
-      content:
-        "This policy ensures the safety of all employees by following guidelines and best practices in the workplace...",
-    },
-    {
-      id: 2,
-      title: "Code of Conduct",
-      acknowledged: false,
-      content:
-        "All employees are expected to maintain high standards of conduct at all times. This policy outlines...",
-    },
-    {
-      id: 3,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-    {
-      id: 4,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-    {
-      id: 5,
-      title: "Anti-Harassment Policy",
-      acknowledged: false,
-      content:
-        "Our company is committed to providing a safe, harassment-free environment. This policy details...",
-    },
-  ]);
+  const handleCreatePolicy = (newPolicy) => {
+    axios
+      .post("http://localhost:5000/api/policies/create", newPolicy)
+      .then((response) => {
+        console.log("Policy created:", response.data);
+        fetchPolicies(); // Refresh policies after creation
 
-  const [selectedPolicy, setSelectedPolicy] = useState(null);
+        Swal.fire({
+          title: "Success!",
+          text: "Policy created successfully.",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+      })
+      .catch((error) => {
+        console.error("Error creating policy:", error);
+      });
+  };
 
-  const handleAcknowledge = (id) => {
-    setPolicies(
-      policies.map((policy) =>
-        policy.id === id
-          ? { ...policy, acknowledged: !policy.acknowledged }
-          : policy
+  const handleEditPolicy = (policy) => {
+    setEditingPolicy(policy);
+    setViewMode("edit");
+  };
+
+  const handleUpdatePolicy = (updatedPolicy) => {
+    axios
+      .put(
+        `http://localhost:5000/api/policies/update/${updatedPolicy._id}`,
+        updatedPolicy
       )
+      .then((response) => {
+        console.log("Policy updated:", response.data);
+        fetchPolicies();
+
+        Swal.fire({
+          title: "Updated!",
+          text: "Policy updated successfully.",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+
+        setEditingPolicy(null);
+        setViewMode("view");
+      })
+      .catch((error) => {
+        console.error("Error updating policy:", error);
+      });
+  };
+
+  const handleDeletePolicy = (policyId) => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        axios
+          .delete(`http://localhost:5000/api/policies/delete/${policyId}`)
+          .then((response) => {
+            console.log("Policy deleted:", response.data);
+            fetchPolicies(); 
+
+            Swal.fire({
+              title: "Deleted!",
+              text: "Policy has been deleted.",
+              icon: "success",
+              confirmButtonText: "OK",
+            });
+          })
+          .catch((error) => {
+            console.error("Error deleting policy:", error);
+          });
+      }
+    });
+  };
+
+  const Breadcrumbs = ({ items }) => {
+    return (
+      <nav>
+        <ol className="list-reset flex flex-wrap mb-4">
+          {items.map((item, index) => (
+            <li key={index} className="flex items-center">
+              <span className="text-blue-800 text-sm md:text-base font-normal truncate">
+                {item.label}
+              </span>
+              {index < items.length - 1 && (
+                <span className="mx-2 text-sm md:text-base">{">"}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
     );
   };
 
-  const handleViewPolicy = (id) => {
-    const policy = policies.find((policy) => policy.id === id);
-    setSelectedPolicy(selectedPolicy?.id === id ? null : policy);
-  };
+  const breadcrumbItems = [
+    { label: "HR Compliance" },
+    { label: viewMode === "create" ? "Create Policy" : "View Policy" },
+  ];
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-
-      {/* Main content area */}
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ${
           isSidebarOpen ? "ml-80" : "ml-0"
         }`}
       >
-        {/* Navbar */}
         <Navbar toggleSidebar={toggleSidebar} className="sticky top-0 z-10" />
 
-        {/* Main content with scrolling */}
         <div className="flex-1 overflow-y-auto bg-base-500">
-          <div className="">
-            <h2 className="text-3xl font-bold mb-4 pl-5 pt-5">
-              Company Policies
-            </h2>
+          <div className="m-5 border rounded-md shadow-sm p-5">
+            <h2 className="text-2xl font-bold ">Company Policies</h2>
+            <Breadcrumbs className="pl-5" items={breadcrumbItems} />
           </div>
 
-          {/*MAIN CONTENT */}
-          <div className="h-full bg-gray-200">
-            <div className="overflow-x-auto p-6 rounded-lg">
-              <table className="table w-full bg-gray-100 rounded-lg">
-                <thead>
-                  <tr className="bg-blue-800 text-white">
-                    <th className="rounded-tl-lg">Policy</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                    <th className="rounded-tr-lg">View</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {policies.map((policy) => (
-                    <React.Fragment key={policy.id}>
-                      <tr>
-                        <td>{policy.title}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              policy.acknowledged
-                                ? "badge-success"
-                                : "badge-warning"
-                            }`}
-                          >
-                            {policy.acknowledged ? "Acknowledged" : "Pending"}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            className={`btn ${
-                              policy.acknowledged ? "btn-error" : "btn-primary"
-                            } btn-sm`}
-                            onClick={() => handleAcknowledge(policy.id)}
-                          >
-                            {policy.acknowledged ? "Revoke" : "Acknowledge"}
-                          </button>
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-outline btn-sm"
-                            onClick={() => handleViewPolicy(policy.id)}
-                          >
-                            {selectedPolicy?.id === policy.id
-                              ? "Hide"
-                              : "View Policy"}
-                          </button>
-                        </td>
+          <div className="p-6">
+            <div className="flex space-x-4 mb-4 justify-end items-end">
+              <button
+                className={`px-4 py-2 rounded-md ${
+                  viewMode === "view" ? "bg-blue-500 text-white" : "bg-gray-200"
+                }`}
+                onClick={() => setViewMode("view")}
+              >
+                View Policies
+              </button>
+              <button
+                className={`px-4 py-2 rounded-md ${
+                  viewMode === "create"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200"
+                }`}
+                onClick={() => {
+                  setViewMode("create");
+                  setEditingPolicy(null);
+                }}
+              >
+                Create Policy
+              </button>
+            </div>
+
+            {viewMode === "view" ? (
+              <div className="overflow-x-auto">
+                {policies.length === 0 ? (
+                  <p>No policies available. Please create one.</p>
+                ) : (
+                  <table className="min-w-full border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border px-4 py-2 text-start">Title</th>
+                        <th className="border px-4 py-2 text-start">
+                          Description
+                        </th>
+                        <th className="border px-4 py-2 text-start">Actions</th>
                       </tr>
-                      {selectedPolicy?.id === policy.id && (
-                        <tr>
-                          <td colSpan="4" className="p-4 bg-white border-t">
-                            <div className="whitespace-pre-wrap">
-                              <strong>{policy.title}:</strong> <br />
-                              {policy.content}
+                    </thead>
+                    <tbody>
+                      {policies.map((policy, index) => (
+                        <tr key={index} className="hover:bg-gray-100">
+                          <td className="border px-4 py-2 font-bold">
+                            {policy.title}
+                          </td>
+                          <td className="border px-4 py-2">
+                            <div className="p-2 bg-gray-100 rounded-md">
+                              {policy.description}
                             </div>
                           </td>
+                          <td className="px-4 py-2 flex">
+                            <button
+                              className="text-blue-500"
+                              onClick={() => handleEditPolicy(policy)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="text-red-500 ml-2"
+                              onClick={() => handleDeletePolicy(policy._id)}
+                            >
+                              Delete
+                            </button>
+                          </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            ) : viewMode === "create" ? (
+              <CreatePolicyForm onCreate={handleCreatePolicy} />
+            ) : (
+              <CreatePolicyForm
+                onCreate={handleUpdatePolicy}
+                initialPolicy={editingPolicy}
+              />
+            )}
           </div>
         </div>
       </div>
     </div>
+  );
+};
+
+const CreatePolicyForm = ({ onCreate, initialPolicy }) => {
+  const [title, setTitle] = useState(initialPolicy ? initialPolicy.title : "");
+  const [description, setDescription] = useState(
+    initialPolicy ? initialPolicy.description : ""
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onCreate({
+      title,
+      description,
+      _id: initialPolicy ? initialPolicy._id : undefined,
+    });
+    setTitle("");
+    setDescription("");
+  };
+
+  useEffect(() => {
+    if (initialPolicy) {
+      setTitle(initialPolicy.title);
+      setDescription(initialPolicy.description);
+    } else {
+      setTitle("");
+      setDescription("");
+    }
+  }, [initialPolicy]);
+
+  return (
+    <form onSubmit={handleSubmit} className="border p-4 rounded-md shadow-sm">
+      <div className="mb-4">
+        <label className="block text-gray-700">Policy Title</label>
+        <input
+          type="text"
+          className="w-full p-2 border rounded-md"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
+      </div>
+      <div className="mb-4">
+        <label className="block text-gray-700">Policy Description</label>
+        <textarea
+          className="w-full p-2 border rounded-md"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+        />
+      </div>
+      <button
+        type="submit"
+        className="px-4 py-2 bg-blue-500 text-white rounded-md"
+      >
+        {initialPolicy ? "Update Policy" : "Create Policy"}
+      </button>
+    </form>
   );
 };
 

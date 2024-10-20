@@ -19,7 +19,6 @@ const EmployeeInfo = () => {
 
     const token = localStorage.getItem("adminToken");
     if (!token) {
-      // Show SweetAlert if not logged in
       Swal.fire({
         title: "Not Logged In",
         text: "You are not logged in. Redirecting to login page...",
@@ -30,6 +29,24 @@ const EmployeeInfo = () => {
       });
     }
   }, [navigate]);
+
+  const Breadcrumbs = ({ items }) => {
+    return (
+      <nav>
+        <ol className="list-reset flex">
+          {items.map((item, index) => (
+            <li key={index} className="flex items-center">
+              <span className="text-blue-800 text-sm font-medium">{item.label}</span>
+              {index < items.length - 1 && <span className="mx-2">{">"}</span>}
+            </li>
+          ))}
+        </ol>
+      </nav>
+    );
+  };
+
+  const breadcrumbItems = [{ label: "Employee Records" }, { label: "List"}];
+
 
   useEffect(() => {
     document.title = "Employee Records Management";
@@ -71,36 +88,36 @@ const EmployeeInfo = () => {
 
   const handleRowClick = (employee) => {
     setSelectedEmployee(employee);
-    setUpdatedEmployee(employee); // Initialize with the selected employee data
+    setUpdatedEmployee(employee); 
     setShowDetails(true);
-    setIsEditing(false); // Set editing to false when showing details
+    setIsEditing(false); 
   };
 
   const handleBackToList = () => {
     setShowDetails(false);
     setSelectedEmployee(null);
-    setIsEditing(false); // Reset editing state
+    setIsEditing(false); 
   };
 
   const handleEdit = () => {
-    setIsEditing(true); // Enable editing
+    setIsEditing(true); 
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedEmployee((prev) => ({ ...prev, [name]: value })); // Update employee state
+    setUpdatedEmployee((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleUpdate = async () => {
     try {
-      console.log("Updating employee with data:", updatedEmployee); // Log the updated data
+      console.log("Updating employee with data:", updatedEmployee); 
       await axios.put(
         `http://localhost:5000/api/employee/${selectedEmployee._id}`,
         updatedEmployee
       );
       alert("Employee updated successfully!");
-      fetchEmployees(); // Refresh the employee list
-      handleBackToList(); // Go back to the employee list
+      fetchEmployees(); 
+      handleBackToList(); 
     } catch (error) {
       console.error("Error updating employee:", error);
       alert("Failed to update employee.");
@@ -108,14 +125,13 @@ const EmployeeInfo = () => {
   };
 
   const handleDelete = async (id) => {
-    // Ensure id is passed correctly
     if (window.confirm("Are you sure you want to delete this employee?")) {
       try {
-        console.log("Deleting employee with ID:", id); // Log the ID to be deleted
+        console.log("Deleting employee with ID:", id); 
         await axios.delete(`http://localhost:5000/api/employee/${id}`);
         alert("Employee deleted successfully!");
-        fetchEmployees(); // Refresh the employee list
-        handleBackToList(); // Go back to the employee list
+        fetchEmployees(); 
+        handleBackToList(); 
       } catch (error) {
         console.error("Error deleting employee:", error);
         alert("Failed to delete employee.");
@@ -123,7 +139,6 @@ const EmployeeInfo = () => {
     }
   };
 
-  // ### Added: Filter and Search Logic ###
   const filteredEmployees = employees.filter((employee) => {
     const matchesSearch =
       employee.employee_firstname
@@ -162,16 +177,16 @@ const EmployeeInfo = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  //EXPORT LOGIC
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportClick = () => {
-    setIsModalOpen(true); // Open the modal when the export button is clicked
+    setIsModalOpen(true); 
   };
 
   const handleExport = async () => {
-    setIsExporting(true); // Indicate that the export process has started
+    setIsExporting(true); 
     try {
       const response = await axios.get("http://localhost:5000/api/employee");
 
@@ -202,8 +217,8 @@ const EmployeeInfo = () => {
     } catch (error) {
       console.error("Error exporting data:", error);
     } finally {
-      setIsExporting(false); // Reset the exporting state regardless of success or failure
-      setIsModalOpen(false); // Close the modal after exporting
+      setIsExporting(false); 
+      setIsModalOpen(false); 
     }
   };
 
@@ -217,9 +232,10 @@ const EmployeeInfo = () => {
       >
         <Navbar toggleSidebar={toggleSidebar} className="sticky top-0 z-10" />
         <div className="flex-1 overflow-y-auto bg-base-500">
-          <div className="">
-            <h2 className="text-3xl font-bold mb-4 pl-5 pt-5 shadow-sm pb-2">
+          <div className="border-2 m-5 rounded-lg">
+            <h2 className="text-2xl font-bold mb-4 pl-5 pt-5 pb-2">
               Employee List
+              <Breadcrumbs items={breadcrumbItems} />
             </h2>
           </div>
 
@@ -229,7 +245,7 @@ const EmployeeInfo = () => {
               placeholder="Search employees..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="mb-2 md:mb-0 p-2 border border-gray-300 rounded-sm w-full md:w-1/4"
+              className="mb-2 md:mb-0 p-2 border border-gray-300 rounded-lg w-full md:w-1/4"
             />
 
             {/* Filter Dropdown */}
@@ -619,9 +635,7 @@ const EmployeeInfo = () => {
                     </button>
                   </nav>
                 </div>
-
-                {/* ### Optional: Show message if no employees match the search/filter ### */}
-                {filteredEmployees.length === 0 && (
+\               {filteredEmployees.length === 0 && (
                   <p className="text-center text-gray-600 mt-4">
                     No employees found matching your criteria.
                   </p>

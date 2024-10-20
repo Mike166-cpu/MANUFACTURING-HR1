@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../../src/assets/logo-2.png";
+import Swal from "sweetalert2";
 
 const LoginForm = () => {
   const [username, setUsername] = useState("");
@@ -35,6 +36,14 @@ const LoginForm = () => {
         setError(data.message || "Login failed");
         setShake(true);
         setTimeout(() => setShake(false), 500);
+
+        Swal.fire({
+          title: "Login Failed",
+          text: data.message || "Incorrect username or password.",
+          icon: "error",
+          confirmButtonText: "Try Again",
+        });
+
         return;
       }
 
@@ -44,14 +53,27 @@ const LoginForm = () => {
       localStorage.setItem("adminToken", data.token);
       localStorage.setItem("firstName", data.firstName);
       localStorage.setItem("lastName", data.lastName);
-
       localStorage.setItem("employeeUsername", data.employee_username);
 
-      navigate("/dashboard");
+      Swal.fire({
+        title: "Login Successful",
+        text: "Welcome back!",
+        icon: "success",
+        confirmButtonText: "Proceed",
+      }).then(() => {
+        navigate("/dashboard");
+      });
     } catch (error) {
       setError("An error occurred during login.");
       setShake(true);
       setTimeout(() => setShake(false), 500);
+
+      Swal.fire({
+        title: "Error",
+        text: "Something went wrong. Please try again later.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -63,9 +85,7 @@ const LoginForm = () => {
       <div className="absolute bottom-20 left-12 w-32 h-32 border-2 border-dashed border-gray-400 -z-10"></div>
       <div className="absolute top-10 right-10 w-24 h-24 border-2 border-dashed border-gray-500 -z-10"></div>
       <div
-        className={`bg-white rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.25)] p-10 w-full max-w-sm${
-          shake ? "shake" : ""
-        }`}
+        className={`bg-white rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.25)] p-10 w-full max-w-sm${shake ? " shake" : ""}`}
       >
         <div className="flex justify-center gap-x-2 pb-2">
           <img
@@ -135,19 +155,10 @@ const LoginForm = () => {
             </div>
           </div>
 
-          {/* Login Button */}
           <button className="btn btn-primary w-full bg-green-600 text-white hover:bg-green-700 py-3 rounded transition duration-200">
             Login
           </button>
         </form>
-
-        <p className="text-center mt-4 text-sm">
-          Don't have an account?
-          <Link to="/signup" className="text-green-600 hover:underline">
-            {" "}
-            Sign Up
-          </Link>
-        </p>
       </div>
     </div>
   );

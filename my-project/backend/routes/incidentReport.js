@@ -2,11 +2,10 @@ const express = require('express');
 const router = express.Router();
 const IncidentReport = require('../models/IncidentReport');
 
-// @route GET /api/incidentreport
-// @desc Get all incident reports
+// Fetch all incident reports
 router.get('/', async (req, res) => {
   try {
-    const incidents = await IncidentReport.find(); // Fetch all incident reports
+    const incidents = await IncidentReport.find();
     res.status(200).json(incidents);
   } catch (error) {
     console.error(error);
@@ -14,17 +13,31 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route POST /api/incidentreport
-// @desc Submit a new incident report
-router.post('/', async (req, res) => {
-  const { date, description } = req.body; // Remove status from here
+// Fetch incident reports by status
+router.get('/status/:status', async (req, res) => {
+  const { status } = req.params;
 
   try {
-    // Set default status to 'Pending'
+    const incidents = await IncidentReport.find({ status: status });
+    res.status(200).json(incidents);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create new incident report
+router.post('/', async (req, res) => {
+  const { date, description, location, reportType, employeeUsername } = req.body;
+
+  try {
     const newIncidentReport = new IncidentReport({
       date,
       description,
-      status: 'Pending', // Automatically set status to 'Pending'
+      location,
+      reportType,
+      status: 'Pending',
+      employeeUsername,
     });
 
     await newIncidentReport.save();
@@ -35,21 +48,47 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Update incident report status
 router.patch('/:id', async (req, res) => {
   const { status } = req.body;
 
   try {
-    const incident = await IncidentReport.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
+    const incident = await IncidentReport.findByIdAndUpdate(req.params.id, { status }, { new: true });
 
     if (!incident) {
       return res.status(404).json({ error: 'Incident report not found' });
     }
 
     res.status(200).json({ message: 'Incident report updated successfully!', incident });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Fetch incident reports by employee username
+router.get('/:username', async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const userReports = await IncidentReport.find({ employeeUsername: username });
+    res.status(200).json(userReports);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Archive incident report
+router.put('/archive/:id', async (req, res) => {
+  try {
+    const incident = await IncidentReport.findByIdAndUpdate(req.params.id, { archived: true }, { new: true });
+
+    if (!incident) {
+      return res.status(404).json({ error: 'Incident report not found' });
+    }
+
+    res.status(200).json({ message: 'Incident report archived successfully!', incident });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
