@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const Employee = require("../models/Employee"); // Ensure this path is correct
+const Employee = require("../models/Employee"); 
 const TimeTracking = require("../models/TimeTracking");
-const bcrypt = require("bcrypt"); // Import bcrypt for password comparison
+const bcrypt = require("bcrypt"); 
 
 // Employee registration route
 router.post("/add", async (req, res) => {
@@ -80,13 +80,13 @@ router.get("/", async (req, res) => {
 
 // Update employee route
 router.put("/:id", async (req, res) => {
-  const { id } = req.params; // Get the employee ID from the URL
-  const updateData = req.body; // Get the updated data from the request body
+  const { id } = req.params; 
+  const updateData = req.body; 
 
   try {
     const updatedEmployee = await Employee.findByIdAndUpdate(id, updateData, {
       new: true,
-      runValidators: true, // Ensure validation rules are applied
+      runValidators: true, 
     });
     if (!updatedEmployee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -105,7 +105,7 @@ router.put("/:id", async (req, res) => {
 
 // Delete employee route
 router.delete("/:id", async (req, res) => {
-  const { id } = req.params; // Get the employee ID from the URL
+  const { id } = req.params; 
 
   try {
     const deletedEmployee = await Employee.findByIdAndDelete(id);
@@ -148,7 +148,7 @@ router.post("/time-out", async (req, res) => {
   try {
     const timeTrackingRecord = await TimeTracking.findOne({
       employee_username,
-      time_out: null, // Ensure this is the latest time in record without a time out
+      time_out: null,
     });
 
     if (!timeTrackingRecord) {
@@ -159,12 +159,10 @@ router.post("/time-out", async (req, res) => {
 
     timeTrackingRecord.time_out = time_out;
 
-    // Calculate total hours in seconds
     const totalMilliseconds =
       new Date(time_out) - new Date(timeTrackingRecord.time_in);
     const totalSeconds = Math.floor(totalMilliseconds / 1000);
 
-    // Save total seconds instead of HH:MM:SS
     timeTrackingRecord.total_hours = totalSeconds;
 
     await timeTrackingRecord.save();

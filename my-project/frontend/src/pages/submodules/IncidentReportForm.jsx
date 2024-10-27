@@ -23,7 +23,7 @@ const IncidentReportForm = () => {
 
       const response = await axios.post(
         "http://localhost:5000/api/incidentreport",
-        { ...dataToSubmit, status } // Include status as Pending
+        { ...dataToSubmit, status }
       );
 
       if (response.status === 201) {

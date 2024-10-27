@@ -1,15 +1,16 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 require("dotenv").config();
 const incidentReportRoute = require("./routes/incidentReport");
 const employeeRoutes = require("./routes/employee");
 const corsMiddleware = require("./middleware/corsMiddleware");
 const jsonParserMiddleware = require("./middleware/jsonParserMiddleware");
 const policyRoutes = require("./routes/policyRoutes");
+const userProfile = require("./routes/userProfile");
 
 const app = express();
-app.use(express.json()); // Use JSON parsing
+app.use(express.json()); 
 const PORT = process.env.PORT || 5000;
 
 app.use(corsMiddleware());
@@ -18,13 +19,16 @@ app.use(jsonParserMiddleware());
 app.use("/api/employee", employeeRoutes);
 app.use("/api/incidentreport", incidentReportRoute);
 app.use("/api/policies", policyRoutes);
+app.use("/api/user", userProfile);
 
 const cors = require("cors");
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://hr1.jjm-manufacturing.com",
+  "https://hr1.jjm-manufacturing.com", //my frontend domain
+  "https://backend-hr1.jjm-manufacturing.com",
 ];
+
 
 app.use(
   cors({
@@ -44,7 +48,7 @@ app.use(
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
+  .then(() => console.log("TITE"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
 const User = require("./models/User");
@@ -52,6 +56,21 @@ const User = require("./models/User");
 app.get("/", (req, res) => {
   res.send("Hello world ");
 });
+
+//-------------------------------------------//
+
+const rateLimit = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit to 5 requests per windowMs
+  message: {
+    status: 429,
+    error: 'Too many login attempts. Please try again after 15 minutes.',
+  },
+});
+
+//--------------------------------------------------//
 
 // Signup route for Admin
 app.post("/signup", async (req, res) => {
@@ -91,7 +110,7 @@ app.post("/signup", async (req, res) => {
 });
 
 // Login route for Admin
-app.post("/login", async (req, res) => {
+app.post("/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   try {

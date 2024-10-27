@@ -14,7 +14,7 @@ const Onboarding = () => {
   useEffect(() => {
     document.title = "Dashboard";
 
-    const token = localStorage.getItem("adminToken");
+    const token = sessionStorage.getItem("adminToken");
     if (!token) {
       // Show SweetAlert if not logged in
       Swal.fire({

@@ -16,6 +16,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activePage, setActivePage] = React.useState(location.pathname);
+  const [initials, setInitials] = useState("");
 
   React.useEffect(() => {
     setActivePage(location.pathname);
@@ -101,7 +102,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                     onClick={() => handleNavigation("/employeeInfo")}
                   >
                     <FaUsers className="ml-5" size="1.4rem" />
-                    <span className="ml-3 font-medium">Employee List</span>
+                    <span className="ml-3 font-medium">Employee Account Management</span>
                   </div>
                 </div>
               </div>

@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
+import idleLogout from "../hooks/idleLogout";
 import { Link, useNavigate } from "react-router-dom";
 import { IoHomeOutline } from "react-icons/io5";
-import { TfiDashboard } from "react-icons/tfi";
 import { FaRegUserCircle } from "react-icons/fa";
 import { FaRegBell } from "react-icons/fa";
-import { FaRegUser } from "react-icons/fa6";
+import { FaRegUser } from "react-icons/fa";
 import { VscFeedback } from "react-icons/vsc";
 import logo from "../../src/assets/logo-2.png";
 import { TbFileReport } from "react-icons/tb";
 import { TfiTime } from "react-icons/tfi";
 import { MdOutlinePolicy } from "react-icons/md";
+
+
+
 
 const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
@@ -18,6 +21,25 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   const [employeeFirstName, setEmployeeFirstName] = useState("");
   const [employeeLastName, setEmployeeLastName] = useState("");
   const dropdownRef = useRef(null);
+
+  idleLogout(1800000);
+
+  const [notifications, setNotifications] = useState([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  const toggleNotifications = () => {
+    setIsNotificationsOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    // Simulating fetching notifications
+    const dummyNotifications = [
+      { id: 1, message: "You have a new message." },
+      { id: 2, message: "Your incident report has been filed." },
+      { id: 3, message: "New policy updates available." },
+    ];
+    setNotifications(dummyNotifications);
+  }, []);
 
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
@@ -45,7 +67,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
+    sessionStorage.removeItem("employeeToken");
     navigate("/employeelogin");
   };
 
@@ -101,7 +123,26 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
               {/* Icons on the right */}
               <div className="flex items-center">
-                <FaRegBell className="w-5 h-5 text-black" />
+                <FaRegBell
+                  className="w-5 h-5 text-black cursor-pointer"
+                  onClick={toggleNotifications}
+                />
+
+                {isNotificationsOpen && (
+                  <div className="dropdown dropdown-end">
+                    <ul className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <li key={notification.id}>
+                            <span>{notification.message}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <li>No notifications</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
 
                 <div className="dropdown dropdown-end" ref={dropdownRef}>
                   <div
@@ -203,7 +244,10 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
                 className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md"
               >
                 <MdOutlinePolicy className="w-5 h-5" />
-                Company Policy <span className="bg-yellow-400 px-2 text-xs rounded-lg">REQ.</span>
+                Company Policy{" "}
+                <span className="bg-yellow-400 px-2 text-xs rounded-lg">
+                  REQ.
+                </span>
               </Link>
             </li>
           </ul>

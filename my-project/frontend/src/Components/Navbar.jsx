@@ -5,11 +5,18 @@ import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { FaRegUserCircle } from "react-icons/fa";
 import { FiSettings } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
+import useIdleLogout from "../hooks/useIdleLogout";
+
 
 
 const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   const [initials, setInitials] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
+  const [loginNotification, setLoginNotification] = useState("");
   const navigate = useNavigate();
+
+  useIdleLogout(1800000);
 
   useEffect(() => {
     const firstName = localStorage.getItem("firstName");
@@ -18,10 +25,20 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
     if (firstName && lastName) {
       const initials = `${firstName[0]}${lastName[0]}`;
       setInitials(initials.toUpperCase());
+      setLoginNotification(`Welcome back! ${firstName}!`);
     }
   }, []);
+
+  useEffect(() => {
+    // Simulating fetching or receiving a new notification
+    const notification = localStorage.getItem("loginNotification");
+    if (notification) {
+      setHasNewNotification(true); // Show red dot if there's a new notification
+    }
+  }, []);
+  
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("adminToken");
     localStorage.removeItem("firstName");
     localStorage.removeItem("lastName");
     navigate("/login", { replace: true });
@@ -63,9 +80,20 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
 
       <div className="flex-none gap-2 ml-auto">
         <div className="relative">
-          <button className="btn btn-ghost btn-circle">
+          <button className="btn btn-ghost btn-circle"
+             onClick={() => setShowNotifications(!showNotifications)}
+          >
             <FontAwesomeIcon icon={faBell} className="text-gray-600 text-lg" />
           </button>
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-20 text-sm">
+              <ul className="p-2">
+              {loginNotification && (
+                  <li className="p-2 border-b">{loginNotification}</li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="dropdown dropdown-end mr-5">

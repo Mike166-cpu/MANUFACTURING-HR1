@@ -18,7 +18,7 @@ const EmployeeNavbar = ({ onSidebarToggle, isSidebarOpen }) => {
   const [employeeFirstName, setEmployeeFirstName] = useState("");
   const [employeeLastName, setEmployeeLastName] = useState("");
   const dropdownRef = useRef(null);
-
+z
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
 

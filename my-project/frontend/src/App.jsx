@@ -23,12 +23,14 @@ import EditProfile from "./pages/submodules/EditProfile.jsx";
 import OnboardingFeedback from "./pages/submodules/OnboardingFeedback.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Profile from "./pages/submodules/Profile.jsx";
+import AddEmployee from "./pages/submodules/AddEmployee.jsx";
 
 
 function App() {
   return (
     <Router>
       <Routes>
+      
 
         {/*DEFAULT ROUTE*/}
         <Route path="/" element={<Portal />} />
@@ -58,6 +60,7 @@ function App() {
         <Route path="/offboarding" element={<Offboarding />} />
         <Route path="/attendancetime" element={<AttendanceTime />} />
         <Route path="/employeeInfo" element={<EmployeeInfo />} />
+        <Route path="/addemployee" element={<AddEmployee />} />
 
         
         {/*404 not found*/}

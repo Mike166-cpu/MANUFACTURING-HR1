@@ -295,7 +295,7 @@ const EmployeeSignupForm = () => {
                   className="text-green-600 hover:underline"
                 >
                   {" "}
-                  Sign Up
+                  Login
                 </Link>
               </p>
             </div>

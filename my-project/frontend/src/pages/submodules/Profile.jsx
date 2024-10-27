@@ -1,81 +1,186 @@
 import React, { useState, useEffect } from "react";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
-import { CiLock } from "react-icons/ci";
-import { FaRegUser } from "react-icons/fa";
+import Swal from "sweetalert2";
+import { FaRegUserCircle, FaUserAlt } from "react-icons/fa";
+import { IoIosLock } from "react-icons/io";
 
 const Profile = () => {
-  useEffect (()=> {
-    document.title = "Profile";
-  });
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [employeeData, setEmployeeData] = useState({
-    employee_firstname: localStorage.getItem("employeeFirstName"),
-    employee_middlename: localStorage.getItem("employeeMiddleName"),
-    employee_lastname: localStorage.getItem("employeeLastName"),
-    employee_suffix: localStorage.getItem("employeeSuffix"),
-    employee_username: localStorage.getItem("employeeUsername"),
-    employee_email: localStorage.getItem("employeeEmail"),
-    employee_phone: localStorage.getItem("employeePhone"),
-    employee_address: localStorage.getItem("employeeAddress"),
-    employee_dateOfBirth: localStorage.getItem("employeeDateOfBirth"),
-    employee_gender: localStorage.getItem("employeeGender"),
-    employee_department: localStorage.getItem("employeeDepartment"),
+  const [activeTab, setActiveTab] = useState("profile"); // State to manage active tab
+  const [userData, setUserData] = useState({
+    employee_firstname: "",
+    employee_lastname: "",
+    employee_username: "",
+    employee_middlename: "",
+    employee_suffix: "",
+    employee_email: "",
+    employee_address: "",
+    employee_phone: "",
+    employee_department: "",
+    employee_dateOfBirth: "",
+    currentPassword: "",
+    newPassword: "",
   });
-  const [activeTab, setActiveTab] = useState("profile"); // State to toggle between tabs
+  const [error, setError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const username = localStorage.getItem("employeeUsername");
+      if (!username) {
+        setError("User not logged in");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${APIBase_URL}/api/user/current?username=${username}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch user data");
+        }
+
+        setUserData((prevData) => ({
+          ...prevData,
+          employee_firstname: data.employee_firstname || "",
+          employee_lastname: data.employee_lastname || "",
+          employee_middlename: data.employee_middlename || "",
+          employee_username: data.employee_username || "",
+          employee_email: data.employee_email || "",
+          employee_suffix: data.employee_suffix || "",
+          employee_address: data.employee_address || "",
+          employee_phone: data.employee_phone || "",
+          employee_department: data.employee_department || "",
+          employee_dateOfBirth: data.employee_dateOfBirth || "",
+        }));
+      } catch (error) {
+        setError(error.message);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message,
+          confirmButtonColor: "#d33",
+        });
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const formatBirthday = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEmployeeData({ ...employeeData, [name]: value });
+    setUserData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleProfileUpdate = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Updated Profile Data:", employeeData);
+    const username = localStorage.getItem("employeeUsername");
+
+    try {
+      const response = await fetch(
+        `${APIBase_URL}/api/user/update?username=${username}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update user data");
+      }
+
+      const updatedData = await response.json();
+      setUserData(updatedData);
+      setIsEditing(false);
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Profile updated successfully!",
+        confirmButtonColor: "#4CAF50",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message,
+        confirmButtonColor: "#d33",
+      });
+    }
   };
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  const handleChangePassword = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
-    console.log("Change Password");
-  };
+    const username = localStorage.getItem("employeeUsername");
 
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-  };
+    if (!userData.currentPassword || !userData.newPassword) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Please fill in both current and new passwords",
+        confirmButtonColor: "#d33",
+      });
+      return;
+    }
 
-  const handlePasswordChange = (e) => {
-    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-  };
+    try {
+      const response = await fetch(
+        `${APIBase_URL}/api/user/change-password`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+            currentPassword: userData.currentPassword,
+            newPassword: userData.newPassword,
+          }),
+        }
+      );
 
-  const getBreadcrumb = () => {
-    switch (activeTab) {
-      case "profile":
-        return (
-          <>
-            <span className="hover:underline cursor-pointer">Account</span> &gt;{" "}
-            <span className="font-bold">Edit Profile</span>
-          </>
-        );
-      case "password":
-        return (
-          <>
-            <span className="hover:underline cursor-pointer">Account</span> &gt;{" "}
-            <span className="font-bold">Change Password</span>
-          </>
-        );
-      default:
-        return <span className="font-bold">Profile</span>;
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to change password");
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Password changed successfully!",
+        confirmButtonColor: "#4CAF50",
+      });
+      setIsChangingPassword(false);
+      setUserData({ ...userData, currentPassword: "", newPassword: "" });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message,
+        confirmButtonColor: "#d33",
+      });
     }
   };
 
@@ -95,234 +200,198 @@ const Profile = () => {
             onSidebarToggle={handleSidebarToggle}
             isSidebarOpen={isSidebarOpen}
           />
-
-          {/* MAIN CONTENT */}
-          <div className="min-h-screen bg-slate-100 p-6 bg-opacity-10">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold mb-2 border rounded-lg p-5">
-                Account
-                <div className="font-normal text-sm text-blue-700">
-                  {getBreadcrumb()}
+          <div className="min-h-screen bg-slate-100 p-6">
+            <div className="flex flex-col md:flex-row mb-2 p-5 bg-white border rounded-lg shadow-sm">
+              <div className="flex-grow">
+                <h1 className="text-xl md:text-2xl font-bold mt-2">Account</h1>{" "}
+                <div className="text-sm text-gray-500">
+                  <nav className="flex items-center space-x-2">
+                    <span>Account</span>
+                    <span>{">"}</span>
+                    {activeTab === "password" ? (
+                      <span className="text-blue-800">Change Password</span>
+                    ) : (
+                      <span className="text-blue-800">Profile</span>
+                    )}
+                  </nav>
                 </div>
-              </h1>
+              </div>
+
+              <div className="flex flex-col md:flex-row md:space-y-0 md:space-x-4 mt-4 md:mt-0">
+                <button
+                  onClick={() => {
+                    setActiveTab("password");
+                    setIsEditing(true);
+                    setIsChangingPassword(false);
+                  }}
+                  className={`p-4 rounded-lg flex items-center text-sm ${
+                    activeTab === "password"
+                      ? "underline text-blue-800"
+                      : "text-blue text-black"
+                  }`}
+                >
+                  <IoIosLock className="w-5 h-5 mr-1" />
+                  Change Password
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("profile");
+                    setIsEditing(true);
+                    setIsChangingPassword(false);
+                  }}
+                  className={`p-4 rounded-lg flex items-center text-sm ${
+                    activeTab === "profile"
+                      ? "underline text-blue-800"
+                      : "text-blue text-black"
+                  }`}
+                >
+                  <FaUserAlt className="w-5 h-5 mr-1" />
+                  Edit Profile
+                </button>
+              </div>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex mb-4">
-              <button
-                className={`flex items-center mr-4 px-4 py-2 ${
-                  activeTab === "profile"
-                    ? "text-blue-500 underline"
-                    : "bg-white text-gray-700"
-                } rounded-md`}
-                onClick={() => setActiveTab("profile")}
-              >
-                <FaRegUser className="mr-2" /> Edit Profile
-              </button>
-
-              <button
-                className={`flex items-center mr-4 px-4 py-2 ${
-                  activeTab === "password"
-                    ? "text-blue-500 underline"
-                    : "bg-white text-gray-700"
-                } rounded-md`}
-                onClick={() => setActiveTab("password")}
-              >
-                <CiLock className="mr-2" /> Change Password
-              </button>
-            </div>
-
-            {/* Profile Form */}
-            {activeTab === "profile" && (
-              <form
-                onSubmit={handleProfileUpdate}
-                className="bg-white p-6 rounded-lg shadow-md"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              {activeTab === "profile" && (
+                <form
+                  onSubmit={handleSubmit}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  <h1 className="text-xl font-bold">Profile</h1> <br />
+                  {/* Profile fields */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      First Name
-                    </label>
+                    <label className="text-sm font-semibold">First Name</label>
                     <input
                       type="text"
                       name="employee_firstname"
-                      value={employeeData.employee_firstname || ""}
+                      value={userData.employee_firstname}
                       onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Middle Name
-                    </label>
-                    <input
-                      type="text"
-                      name="employee_middlename"
-                      value={employeeData.employee_middlename || ""}
-                      onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Last Name
-                    </label>
+                    <label className="text-sm font-semibold">Last Name</label>
                     <input
                       type="text"
                       name="employee_lastname"
-                      value={employeeData.employee_lastname || ""}
+                      value={userData.employee_lastname}
                       onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Suffix
-                    </label>
+                    <label className="text-sm font-semibold">Middle Name</label>
                     <input
                       type="text"
-                      name="employee_suffix"
-                      value={employeeData.employee_suffix || ""}
+                      name="employee_middlename"
+                      value={userData.employee_middlename}
                       onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Email
-                    </label>
+                    <label className="text-sm font-semibold">Email</label>
                     <input
                       type="email"
                       name="employee_email"
-                      value={employeeData.employee_email || ""}
+                      value={userData.employee_email}
                       onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Phone
-                    </label>
+                    <label className="text-sm font-semibold">Phone</label>
                     <input
                       type="text"
                       name="employee_phone"
-                      value={employeeData.employee_phone || ""}
+                      value={userData.employee_phone}
                       onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Address
-                    </label>
+                    <label className="text-sm font-semibold">Address</label>
                     <input
                       type="text"
                       name="employee_address"
-                      value={employeeData.employee_address || ""}
+                      value={userData.employee_address}
                       onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="text-sm font-semibold">Department</label>
+                    <input
+                      type="text"
+                      name="employee_department"
+                      value={userData.employee_department}
+                      onChange={handleInputChange}
+                      disabled
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">
                       Date of Birth
                     </label>
                     <input
                       type="date"
                       name="employee_dateOfBirth"
-                      value={employeeData.employee_dateOfBirth || ""}
+                      value={userData.employee_dateOfBirth}
                       onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
+                      className="border p-2 rounded w-full"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Gender
-                    </label>
-                    <input
-                      type="text"
-                      name="employee_gender"
-                      value={employeeData.employee_gender || ""}
-                      onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
-                    />
+                  <div className="flex justify-start mt-4">
+                    <button
+                      type="submit"
+                      className="bg-blue-500 text-white px-4 py-2 rounded"
+                    >
+                      Save Changes
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Department
-                    </label>
-                    <input
-                      type="text"
-                      name="employee_department"
-                      value={employeeData.employee_department || ""}
-                      onChange={handleInputChange}
-                      className="mt-1 p-2 border rounded-md w-full"
-                    />
-                  </div>
-                </div>
+                </form>
+              )}
 
-                <button
-                  type="submit"
-                  className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Save Changes
-                </button>
-              </form>
-            )}
-
-            {activeTab === "password" && (
-              <form onSubmit={handlePasswordSubmit}>
-                <div className="grid grid-cols-1 gap-6 bg-white py-8 px-5 rounded-lg shadow-md">
+              {activeTab === "password" && (
+                <form onSubmit={handlePasswordChange} className="mt-4">
                   <div>
-                    <label className="block text-sm font-medium">
+                    <h1 className="text-xl font-bold pb-4">Change Password</h1>
+                    <label className="text-sm font-semibold">
                       Current Password
                     </label>
                     <input
                       type="password"
                       name="currentPassword"
-                      value={passwordData.currentPassword}
-                      onChange={handlePasswordChange}
-                      className=" block border-gray-300 rounded-md border h-3/4 w-2/4"
+                      value={userData.currentPassword}
+                      onChange={handleInputChange}
+                      className="border p-2 rounded w-full"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium">
+                  <div className="mt-4">
+                    <label className="text-sm font-semibold">
                       New Password
                     </label>
                     <input
                       type="password"
                       name="newPassword"
-                      value={passwordData.newPassword}
-                      onChange={handlePasswordChange}
-                      className="mt-1 block border-gray-300 rounded-md border h-3/4 w-2/4"
-                      required
+                      value={userData.newPassword}
+                      onChange={handleInputChange}
+                      className="border p-2 rounded w-full"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium">
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      value={passwordData.confirmPassword}
-                      onChange={handlePasswordChange}
-                      className="mt-1 block border-gray-300 rounded-md border h-3/4 w-2/4"
-                      required
-                    />
+                  <div className="flex justify-start mt-4">
+                    <button
+                      type="submit"
+                      className="bg-blue-500 text-white px-4 py-2 rounded"
+                    >
+                      Change Password
+                    </button>
                   </div>
-                  <span className="underline text-blue-800 text-sm">
-                    Forgot Password?
-                  </span>
-                  <button
-                    type="submit"
-                    className=" bg-blue-600 text-white text-sm py-2 px-4 rounded-md w-52"
-                  >
-                    Change Password
-                  </button>
-                </div>
-              </form>
-            )}
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import EmployeeNavbar from "../../Components/EmployeeNavbar";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 import axios from "axios";
-import { TbReportSearch } from "react-icons/tb";
 
 const FileIncident = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [userReports, setUserReports] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
 
-  const authToken = localStorage.getItem("employeeToken");
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+
+  const authToken = sessionStorage.getItem("employeeToken");
   const employeeUsername = localStorage.getItem("employeeUsername");
   if (!authToken) {
     return <Navigate to="/employeelogin" replace />;
@@ -42,10 +42,10 @@ const FileIncident = () => {
     const employeeUsername = localStorage.getItem("employeeUsername");
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/incidentreport",
-        { ...incidentData, employeeUsername }
-      );
+      const response = await axios.post(`${APIBase_URL}/api/incidentreport`, {
+        ...incidentData,
+        employeeUsername,
+      });
 
       if (response.status === 201) {
         alert("Incident Report Submitted Successfully!");
@@ -56,7 +56,7 @@ const FileIncident = () => {
           reportType: "",
           status: "Pending",
         });
-        fetchReports(); // Fetch reports again after submission
+        fetchReports();
       }
     } catch (error) {
       console.error("Error submitting the incident report:", error);
@@ -69,7 +69,7 @@ const FileIncident = () => {
 
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/incidentreport/${employeeUsername}`
+        `${APIBase_URL}/api/incidentreport/${employeeUsername}`
       );
       setUserReports(response.data);
     } catch (error) {
@@ -85,10 +85,10 @@ const FileIncident = () => {
   const archiveReport = async (id) => {
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/incidentreport/archive/${id}`
+        `${APIBase_URL}/api/incidentreport/archive/${id}`
       );
       alert(response.data.message);
-      fetchReports(); // Refresh the reports after archiving
+      fetchReports();
     } catch (error) {
       console.error("Error archiving report:", error);
       alert("Failed to archive the report.");
@@ -102,7 +102,8 @@ const FileIncident = () => {
   const getBreadcrumb = () => {
     return (
       <>
-        <span className="hover:underline cursor-pointer">HR Compliance</span> &gt;{" "}
+        <span className="hover:underline cursor-pointer">HR Compliance</span>{" "}
+        &gt;{" "}
         <span className="font-bold">
           {showArchived ? "Archive" : "Active Reports"}
         </span>
@@ -156,10 +157,16 @@ const FileIncident = () => {
                     Select a type
                   </option>
                   <option value="Workplace Safety">Workplace Safety</option>
-                  <option value="Confidentiality and Data Protection">Confidentiality and Data Protection</option>
-                  <option value="Dress Code and Personal Appearance">Dress Code and Personal Appearance</option>
+                  <option value="Confidentiality and Data Protection">
+                    Confidentiality and Data Protection
+                  </option>
+                  <option value="Dress Code and Personal Appearance">
+                    Dress Code and Personal Appearance
+                  </option>
                   <option value="Substance Abuse">Substance Abuse</option>
-                  <option value="Equal Opportunity Employment">Equal Opportunity Employment</option>
+                  <option value="Equal Opportunity Employment">
+                    Equal Opportunity Employment
+                  </option>
                   <option value="Others">Others</option>
                 </select>
               </div>

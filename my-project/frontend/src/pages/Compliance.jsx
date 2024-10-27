@@ -13,8 +13,8 @@ const Compliance = () => {
   const [editingPolicy, setEditingPolicy] = useState(null); // Track the policy being edited
 
   useEffect(() => {
-    document.title = "Dashboard";
-    const token = localStorage.getItem("adminToken");
+    document.title = "Compliance";
+    const token = sessionStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",
@@ -28,9 +28,11 @@ const Compliance = () => {
     fetchPolicies();
   }, [navigate]);
 
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   const fetchPolicies = () => {
     axios
-      .get("http://localhost:5000/api/policies/fetch")
+      .get(`${APIBase_URL}/api/policies/fetch`)
       .then((response) => {
         setPolicies(response.data);
       })
@@ -45,7 +47,7 @@ const Compliance = () => {
 
   const handleCreatePolicy = (newPolicy) => {
     axios
-      .post("http://localhost:5000/api/policies/create", newPolicy)
+      .post(`${APIBase_URL}/api/policies/create`, newPolicy)
       .then((response) => {
         console.log("Policy created:", response.data);
         fetchPolicies(); // Refresh policies after creation
@@ -70,7 +72,7 @@ const Compliance = () => {
   const handleUpdatePolicy = (updatedPolicy) => {
     axios
       .put(
-        `http://localhost:5000/api/policies/update/${updatedPolicy._id}`,
+        `${APIBase_URL}/api/policies/update/${updatedPolicy._id}`,
         updatedPolicy
       )
       .then((response) => {
@@ -104,10 +106,10 @@ const Compliance = () => {
     }).then((result) => {
       if (result.isConfirmed) {
         axios
-          .delete(`http://localhost:5000/api/policies/delete/${policyId}`)
+          .delete(`${APIBase_URL}/api/policies/delete/${policyId}`)
           .then((response) => {
             console.log("Policy deleted:", response.data);
-            fetchPolicies(); 
+            fetchPolicies();
 
             Swal.fire({
               title: "Deleted!",

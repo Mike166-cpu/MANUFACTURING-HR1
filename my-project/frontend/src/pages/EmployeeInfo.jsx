@@ -10,14 +10,17 @@ import { CiFilter } from "react-icons/ci";
 import * as XLSX from "xlsx";
 import ExportModal from "./ExportModal";
 import { FaDownload } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const EmployeeInfo = () => {
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     document.title = "Dashboard";
 
-    const token = localStorage.getItem("adminToken");
+    const token = sessionStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",
@@ -70,9 +73,11 @@ const EmployeeInfo = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/employee");
+      const response = await axios.get(`${APIBase_URL}/api/employee`);
       console.log("Response data:", response.data);
       setEmployees(response.data);
     } catch (error) {
@@ -111,11 +116,11 @@ const EmployeeInfo = () => {
   const handleUpdate = async () => {
     try {
       console.log("Updating employee with data:", updatedEmployee); 
-      await axios.put(
-        `http://localhost:5000/api/employee/${selectedEmployee._id}`,
+      const response = await axios.put(
+        `${APIBase_URL}/api/employee/${selectedEmployee._id}`,
         updatedEmployee
       );
-      alert("Employee updated successfully!");
+      toast.success("Employee updated successfully!", { position: "top-right" });
       fetchEmployees(); 
       handleBackToList(); 
     } catch (error) {
@@ -128,8 +133,8 @@ const EmployeeInfo = () => {
     if (window.confirm("Are you sure you want to delete this employee?")) {
       try {
         console.log("Deleting employee with ID:", id); 
-        await axios.delete(`http://localhost:5000/api/employee/${id}`);
-        alert("Employee deleted successfully!");
+        const response = await axios.delete(`${APIBase_URL}/api/employee/${id}`);
+        toast.success("Employee deleted successfully!", { position: "top-right" });
         fetchEmployees(); 
         handleBackToList(); 
       } catch (error) {
@@ -188,7 +193,7 @@ const EmployeeInfo = () => {
   const handleExport = async () => {
     setIsExporting(true); 
     try {
-      const response = await axios.get("http://localhost:5000/api/employee");
+      const response = await axios.get(`${APIBase_URL}/api/employee`);
 
       if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -223,6 +228,7 @@ const EmployeeInfo = () => {
   };
 
   return (
+    
     <div className="flex h-screen overflow-auto">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       <div
@@ -238,6 +244,7 @@ const EmployeeInfo = () => {
               <Breadcrumbs items={breadcrumbItems} />
             </h2>
           </div>
+          <ToastContainer />
 
           <div className="flex flex-col md:flex-row justify-end mb-4 px-5 items-end gap-1">
             <input
@@ -635,7 +642,7 @@ const EmployeeInfo = () => {
                     </button>
                   </nav>
                 </div>
-\               {filteredEmployees.length === 0 && (
+               {filteredEmployees.length === 0 && (
                   <p className="text-center text-gray-600 mt-4">
                     No employees found matching your criteria.
                   </p>

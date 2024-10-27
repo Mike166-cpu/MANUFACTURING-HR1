@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 const CompanyPolicy = () => {
   useEffect(() => {
@@ -12,13 +15,15 @@ const CompanyPolicy = () => {
   const [policies, setPolicies] = useState([]);
   const [acknowledgedPolicies, setAcknowledgedPolicies] = useState([]);
   const employeeUsername = localStorage.getItem("employeeUsername");
-  const authToken = localStorage.getItem("employeeToken");
+  const authToken = sessionStorage.getItem("employeeToken");
+
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   useEffect(() => {
     const fetchPolicies = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/policies/fetch"
+          `${APIBase_URL}/api/policies/fetch`
         );
         const data = await response.json();
         setPolicies(data);
@@ -30,7 +35,7 @@ const CompanyPolicy = () => {
     const fetchAcknowledgedPolicies = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/policies/acknowledged/${employeeUsername}`
+          `${APIBase_URL}/api/policies/acknowledged/${employeeUsername}`
         );
         const acknowledgedData = await response.json();
 
@@ -57,7 +62,7 @@ const CompanyPolicy = () => {
   const acknowledgePolicy = async (policyId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/policies/acknowledge/${policyId}`,
+        `${APIBase_URL}/api/policies/acknowledge/${policyId}`,
         {
           method: "POST",
           headers: {
@@ -72,7 +77,7 @@ const CompanyPolicy = () => {
           ...prevAcknowledged,
           policyId,
         ]);
-        alert("Policy acknowledged successfully");
+        toast.success("Acknowledge successfully!", { position: "top-right" });
       } else {
         const data = await response.json();
         throw new Error(data.message);
@@ -110,6 +115,7 @@ const CompanyPolicy = () => {
   return (
     <div>
       <div>
+      <ToastContainer />
         <EmployeeSidebar
           onSidebarToggle={handleSidebarToggle}
           isSidebarOpen={isSidebarOpen}

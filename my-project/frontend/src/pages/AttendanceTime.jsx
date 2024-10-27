@@ -15,7 +15,7 @@ const AttendanceTime = () => {
 
   const navigate = useNavigate();
   useEffect(() => {
-    const token = localStorage.getItem("adminToken");
+    const token = sessionStorage.getItem("adminToken");
     if (!token) {
       navigate("/login");
     }

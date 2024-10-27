@@ -18,6 +18,8 @@ const TimeTracking = () => {
   const [intervalId, setIntervalId] = useState(null);
   const [filterDate, setFilterDate] = useState("");
 
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   const filterRecordsByDate = () => {
     if (!filterDate) return timeRecords; // If no date is selected, return all records
 
@@ -33,7 +35,7 @@ const TimeTracking = () => {
   };
 
   useEffect(() => {
-    const authToken = localStorage.getItem("employeeToken");
+    const authToken = sessionStorage.getItem("employeeToken");
     if (!authToken) {
       Swal.fire({
         title: "Not Logged In",
@@ -64,7 +66,7 @@ const TimeTracking = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/employee/time-tracking/${employeeUsername}`
+        `${APIBase_URL}/api/employee/time-tracking/${employeeUsername}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch time tracking records");
@@ -107,7 +109,7 @@ const TimeTracking = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/employee/time-in",
+        `${APIBase_URL}/api/employee/time-in`,
         {
           method: "POST",
           headers: {
@@ -171,7 +173,7 @@ const TimeTracking = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/employee/time-out",
+        `${APIBase_URL}/api/employee/time-out`,
         {
           method: "POST",
           headers: {
@@ -279,17 +281,18 @@ const TimeTracking = () => {
 
         {/* MAIN CONTENT */}
         <div className="p-5 ">
-          <div className="w-full flex flex-col sm:flex-row justify-between items-center mt-1 p-5 border-b border-gray-300 bg-gray-200 rounded-lg">
-            {/* Left Side: Timer and Button */}
+          <div className="flex p-5 border-2 rounded-lg gap">
+            <h1 className="text-xl font-bold">Time Tracking</h1>
+          </div>
+          <div className="w-full flex flex-col sm:flex-row justify-between items-center mt-1 p-5 border-b border-gray-300 border rounded-lg">
             <div className="flex items-center">
               <MdOutlineTimer className="mr-2 text-2xl" />
               <span className="text-lg font-bold">{formatTimer(timer)}</span>
               <div className="ml-4">
-                {/* Added margin for spacing between timer and button */}
                 {!isClockedIn ? (
                   <button
                     onClick={handleTimeIn}
-                    className="bg-blue-300 text-gray-800 font-bold py-2 px-4 rounded shadow hover:bg-blue-600 transition duration-200"
+                    className="bg-green-500 font-bold py-2 px-4 rounded-xl shadow hover:bg-blue-600 transition duration-200 text-white"
                   >
                     <FaPlay className="inline-block mr-2" /> Start
                   </button>
@@ -308,7 +311,7 @@ const TimeTracking = () => {
             <div className="flex items-center">
               <label
                 htmlFor="dateFilter"
-                className="mr-2 text-lg font-semibold"
+                className="mr-2 text-sm font-semibold"
               >
                 Filter by Date:
               </label>
@@ -317,12 +320,12 @@ const TimeTracking = () => {
                 id="dateFilter"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="border border-gray-300 rounded p-2"
+                className="border border-gray-300 rounded p-2 text-sm"
               />
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold mt-5">All time record</h1>
+          <h1 className="text-xl font-bold mt-5">All time record</h1>
           <div className="mt-5">
             {sortedDateKeys.length === 0 ? (
               <p>No time tracking records found.</p>

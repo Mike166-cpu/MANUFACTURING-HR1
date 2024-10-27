@@ -21,7 +21,7 @@ const OnboardingFeedback = () => {
   });
 
   useEffect(() => {
-    const authToken = localStorage.getItem("employeeToken");
+    const authToken = sessionStorage.getItem("employeeToken");
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const department = localStorage.getItem("employee_department") || "Unknown";

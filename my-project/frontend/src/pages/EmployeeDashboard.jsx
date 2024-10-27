@@ -32,7 +32,7 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     document.title = "Dashboard - Home";
-    const authToken = localStorage.getItem("employeeToken");
+    const authToken = sessionStorage.getItem("employeeToken");
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
@@ -60,6 +60,8 @@ const EmployeeDashboard = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   const fetchTimeTrackingRecords = async () => {
     const employeeUsername = localStorage.getItem("employeeUsername");
 
@@ -69,7 +71,7 @@ const EmployeeDashboard = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/employee/time-tracking/${employeeUsername}`
+        `${APIBase_URL}/api/employee/time-tracking/${employeeUsername}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch time tracking records");

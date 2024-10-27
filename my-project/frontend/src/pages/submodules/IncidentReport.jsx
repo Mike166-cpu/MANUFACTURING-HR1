@@ -11,7 +11,7 @@ const IncidentReportTable = () => {
   useEffect(() => {
     document.title = "Dashboard";
 
-    const token = localStorage.getItem("adminToken");
+    const token = sessionStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",
@@ -31,11 +31,13 @@ const IncidentReportTable = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   useEffect(() => {
     const fetchIncidents = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/incidentreport"
+          `${APIBase_URL}/api/incidentreport`
         );
         console.log("Fetched incidents:", response.data); // Check the console to see if employeeUsername is included
         setIncidents(response.data);
@@ -50,7 +52,7 @@ const IncidentReportTable = () => {
   const handleResolve = async (id) => {
     try {
       console.log("Resolving incident:", id);
-      await axios.patch(`http://localhost:5000/api/incidentreport/${id}`, {
+      await axios.patch(`${APIBase_URL}api/incidentreport/${id}`, {
         status: "Resolved",
       });
       setIncidents(
@@ -66,7 +68,7 @@ const IncidentReportTable = () => {
   const handleUnresolve = async (id) => {
     try {
       console.log("Marking incident as pending:", id);
-      await axios.patch(`http://localhost:5000/api/incidentreport/${id}`, {
+      await axios.patch(`${APIBase_URL}api/incidentreport/${id}`, {
         status: "Pending",
       });
       setIncidents(
