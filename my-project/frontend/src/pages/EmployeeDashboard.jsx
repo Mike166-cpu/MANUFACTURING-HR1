@@ -5,6 +5,8 @@ import EmployeeNav from "../Components/EmployeeNav";
 import Swal from "sweetalert2";
 import { RotatingLines } from "react-loader-spinner";
 import Calendar from "react-calendar";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faClock, faUserCheck } from "@fortawesome/free-solid-svg-icons";
 import "react-calendar/dist/Calendar.css";
 import {
   BarChart,
@@ -17,17 +19,30 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+};
+
 const EmployeeDashboard = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isMobileView = useMediaQuery("(max-width: 768px)");
   const [employeeFirstName, setEmployeeFirstName] = useState("");
   const [employeeLastName, setEmployeeLastName] = useState("");
   const [employeeDepartment, setEmployeeDepartment] = useState("");
-  const [loading, setLoading] = useState(true);
   const [timeRecords, setTimeRecords] = useState([]);
   const [chartData, setChartData] = useState([]);
-  const [tasks, setTasks] = useState([]); // New: Task/Project state
-  const [announcements, setAnnouncements] = useState([]); // New: Announcements state
-
+  const [totalHours, setTotalHours] = useState(0);
+  const [attendanceCount, setAttendanceCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,7 +51,9 @@ const EmployeeDashboard = () => {
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
+    const employeeId = localStorage.getItem("employeeId"); 
 
+    console.log("First Name:", firstName, "Employee Id:", employeeId);
     if (!authToken) {
       Swal.fire({
         title: "Not Logged In",
@@ -51,8 +68,6 @@ const EmployeeDashboard = () => {
       setEmployeeLastName(lastName);
       setEmployeeDepartment(department);
       fetchTimeTrackingRecords();
-      fetchTasks();
-      fetchAnnouncements();
     }
   }, [navigate]);
 
@@ -61,6 +76,7 @@ const EmployeeDashboard = () => {
   };
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:5000";
 
   const fetchTimeTrackingRecords = async () => {
     const employeeUsername = localStorage.getItem("employeeUsername");
@@ -77,9 +93,40 @@ const EmployeeDashboard = () => {
         throw new Error("Failed to fetch time tracking records");
       }
       const data = await response.json();
+
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+
+      const totalSeconds = data
+        .filter((record) => {
+          const recordDate = new Date(record.date);
+          return (
+            recordDate.getMonth() === currentMonth &&
+            recordDate.getFullYear() === currentYear
+          );
+        })
+        .reduce((sum, record) => sum + (record.total_hours || 0), 0);
+
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      setTotalHours(
+        totalSeconds > 0 ? `${hours}h ${minutes}m` : "No data available"
+      );
+
       setTimeRecords(data);
+
+      const attendanceThisMonth = data.filter((record) => {
+        const recordDate = new Date(record.time_in);
+        return (
+          recordDate.getMonth() === currentMonth &&
+          recordDate.getFullYear() === currentYear &&
+          record.attendance
+        );
+      }).length;
+
+      setAttendanceCount(attendanceThisMonth);
+
       processChartData(data);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching time tracking records:", error);
       Swal.fire({
@@ -87,7 +134,6 @@ const EmployeeDashboard = () => {
         title: "Error",
         text: "Failed to fetch time tracking records.",
       });
-      setLoading(false);
     }
   };
 
@@ -122,10 +168,7 @@ const EmployeeDashboard = () => {
       return {
         date,
         hours: `${totalHours}h ${totalMinutes}m`,
-        totalHours: (
-          grouped[date].totalHours +
-          grouped[date].totalMinutes / 60
-        ).toFixed(2),
+        totalHours: `${totalHours}h ${totalMinutes}m`,
       };
     });
 
@@ -134,33 +177,24 @@ const EmployeeDashboard = () => {
     setChartData(chartDataArray);
   };
 
-  const fetchTasks = () => {
-    setTasks([
-      { name: "Project A", status: "In Progress", deadline: "2024-10-20" },
-      { name: "Task B", status: "Completed", deadline: "2024-10-10" },
-    ]);
+  const handleResize = () => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
   };
 
-  const fetchAnnouncements = () => {
-    setAnnouncements([
-      { message: "Company holiday on 2024-11-01", date: "2024-10-15" },
-      { message: "HR Policy update", date: "2024-10-10" },
-    ]);
-  };
+  useEffect(() => {
+    handleResize();
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <RotatingLines
-          strokeColor="#4F46E5"
-          strokeWidth="5"
-          animationDuration="1"
-          width="40"
-          visible={true}
-        />
-      </div>
-    );
-  }
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
 
   return (
     <div className="flex">
@@ -170,73 +204,114 @@ const EmployeeDashboard = () => {
       />
       <div
         className={`flex-grow transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? "ml-72" : "ml-0"
-        }`}
+          isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
+        } relative`}
       >
         <EmployeeNav
           onSidebarToggle={handleSidebarToggle}
           isSidebarOpen={isSidebarOpen}
         />
+        {isSidebarOpen && isMobileView && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
+
         <div
-          className={`transition-all duration-300 ease-in-out flex-grow ${
-            isSidebarOpen ? "ml-0" : "ml-0"
-          } p-4`}
-        >
+          className={`transition-all duration-300 ease-in-out flex-grow relative ${
+            isSidebarOpen ? "md:opacity-0 sm:opacity-50" : "sm:opacity-100"
+          }`}
+        ></div>
+
+        {/*MAIN CONTENT*/}
+        <div className="transition-all duration-300 ease-in-out flex-grow p-5">
           <div className="rounded-lg border shadow-sm py-5 px-5">
-            <h1 className="font-bold text-lg">
+            <h1 className="font-bold text-lg capitalize dark:text-white">
               <span className="font-normal">Welcome back,</span>{" "}
               {employeeFirstName
                 ? employeeFirstName
                 : "First name not available"}
               !
             </h1>
-            <Link to="/timetracking" className="text-blue text-sm underline-500 hover:underline hover:text-blue-600">
+            <Link
+              to="/timetracking"
+              className="text-blue text-sm underline-500 hover:underline hover:text-blue-600"
+            >
               Start your time tracking now.
             </Link>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-start py-5 flex-wrap gap-4 md:gap-8">
-            <div className="card w-full max-w-xs md:max-w-md bg-white border rounded-lg p-6 text-xs">
-              <h1 className="text-xl font medium pb-2 text-center">
-                Time tracking summary
-              </h1>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 pt-5">
+            {/* Total Hours Card */}
+            <div className="card w-full bg-blue-500 text-white shadow-lg rounded-lg">
+              <div className="p-6 flex items-center">
+                <FontAwesomeIcon icon={faClock} className="text-3xl mr-4" />
+                <div>
+                  <h2 className="text-md font-bold">
+                    Total Hours Worked This Month
+                  </h2>
+                  <p className="text-xl font-semibold">{totalHours}</p>
+                </div>
+              </div>
+            </div>
 
+            {/* Attendance Count Card */}
+            <div className="card w-full bg-green-500 text-white shadow-lg rounded-lg">
+              <div className="p-6 flex items-center">
+                <FontAwesomeIcon icon={faUserCheck} className="text-3xl mr-4" />
+                <div>
+                  <h2 className="text-md font-bold">
+                    Your attendance this month
+                  </h2>
+                  <p className="text-2xl font-semibold">
+                    {attendanceCount > 0
+                      ? attendanceCount
+                      : "No data available"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 pt-5">
+            {/* Chart */}
+            <div className="card w-full bg-white border rounded-lg p-6 h-80">
+              {" "}
+              {/* Fixed height */}
+              <h1 className="text-xl font-medium pb-2 text-center">
+                Work Hours This Month
+              </h1>
               {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height="100%">
+                  {" "}
+                  {/* Use full height */}
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis
                       label={{
-                        value: "Hours",
+                        value: "Total Hours",
                         angle: -90,
                         position: "insideLeft",
                       }}
                     />
-                    <Tooltip
-                      formatter={(value) => [value, "Total Hours Worked"]}
-                    />
+                    <Tooltip />
                     <Legend />
-                    <Bar
-                      dataKey="totalHours"
-                      fill="#8884d8"
-                      name="Total Hours Worked"
-                    />
+                    <Bar dataKey="totalHours" fill="#4F46E5" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div>No time records available.</div>
+                <p>No data available for chart.</p>
               )}
             </div>
 
-            <div className="card w-full max-w-xs md:max-w-md border bg-white rounded-lg p-6 items-center">
-              <h2 className="text-xl font-bold text-center text-gray-800 mb-4">
-                Calendar
-              </h2>
-              <Calendar
-                onChange={(date) => console.log(date)}
-                value={new Date()}
-              />
+            {/* Calendar */}
+            <div className="card w-full items-center bg-white border rounded-lg p-6 h-80 text-xs">
+              {" "}
+              {/* Fixed height */}
+              <h1 className="text-xl font-medium pb-2 text-center">Calendar</h1>
+              <Calendar />
             </div>
           </div>
         </div>

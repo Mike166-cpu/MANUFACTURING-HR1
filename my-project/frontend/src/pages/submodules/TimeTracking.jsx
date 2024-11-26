@@ -6,8 +6,23 @@ import { MdOutlineTimer } from "react-icons/md";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+};
+
 const TimeTracking = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isMobileView = useMediaQuery("(max-width: 768px)");
   const navigate = useNavigate();
   const [timeRecords, setTimeRecords] = useState([]);
   const [timeIn, setTimeIn] = useState(null);
@@ -45,6 +60,13 @@ const TimeTracking = () => {
       }).then(() => {
         navigate("/employeelogin");
       });
+
+      const storedTimeIn = localStorage.getItem("timeIn");
+      if (storedTimeIn) {
+        setTimeIn(new Date(storedTimeIn));
+        setIsClockedIn(true);
+        startTimer(new Date(storedTimeIn));
+      }
     }
 
     const storedTimeIn = localStorage.getItem("timeIn");
@@ -92,35 +114,39 @@ const TimeTracking = () => {
   };
 
   const clearTimer = () => {
-    clearInterval(intervalId);
-    setTimer(0);
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+    setTimer(0); // Reset the timer
   };
+  const employeeUsername = localStorage.getItem("employeeUsername");
+  const employeeFirstname = localStorage.getItem("employeeFirstName");
+  const employeeLastname = localStorage.getItem("employeeLastName");
 
   const handleTimeIn = async () => {
-    const employeeUsername = localStorage.getItem("employeeUsername");
-
     if (!employeeUsername) {
       alert("Employee username not found in local storage.");
       return;
     }
 
+    console.log(employeeLastname);
+
     const timeInNow = new Date();
     localStorage.setItem("timeIn", timeInNow.toISOString());
-
     try {
-      const response = await fetch(
-        `${APIBase_URL}/api/employee/time-in`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            employee_username: employeeUsername,
-            time_in: timeInNow,
-          }),
-        }
-      );
+      const response = await fetch(`${APIBase_URL}/api/employee/time-in`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employee_username: employeeUsername,
+          employee_firstname: employeeFirstname,
+          employee_lastname: employeeLastname,
+          time_in: timeInNow,
+        }),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -169,23 +195,20 @@ const TimeTracking = () => {
     ).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     setTotalHours(totalHoursFormatted);
 
-    const employeeUsername = localStorage.getItem("employeeUsername");
-
     try {
-      const response = await fetch(
-        `${APIBase_URL}/api/employee/time-out`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            employee_username: employeeUsername,
-            time_out: currentTime,
-            total_hours: totalSeconds,
-          }),
-        }
-      );
+      const response = await fetch(`${APIBase_URL}/api/employee/time-out`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employee_username: employeeUsername,
+          employee_firstname: employeeFirstname,
+          employee_lastname: employeeLastname,
+          time_out: currentTime,
+          total_hours: totalSeconds,
+        }),
+      });
 
       if (!response.ok) {
         const errorMessage = await response.text();
@@ -200,6 +223,8 @@ const TimeTracking = () => {
         icon: "success",
         title: "Time Out Successful",
         text: `You have clocked out at ${currentTime.toLocaleTimeString()} and worked ${totalHoursFormatted} hours. Refresh this page.`,
+      }).then(() => {
+        window.location.reload();
       });
 
       fetchTimeTrackingRecords(); // Fetch updated records
@@ -263,6 +288,24 @@ const TimeTracking = () => {
     )}:${String(secs).padStart(2, "0")}`;
   };
 
+  const handleResize = () => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   return (
     <div>
       <EmployeeSidebar
@@ -271,23 +314,32 @@ const TimeTracking = () => {
       />
       <div
         className={`flex-grow transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? "ml-72" : "ml-0"
-        }`}
+          isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
+        } relative`}
       >
         <EmployeeNav
           onSidebarToggle={handleSidebarToggle}
           isSidebarOpen={isSidebarOpen}
         />
 
+        {/* Mobile overlay */}
+        {isSidebarOpen && isMobileView && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
         {/* MAIN CONTENT */}
         <div className="p-5 ">
           <div className="flex p-5 border-2 rounded-lg gap">
             <h1 className="text-xl font-bold">Time Tracking</h1>
           </div>
-          <div className="w-full flex flex-col sm:flex-row justify-between items-center mt-1 p-5 border-b border-gray-300 border rounded-lg">
-            <div className="flex items-center">
+          <div className="w-full flex flex-col sm:flex-row justify-between items-center mt-1 p-5 border-b border-gray-300 border rounded-lg whitespace-nowrap overflow-x-auto max-w-screen-lg mx-auto flex-shrink-0">
+            <div className="flex items-center whitespace-nowrap flex-shrink-0">
               <MdOutlineTimer className="mr-2 text-2xl" />
-              <span className="text-lg font-bold">{formatTimer(timer)}</span>
+              <span className="text-lg font-bold whitespace-nowrap">
+                {formatTimer(timer)}
+              </span>
               <div className="ml-4">
                 {!isClockedIn ? (
                   <button
@@ -308,7 +360,7 @@ const TimeTracking = () => {
             </div>
 
             {/* Right Side: Date Filter */}
-            <div className="flex items-center">
+            <div className="flex items-center whitespace-nowrap flex-shrink-0">
               <label
                 htmlFor="dateFilter"
                 className="mr-2 text-sm font-semibold"

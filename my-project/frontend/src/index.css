@@ -22,6 +22,9 @@
   }
 }
 
+html, body {
+  height: 100%;
+}
 .shake {
   animation: shake 0.2s ease-in-out;
 }
@@ -92,3 +95,94 @@
 .react-calendar__navigation button:enabled:hover {
   background: rgba(0, 124, 255, 0.1); /* Light blue on hover for nav buttons */
 }
+
+
+/* Overlay to cover the entire screen */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it is above other elements */
+  transition: opacity 0.3s ease;
+}
+
+/* Content inside the modal */
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Gives the floating effect */
+  max-width: 80%;
+  max-height: 80%;
+  overflow: auto;
+  transition: transform 0.3s ease;
+}
+
+/* Modal title */
+.modal-title {
+  font-size: 24px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Image inside the modal */
+.modal-image {
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Close button */
+.close-button {
+  padding: 10px 20px;
+  background-color: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Hover effect for close button */
+.close-button:hover {
+  background-color: #ff6b81;
+}
+
+
+
+
+.dotted-circle {
+  width: 48px;
+  height: 48px;
+  border: 4px dotted #4299e1;
+  border-radius: 50%;
+  animation: rotate 5.0s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+.no-arrow {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+

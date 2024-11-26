@@ -47,3 +47,25 @@
   max-height: 200px;
   overflow-y: auto;
 }
+
+.light {
+  background-color: #ffffff; /* Light mode background */
+  color: #000000; /* Light mode text color */
+}
+
+.dark {
+  background-color: #1a1a1a; /* Dark mode background */
+  color: #ffffff; /* Dark mode text color */
+}
+
+
+/* Assuming you have a styles.css or similar file */
+.sidebar-button {
+  position: absolute;
+  top: 50%;
+  left: -30px; /* Adjust based on the size of your button */
+  transform: translateY(-50%);
+  background-color: white; /* Match the sidebar's background */
+  border-radius: 4px; /* Add some rounding */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Optional shadow for the button */
+}

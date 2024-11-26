@@ -1,71 +1,139 @@
 const express = require("express");
 const router = express.Router();
-const Employee = require("../models/Employee"); 
+const Employee = require("../models/Employee");
 const TimeTracking = require("../models/TimeTracking");
-const bcrypt = require("bcrypt"); 
+const bcrypt = require("bcrypt");
+const nodemailer = require("nodemailer");
+const { forgotPassword } = require("../controllers/passwordController");
+const jwt = require("jsonwebtoken");
+
+router.post("/forgot-password", async (req, res) => {
+  const { employee_email } = req.body;
+
+  try {
+    const employee = await Employee.findOne({ employee_email });
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found." });
+    }
+
+    const token = jwt.sign({ id: employee._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee_email,
+      subject: "Password Reset",
+      html: `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: #f9f9f9;">
+      <h2 style="text-align: center; color: #333;">Password Reset Request</h2>
+      <p style="font-size: 16px; color: #555;">Hello,</p>
+      <p style="font-size: 16px; color: #555;">You requested a password reset for your account. Please click the button below to reset your password:</p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="https://hr1.jjm-manufacturing.com/reset-password/${token}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #007bff; border-radius: 4px; text-decoration: none;">Reset Password</a>
+      </div>
+      <p style="font-size: 16px; color: #555;">If you didn't request this, please ignore this email.</p>
+      <p style="font-size: 14px; color: #999; text-align: center;">© 2024 Your Company. All rights reserved.</p>
+    </div>
+  `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({ message: "Password reset email sent." });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred. Please try again later." });
+  }
+});
+
+router.post("/reset-password/:token", async (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const employee = await Employee.findById(decoded.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found." });
+    }
+
+    employee.employee_password = newPassword;
+    await employee.save();
+
+    return res.status(200).json({ message: "Password updated successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred. Please try again later." });
+  }
+});
 
 // Employee registration route
 router.post("/add", async (req, res) => {
   try {
     const employeeData = req.body;
-    employeeData.employee_password = await bcrypt.hash(
-      employeeData.employee_password,
-      10
-    );
 
-    const newEmployee = new Employee(employeeData);
+    const newEmployee = new Employee(employeeData); // No need to hash again
     await newEmployee.save();
-    res
-      .status(201)
-      .json({ message: "Employee added successfully!", employee: newEmployee });
+
+    res.status(201).json({
+      message: "Employee added successfully!",
+      employee: newEmployee,
+    });
   } catch (error) {
     console.error("Error while adding employee:", error);
-    res
-      .status(500)
-      .json({ message: "Error adding employee", error: error.message });
+    res.status(500).json({ message: "Error adding employee", error: error.message });
   }
 });
 
 // Employee login route
-router.post("/login-employee", async (req, res) => {
+router.post('/login-employee', async (req, res) => {
   const { employee_username, employee_password } = req.body;
 
   try {
     const employee = await Employee.findOne({ employee_username });
+    console.log("Fetched employee data:", employee); 
+
     if (!employee) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      employee_password,
-      employee.employee_password
-    );
-    if (!isPasswordValid) {
-      console.log("Invalid password");
-      return res.status(401).json({ message: "Invalid password" });
+    const isMatch = await bcrypt.compare(employee_password, employee.employee_password);
+
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
-    res.status(200).json({
-      message: "Login successful!",
-      employee_email: employee.employee_email,
-      employee_firstname: employee.employee_firstname,
-      employee_middlename: employee.employee_middlename || "",
-      employee_lastname: employee.employee_lastname,
-      employee_suffix: employee.employee_suffix || "",
-      employee_username: employee.employee_username,
-      employee_department: employee.employee_department,
-      employee_phone: employee.employee_phone || "",
-      employee_address: employee.employee_address || "",
-      employee_dateOfBirth: employee.employee_dateOfBirth
-        ? employee.employee_dateOfBirth.toISOString().split("T")[0]
-        : "",
-      employee_gender: employee.employee_gender || "",
+    const token = jwt.sign({ id: employee._id }, 'your_jwt_secret_key', { expiresIn: '1h' });
+
+    res.json({
+      success: true,
+      token,
+      employeeEmail: employee.employee_email,
+      employeeFirstName: employee.employee_firstname,
+      employeeLastName: employee.employee_lastname,
+      employeeUsername: employee.employee_username,
+      employeeId: employee.employee_id, 
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 // Get all employees route
 router.get("/", async (req, res) => {
@@ -80,13 +148,13 @@ router.get("/", async (req, res) => {
 
 // Update employee route
 router.put("/:id", async (req, res) => {
-  const { id } = req.params; 
-  const updateData = req.body; 
+  const { id } = req.params;
+  const updateData = req.body;
 
   try {
     const updatedEmployee = await Employee.findByIdAndUpdate(id, updateData, {
       new: true,
-      runValidators: true, 
+      runValidators: true,
     });
     if (!updatedEmployee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -105,7 +173,7 @@ router.put("/:id", async (req, res) => {
 
 // Delete employee route
 router.delete("/:id", async (req, res) => {
-  const { id } = req.params; 
+  const { id } = req.params;
 
   try {
     const deletedEmployee = await Employee.findByIdAndDelete(id);
@@ -123,12 +191,16 @@ router.delete("/:id", async (req, res) => {
 
 // TIME IN
 router.post("/time-in", async (req, res) => {
-  const { employee_username, time_in } = req.body;
+  const { employee_username, employee_firstname, employee_lastname, time_in } =
+    req.body;
 
   try {
     const newTimeTracking = new TimeTracking({
       employee_username,
+      employee_firstname,
+      employee_lastname,
       time_in,
+      attendance: true,
     });
 
     await newTimeTracking.save();
@@ -143,11 +215,14 @@ router.post("/time-in", async (req, res) => {
 
 // TIME OUT
 router.post("/time-out", async (req, res) => {
-  const { employee_username, time_out } = req.body;
+  const { employee_username, employee_firstname, employee_lastname, time_out } =
+    req.body;
 
   try {
     const timeTrackingRecord = await TimeTracking.findOne({
       employee_username,
+      employee_firstname,
+      employee_lastname,
       time_out: null,
     });
 
@@ -200,7 +275,7 @@ router.get("/time-tracking/:username", async (req, res) => {
 
 // Delete time tracking record
 router.delete("/time-tracking/:id", async (req, res) => {
-  const { id } = req.params; 
+  const { id } = req.params;
 
   try {
     const deletedRecord = await TimeTracking.findByIdAndDelete(id);
@@ -275,9 +350,14 @@ router.put("/employee/:username/change-password", async (req, res) => {
       return res.status(404).json({ message: "Employee not found." });
     }
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, employee.employee_password);
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      employee.employee_password
+    );
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Current password is incorrect." });
+      return res
+        .status(401)
+        .json({ message: "Current password is incorrect." });
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -291,7 +371,6 @@ router.put("/employee/:username/change-password", async (req, res) => {
     res.status(500).json({ message: "Internal server error." });
   }
 });
-
 
 // Update employee profile by username
 router.put("/:username", async (req, res) => {
@@ -318,13 +397,15 @@ router.put("/:username", async (req, res) => {
   }
 });
 
-
 // Fetch current user data
 router.get("/current-user", async (req, res) => {
-  const { employee_username } = req.user; // Assuming you have user data stored in req.user (via authentication middleware)
+  console.log("req.user:", req.user);
+  const { employee_username } = req.user; 
 
   try {
     const employee = await Employee.findOne({ employee_username });
+    console.log("Fetched employee data:", employee); 
+
     if (!employee) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -345,18 +426,19 @@ router.get("/current-user", async (req, res) => {
   }
 });
 
-router.get('/profile/:username', async (req, res) => {
+router.get("/profile/:username", async (req, res) => {
   try {
-    const employee = await Employee.findOne({ employee_username: req.params.username });
+    const employee = await Employee.findOne({
+      employee_username: req.params.username,
+    });
     if (!employee) {
-      return res.status(404).json({ message: 'Employee not found' });
+      return res.status(404).json({ message: "Employee not found" });
     }
     res.json(employee);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 module.exports = router;
-

@@ -4,6 +4,7 @@ const UserSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   middleName: { type: String },
+  email: { type: String, required: true, unique: true},
   nickname: { type: String },
   suffix: { type: String },
   birthday: { type: Date, required: true },

@@ -5,6 +5,19 @@ import EmployeeNav from "../../Components/EmployeeNav";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+};
 
 const CompanyPolicy = () => {
   useEffect(() => {
@@ -12,6 +25,7 @@ const CompanyPolicy = () => {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isMobileView = useMediaQuery("(max-width: 768px)");
   const [policies, setPolicies] = useState([]);
   const [acknowledgedPolicies, setAcknowledgedPolicies] = useState([]);
   const employeeUsername = localStorage.getItem("employeeUsername");
@@ -22,9 +36,7 @@ const CompanyPolicy = () => {
   useEffect(() => {
     const fetchPolicies = async () => {
       try {
-        const response = await fetch(
-          `${APIBase_URL}/api/policies/fetch`
-        );
+        const response = await fetch(`${APIBase_URL}/api/policies/fetch`);
         const data = await response.json();
         setPolicies(data);
       } catch (error) {
@@ -38,8 +50,6 @@ const CompanyPolicy = () => {
           `${APIBase_URL}/api/policies/acknowledged/${employeeUsername}`
         );
         const acknowledgedData = await response.json();
-
-        console.log("Acknowledged Policies Response:", acknowledgedData);
 
         if (Array.isArray(acknowledgedData)) {
           const acknowledgedPolicyIds = acknowledgedData.map(
@@ -110,28 +120,59 @@ const CompanyPolicy = () => {
     );
   };
 
-  const breadcrumbItems = [{ label: "HR Compliance" }, { label: "Policies" , className: "font-bold"  }];
+  const breadcrumbItems = [
+    { label: "HR Compliance" },
+    { label: "Policies", className: "font-bold" },
+  ];
+
+  const handleResize = () => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   return (
     <div>
       <div>
-      <ToastContainer />
+        <ToastContainer />
         <EmployeeSidebar
           onSidebarToggle={handleSidebarToggle}
           isSidebarOpen={isSidebarOpen}
         />
         <div
           className={`flex-grow transition-all duration-300 ease-in-out ${
-            isSidebarOpen ? "ml-72" : "ml-0"
-          }`}
+            isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
+          } relative`}
         >
           <EmployeeNav
             onSidebarToggle={handleSidebarToggle}
             isSidebarOpen={isSidebarOpen}
-          />{" "}
+          />
+
+          {/* Mobile overlay */}
+          {isSidebarOpen && isMobileView && (
+            <div
+              className="fixed inset-0 bg-black opacity-50 z-10"
+              onClick={() => setIsSidebarOpen(false)}
+            ></div>
+          )}
           <div className="flex-1 overflow-y-auto bg-base-500">
             <div className="border rounded-lg m-5 py-5">
-              <h2 className="text-2xl font-bold pl-5 ">Company Policies</h2>
+              <h2 className="text-2xl font-bold pl-5 dark:text-white">
+                Company Policies
+              </h2>
               <Breadcrumbs items={breadcrumbItems} />
             </div>
 
@@ -140,9 +181,15 @@ const CompanyPolicy = () => {
               <table className="table-auto w-full">
                 <thead>
                   <tr>
-                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b">Title</th>
-                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b">Description</th>
-                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b">Action</th>
+                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b dark:text-white">
+                      Title
+                    </th>
+                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b dark:text-white">
+                      Description
+                    </th>
+                    <th className="px-4 py-2 text-start text-sm text-gray-500 font-medium border-b dark:text-white">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

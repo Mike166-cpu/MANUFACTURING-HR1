@@ -1,66 +1,102 @@
-import React, { useState } from "react";
-import { CiMenuBurger } from "react-icons/ci";
-import { useNavigate } from "react-router-dom"; // For navigation
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; 
+import { GoSidebarCollapse } from "react-icons/go";
+
 
 const EmployeeNav = ({ onSidebarToggle, isSidebarOpen, currentTime, currentDate }) => {
-  const [searchQuery, setSearchQuery] = useState("");  // State for search input
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);  // Suggestions based on input
-  const navigate = useNavigate();  // Hook for programmatic navigation
+  const [searchQuery, setSearchQuery] = useState("");  
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);  
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);  
+  const navigate = useNavigate();  
+  const [timeoutId, setTimeoutId] = useState(null);
 
-  // Available routes to search
   const routes = [
     { name: "Dashboard", path: "/employeedashboard" },
     { name: "File Incident", path: "/fileincident" },
     { name: "Company Policy", path: "/companypolicy" },
     { name: "Time Tracking", path: "/timeTracking" },
-    { name: "Profile", path: "/profile" },
     { name: "Feedback", path: "/feedback" },
     { name: "User Profile", path: "/userProfile" },
     { name: "Onboarding Feedback", path: "/feedback" },
   ];
 
-  // Handle input change and filter suggestions
   const handleInputChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
+    
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
 
-    // Filter suggestions based on input
-    if (query.length > 0) {
-      const suggestions = routes.filter(route =>
-        route.name.toLowerCase().includes(query.toLowerCase())
+    setTimeoutId(setTimeout(() => {
+      if (query.length > 0) {
+        const suggestions = routes.filter(route =>
+          route.name.toLowerCase().includes(query.toLowerCase())
+        );
+        setFilteredSuggestions(suggestions);
+      } else {
+        setFilteredSuggestions([]); 
+      }
+      setHighlightedIndex(-1); 
+    }, 300));
+  };
+
+  const handleSuggestionClick = (path) => {
+    setSearchQuery("");  
+    setFilteredSuggestions([]);  
+    setHighlightedIndex(-1); 
+    navigate(path);  
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setFilteredSuggestions([]);
+    setHighlightedIndex(-1); 
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      setHighlightedIndex((prevIndex) =>
+        Math.min(prevIndex + 1, filteredSuggestions.length - 1)
       );
-      setFilteredSuggestions(suggestions);
-    } else {
-      setFilteredSuggestions([]); // Clear suggestions if no input
+    } else if (e.key === "ArrowUp") {
+      setHighlightedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+    } else if (e.key === "Enter") {
+      if (highlightedIndex >= 0) {
+        handleSuggestionClick(filteredSuggestions[highlightedIndex].path);
+      }
+    } else if (e.key === "Escape") {
+      clearSearch();
     }
   };
 
-  // Handle search by clicking a suggestion
-  const handleSuggestionClick = (path) => {
-    setSearchQuery("");  // Clear the input
-    setFilteredSuggestions([]);  // Clear suggestions
-    navigate(path);  // Navigate to the selected route
-  };
+  useEffect(() => {
+    return () => clearTimeout(timeoutId);
+  }, [timeoutId]);
 
   return (
     <div className={`flex-grow transition-all duration-300 ease-in-out`}>
       <div className="navbar bg-base-100 shadow-md w-full flex flex-wrap items-center justify-between">
         <div className="flex-1 flex items-center gap-3">
-          {/* Hamburger Menu Icon */}
-          <button onClick={onSidebarToggle} className="btn drawer-button text-lg text-black">
-            <CiMenuBurger />
+          {/* Sidebar Menu Icon */}
+          <button onClick={onSidebarToggle} className="btn drawer-button text-lg text-black dark:text-white">
+            <GoSidebarCollapse className="font-bold"/> {/* Updated to use FiMenu */}
           </button>
 
-          {/* Search Input */}
-          <div className="relative w-full max-w-xs">  {/* Relative container for proper positioning */}
+          <div className="relative w-full max-w-xs">  
             <label className="input input-bordered flex items-center">
               <input
                 type="text"
-                className="grow"
+                className="grow border-b rounded-t-md"
                 placeholder="Search"
                 value={searchQuery}
-                onChange={handleInputChange}  // Update state with search input
+                onChange={handleInputChange}  
+                onKeyDown={handleKeyDown}  
+                aria-label="Search"
               />
+              <button onClick={clearSearch} className="ml-2 text-gray-500">
+                &times; 
+              </button>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
@@ -73,14 +109,20 @@ const EmployeeNav = ({ onSidebarToggle, isSidebarOpen, currentTime, currentDate 
 
             {/* Suggestions Dropdown */}
             {filteredSuggestions.length > 0 && (
-              <ul className="absolute left-0 w-full bg-white border border-gray-300 mt-2 rounded-md shadow-md max-h-48 overflow-y-auto z-10">
+              <ul className="absolute left-0 w-full bg-white border border-gray-300 rounded-b-md shadow-md max-h-48 overflow-y-auto z-10 mt-[-1px]">
                 {filteredSuggestions.map((suggestion, index) => (
                   <li
                     key={index}
-                    className="cursor-pointer p-2 hover:bg-gray-200"
+                    className={`cursor-pointer p-2 ${highlightedIndex === index ? "bg-gray-200" : ""}`}
                     onClick={() => handleSuggestionClick(suggestion.path)}
+                    role="option"
+                    aria-label={suggestion.name}
                   >
-                    {suggestion.name}
+                    {suggestion.name.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, i) => (
+                      <span key={i} className={part.toLowerCase() === searchQuery.toLowerCase() ? "font-bold" : ""}>
+                        {part}
+                      </span>
+                    ))}
                   </li>
                 ))}
               </ul>

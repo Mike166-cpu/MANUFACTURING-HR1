@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../../src/assets/logo-2.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -6,6 +6,10 @@ import Swal from "sweetalert2";
 import ReCAPTCHA from "react-google-recaptcha";
 
 const EmployeeLoginForm = () => {
+  useEffect(() => {
+    document.title = "Login";
+  });
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     employee_username: "",
@@ -33,18 +37,17 @@ const EmployeeLoginForm = () => {
     }
 
     const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+    const LOCAL = "http://localhost:5000";
+    const endpoint = `${APIBase_URL}/api/employee/login-employee`;
 
     try {
-      const response = await fetch(
-        `${APIBase_URL}/api/employee/login-employee`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ...formData, recaptcha: recaptchaValue }),
-        }
-      );
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...formData, recaptcha: recaptchaValue  }),
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -52,15 +55,18 @@ const EmployeeLoginForm = () => {
       }
 
       sessionStorage.setItem("employeeToken", data.token);
-      localStorage.setItem("employeeFirstName", data.employee_firstname);
-      localStorage.setItem("employeeLastName", data.employee_lastname);
-      localStorage.setItem("employeeUsername", data.employee_username);
-      localStorage.setItem("employeeEmail", data.employee_email);
+      localStorage.setItem("employeeFirstName", data.employeeFirstName);
+      localStorage.setItem("employeeLastName", data.employeeLastName);
+      localStorage.setItem("employeeUsername", data.employeeUsername);
+      localStorage.setItem("employeeEmail", data.employeeEmail);
+      localStorage.setItem("employeeId", data.employeeId);
+
+      console.log(data);
 
       Swal.fire({
         icon: "success",
         title: "Login successful!",
-        text: `Welcome back, ${data.employee_username}!`,
+        text: `Welcome back, ${data.employeeFirstName}!`,
         showConfirmButton: false,
         timer: 1500,
       });
@@ -152,7 +158,7 @@ const EmployeeLoginForm = () => {
               Forgot Password?
             </Link>
 
-            <div
+             <div
               className="mb-4 "
               style={{ transform: "scale(0.90)", transformOrigin: "0 0" }}
             >
@@ -160,7 +166,7 @@ const EmployeeLoginForm = () => {
                 sitekey="6LdA22gqAAAAAH57gImSaofpR0dY3ppke4-7Jjks"
                 onChange={(value) => setRecaptchaValue(value)}
               />
-            </div>
+            </div> 
           </div>
 
           <button

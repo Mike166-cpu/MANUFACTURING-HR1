@@ -19,6 +19,7 @@ router.get("/current", async (req, res) => {
 
 
     res.status(200).json({
+      employee_id: user.employee_id || "",
       employee_firstname: user.employee_firstname || "",
       employee_lastname: user.employee_lastname || "",
       employee_middlename: user.employee_middlename || "",

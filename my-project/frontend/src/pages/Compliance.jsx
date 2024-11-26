@@ -5,13 +5,28 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import axios from "axios";
 
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+};
+
 const Compliance = () => {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isMobileView = useMediaQuery("(max-width: 768px)");
   const [viewMode, setViewMode] = useState("view");
   const [policies, setPolicies] = useState([]);
-  const [editingPolicy, setEditingPolicy] = useState(null); // Track the policy being edited
-
+  const [editingPolicy, setEditingPolicy] = useState(null);
+  
   useEffect(() => {
     document.title = "Compliance";
     const token = sessionStorage.getItem("adminToken");
@@ -131,11 +146,11 @@ const Compliance = () => {
         <ol className="list-reset flex flex-wrap mb-4">
           {items.map((item, index) => (
             <li key={index} className="flex items-center">
-              <span className="text-blue-800 text-sm md:text-base font-normal truncate">
+              <span className="text-blue-800 text-xs md:text-base font-bold truncate">
                 {item.label}
               </span>
               {index < items.length - 1 && (
-                <span className="mx-2 text-sm md:text-base">{">"}</span>
+                <span className="font-md text-xs mx-2 md:text-base">{">"}</span>
               )}
             </li>
           ))}
@@ -149,20 +164,40 @@ const Compliance = () => {
     { label: viewMode === "create" ? "Create Policy" : "View Policy" },
   ];
 
+  const handleResize = () => {
+    setIsSidebarOpen(window.innerWidth >= 768);
+  };
+
+  useEffect(() => {
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-100 dark:bg-white">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ${
-          isSidebarOpen ? "ml-80" : "ml-0"
+        className={`flex-grow transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
         }`}
       >
-        <Navbar toggleSidebar={toggleSidebar} className="sticky top-0 z-10" />
+        <Navbar toggleSidebar={toggleSidebar} />
+        {isSidebarOpen && isMobileView && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
 
         <div className="flex-1 overflow-y-auto bg-base-500">
-          <div className="m-5 border rounded-md shadow-sm p-5">
+          <div className="m-5 border rounded-md shadow-sm p-5 bg-white">
+            <Breadcrumbs className="pl-5 font-md" items={breadcrumbItems} />
             <h2 className="text-2xl font-bold ">Company Policies</h2>
-            <Breadcrumbs className="pl-5" items={breadcrumbItems} />
           </div>
 
           <div className="p-6">
@@ -195,9 +230,9 @@ const Compliance = () => {
                 {policies.length === 0 ? (
                   <p>No policies available. Please create one.</p>
                 ) : (
-                  <table className="min-w-full border border-gray-300">
+                  <table className="min-w-full border border-gray-300 bg-white">
                     <thead>
-                      <tr className="bg-gray-200">
+                      <tr className="bg-gray">
                         <th className="border px-4 py-2 text-start">Title</th>
                         <th className="border px-4 py-2 text-start">
                           Description
@@ -236,11 +271,13 @@ const Compliance = () => {
                   </table>
                 )}
               </div>
-            ) : viewMode === "create" ? (
-              <CreatePolicyForm onCreate={handleCreatePolicy} />
             ) : (
               <CreatePolicyForm
-                onCreate={handleUpdatePolicy}
+                onCreate={
+                  viewMode === "create"
+                    ? handleCreatePolicy
+                    : handleUpdatePolicy
+                }
                 initialPolicy={editingPolicy}
               />
             )}
@@ -259,45 +296,32 @@ const CreatePolicyForm = ({ onCreate, initialPolicy }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onCreate({
-      title,
-      description,
-      _id: initialPolicy ? initialPolicy._id : undefined,
-    });
-    setTitle("");
-    setDescription("");
+    const newPolicy = { title, description };
+    onCreate(
+      initialPolicy ? { ...newPolicy, _id: initialPolicy._id } : newPolicy
+    );
   };
 
-  useEffect(() => {
-    if (initialPolicy) {
-      setTitle(initialPolicy.title);
-      setDescription(initialPolicy.description);
-    } else {
-      setTitle("");
-      setDescription("");
-    }
-  }, [initialPolicy]);
-
   return (
-    <form onSubmit={handleSubmit} className="border p-4 rounded-md shadow-sm">
+    <form onSubmit={handleSubmit} className="border rounded-md p-5 bg-gray-50">
       <div className="mb-4">
         <label className="block text-gray-700">Policy Title</label>
         <input
           type="text"
-          className="w-full p-2 border rounded-md"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
+          className="mt-1 p-2 border rounded-md w-full"
         />
       </div>
       <div className="mb-4">
         <label className="block text-gray-700">Policy Description</label>
         <textarea
-          className="w-full p-2 border rounded-md"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
-        />
+          className="mt-1 p-2 border rounded-md w-full"
+        ></textarea>
       </div>
       <button
         type="submit"

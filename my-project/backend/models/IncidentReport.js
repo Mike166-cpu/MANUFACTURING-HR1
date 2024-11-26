@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const incidentReportSchema = new mongoose.Schema({
-  date: { type: Date, required: true },
+  date: { type: Date, default: Date.now },
   description: { type: String, required: true },
   status: { type: String, required: true },
   employeeUsername: { type: String, required: true },

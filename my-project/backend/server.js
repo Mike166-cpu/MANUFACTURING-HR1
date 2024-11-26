@@ -1,42 +1,37 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const http = require("https");
+const fs = require("fs");
+const socketIo = require("socket.io");
+const cors = require("cors");
 require("dotenv").config();
-const incidentReportRoute = require("./routes/incidentReport");
+
+const incidentRoutes = require("./routes/incidentReport");
 const employeeRoutes = require("./routes/employee");
-const corsMiddleware = require("./middleware/corsMiddleware");
-const jsonParserMiddleware = require("./middleware/jsonParserMiddleware");
 const policyRoutes = require("./routes/policyRoutes");
 const userProfile = require("./routes/userProfile");
+const signupRoutes = require("./routes/auth/signup");
+const loginRoutes = require("./routes/auth/login");
+const uploadRoutes = require("./routes/uploadRoutes");
+const profilePictureRoutes = require ("./routes/profilePicture");
+const path = require("path");
 
 const app = express();
-app.use(express.json()); 
-const PORT = process.env.PORT || 5000;
+app.use(express.json());
 
-app.use(corsMiddleware());
-app.use(jsonParserMiddleware());
-
-app.use("/api/employee", employeeRoutes);
-app.use("/api/incidentreport", incidentReportRoute);
-app.use("/api/policies", policyRoutes);
-app.use("/api/user", userProfile);
-
-const cors = require("cors");
-
+// CORS CONFIG
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://hr1.jjm-manufacturing.com", //my frontend domain
+  "http://localhost:5000",
+  "https://hr1.jjm-manufacturing.com",
   "https://backend-hr1.jjm-manufacturing.com",
 ];
-
-
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
-        const msg =
-          "The CORS policy for this site does not allow access from the specified Origin.";
+        const msg = "The CORS policy does not allow access from this origin.";
         return callback(new Error(msg), false);
       }
       return callback(null, true);
@@ -46,112 +41,84 @@ app.use(
   })
 );
 
+const options = {
+  key: fs.readFileSync("/etc/letsencrypt/live/hr1.jjm-manufacturing.com/privkey.pem"),
+  cert: fs.readFileSync("/etc/letsencrypt/live/hr1.jjm-manufacturing.com/cert.pem"),
+  ca: fs.readFileSync("/etc/letsencrypt/live/hr1.jjm-manufacturing.com/fullchain.pem"),
+};
+
+
+// Create HTTP server and set up Socket.IO
+const server = http.createServer(options.app);
+
+const io = socketIo(server, {
+  cors: { origin: allowedOrigins, methods: ["GET", "POST"], credentials: true },
+});
+
+io.on("connection", (socket) => {
+  console.log("New client connected");
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+  });
+});
+
+
+// Routes
+app.use("/api/employee", employeeRoutes);
+app.use("/api/incidentreport", incidentRoutes(io));
+app.use("/api/policies", policyRoutes);
+app.use("/api/user", userProfile);
+app.use("/signup", signupRoutes); 
+app.use("/login", loginRoutes); 
+app.use("/api", uploadRoutes);
+app.use("/api", profilePictureRoutes);
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("TITE"))
+  .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-const User = require("./models/User");
-
+// Basic route
 app.get("/", (req, res) => {
-  res.send("Hello world ");
-});
-
-//-------------------------------------------//
-
-const rateLimit = require('express-rate-limit');
-
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit to 5 requests per windowMs
-  message: {
-    status: 429,
-    error: 'Too many login attempts. Please try again after 15 minutes.',
-  },
-});
-
-//--------------------------------------------------//
-
-// Signup route for Admin
-app.post("/signup", async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    middleName,
-    nickname,
-    suffix,
-    birthday,
-    address,
-    contactNumber,
-    username,
-    password,
-  } = req.body;
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      firstName,
-      lastName,
-      middleName,
-      nickname,
-      suffix,
-      birthday,
-      address,
-      contactNumber,
-      username,
-      password: hashedPassword,
-    });
-    await newUser.save();
-    res.status(201).json({ message: "User created successfully!" });
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: "Error creating user", error });
-  }
-});
-
-// Login route for Admin
-app.post("/login", loginLimiter, async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const user = await User.findOne({ username });
-
-    if (!user) {
-      return res.status(401).json({ message: "Invalid username or password" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid username or password" });
-    }
-
-    // Respond with first name and last name
-    res.status(200).json({
-      message: "Login successful!",
-      firstName: user.firstName,
-      lastName: user.lastName,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error logging in", error });
-  }
-});
-
-app.get("/getAllUsers", async (req, res) => {
-  try {
-    const users = await User.find({});
-    if (!users) {
-      return res.status(400).json({ success: false, message: "Not found" });
-    }
-
-    res.status(200).json(users);
-  } catch (error) {
-    console.log(error.message);
-  }
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>HR1 </title>
+        <style>
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background-color: black;
+                margin: 0;
+                color: white;
+                font-family: Arial, sans-serif;
+                text-align: center;
+            }
+            h1 {
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div>
+            <iframe src="https://giphy.com/embed/pEYYpt8vuoFQBJzo38" width="480" height="302" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+          
+        </div>
+    </body>
+    </html>
+  `);
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () =>
+  console.log(`Server is running on http://localhost:${PORT}`)
+);

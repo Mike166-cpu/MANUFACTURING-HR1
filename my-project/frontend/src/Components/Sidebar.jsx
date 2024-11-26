@@ -10,7 +10,9 @@ import { FaUsers } from "react-icons/fa";
 import { RxDashboard } from "react-icons/rx";
 import logo from "../../src/assets/logo-2.png";
 import { TbChalkboard } from "react-icons/tb";
-
+import { AiOutlineClose } from "react-icons/ai";
+import { IoMdPersonAdd } from "react-icons/io";
+import { IoDocumentsOutline } from "react-icons/io5";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -40,38 +42,46 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   return (
     <div
-      className={`fixed left-0 top-0 w-80  h-full shadow-lg z-50 transform ${
+      className={`fixed left-0 top-0 w-72  h-full shadow-lg z-50 transform ${
         isOpen ? "translate-x-0" : "-translate-x-full"
-      }  transition-transform duration-300 ease-in-out bg-gradient-to-r from-white/100 to-transparent backdrop-blur-lg`}
+      }  transition-transform duration-300 ease-in-out bg-white backdrop-blur-lg dark:bg-gray-800 dark:text-white`}
     >
       <div className="p-4 bg-base-500 h-full overflow-y-auto custom-scrollbar">
-        <div className="mt-1 space-y-4">
-          <div className="flex items-start justify-start">
+        <div className="mt-1 space-y-3">
+          <div className="flex flex-row items-start justify-start">
             <img
               src={logo}
               alt="jjm logo"
               className="w-12 h-12 rounded-full border-2"
             />
             <h1 className="font-extrabold text-l pl-3 pt-3">Admin Dashboard</h1>
+            <button
+              onClick={toggleSidebar} // Corrected handler
+              className="text-gray-600 hover:text-gray-800 focus:outline-none md:hidden"
+            >
+              <AiOutlineClose className="w-4 h-4 mt-4 ml-4" />
+            </button>
           </div>
+
           <hr />
           <div
             className={`flex items-center p-2 rounded-md transition-all duration-200 ${
               activePage === "/dashboard"
-                ? "bg-gray-200 text-black shadow-md" : "hover:bg-gray-200 hover:shadow-md"
+                ? "bg-gray-200 text-black shadow-md"
+                : "hover:bg-gray-200 hover:shadow-md"
             }`}
             onClick={() => handleNavigation("/dashboard")}
           >
             <RxDashboard size="1.4rem" />
-            <span className="font-semibold text-[15px] pl-[5px]">
-              Home
-            </span>
+            <span className="font-semibold text-[15px] pl-[5px]">Home</span>
           </div>
         </div>
 
         <ul className="mt-4 space-y-4">
           <li>
-            <span className="text-gray-400 text-[11px] font-medium">MODULES</span>
+            <span className="text-gray-400 text-[11px] font-medium">
+              EMPLOYEE RECORDS MANAGEMENT
+            </span>
 
             {/*EMPLOYEE RECORDS MANAGEMENT */}
             <div
@@ -79,7 +89,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               onClick={toggleSubmenu}
             >
               <ImDrawer size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[7px] pt-2">
+              <span className="font-semibold text-[0.875rem] pl-[7px] pt-1">
                 Employee Records
               </span>
               {isSubmenuOpen ? (
@@ -88,6 +98,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 <FaChevronRight className="ml-auto" />
               )}
             </div>
+
             <hr className="p-1 opacity-0" />
 
             {isSubmenuOpen && (
@@ -102,11 +113,31 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                     onClick={() => handleNavigation("/employeeInfo")}
                   >
                     <FaUsers className="ml-5" size="1.4rem" />
-                    <span className="ml-3 font-medium">Employee Account Management</span>
+                    <span className="ml-3 font-medium">
+                      Employee Account Management
+                    </span>
                   </div>
                 </div>
               </div>
             )}
+
+           
+
+            <div>
+              <div
+                className={`flex items-center mt-2 p-2 rounded-md transition-all duration-200 hover:bg-gray-300 ${
+                  activePage === "/employee-documents"
+                    ? "bg-gray-300 text-black"
+                    : "hover:bg-gray-200"
+                }`}
+                onClick={() => handleNavigation("/employee-documents")}
+              >
+                <IoDocumentsOutline size="1.4rem" />
+                <span className="font-semibold text-[0.875rem] pl-[7px] pt-1">
+                  Employee Documents
+                </span>
+              </div>
+            </div>
 
             {/*HR COMPLIANCE SECTION */}
 
@@ -172,6 +203,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 ONBOARDING & OFFBOARDING PROCESS
               </span>
             </div>
+
             <div
               className={`flex items-center p-2 rounded-md transition-all duration-200 ${
                 activePage === "/onboarding"
@@ -182,8 +214,24 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             >
               <TbChalkboard size="1.4rem" />
               <span className="font-semibold text-[0.875rem] pl-[5px]">
-                Onboarding
+                Onboard New Hire
               </span>
+            </div>
+
+            <div>
+              <div
+                className={`flex items-center mt-2 p-2 rounded-md transition-all duration-200 hover:bg-gray-300 ${
+                  activePage === "/addemployee"
+                    ? "bg-gray-300 text-black"
+                    : "hover:bg-gray-200"
+                }`}
+                onClick={() => handleNavigation("/addemployee")}
+              >
+                <IoMdPersonAdd size="1.4rem" />
+                <span className="font-semibold text-[0.875rem] pl-[7px] pt-1">
+                  Create Employee Account
+                </span>
+              </div>
             </div>
             <hr className="p-1 opacity-0" />
 

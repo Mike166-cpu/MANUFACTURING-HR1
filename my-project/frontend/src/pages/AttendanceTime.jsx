@@ -3,7 +3,22 @@ import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 import { useNavigate } from "react-router-dom";
 
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+};
+
 const AttendanceTime = () => {
+  const isMobileView = useMediaQuery("(max-width: 768px)");
   useEffect(() => {
     document.title = "Attendance and Time Tracking";
   }, []);
@@ -23,11 +38,13 @@ const AttendanceTime = () => {
 
   const [timeRecords, setTimeRecords] = useState([]);
 
+  const APIBased_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   useEffect(() => {
     const fetchAllTimeTrackingRecords = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/employee/time-tracking"
+          `${APIBased_URL}/api/employee/time-tracking`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch all time tracking records");
@@ -86,7 +103,6 @@ const AttendanceTime = () => {
     return new Date(b) - new Date(a);
   });
 
-
   const formatDateForDisplay = (date) => {
     const today = new Date();
     const recordDate = new Date(date);
@@ -106,15 +122,43 @@ const AttendanceTime = () => {
     return formattedDate;
   };
 
+  const handleResize = () => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  const handleSidebarToggle = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div className="flex">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       <div
-        className={`flex-1 transition-all duration-300 ${
-          isSidebarOpen ? "ml-80" : "ml-0"
-        }`}
+        className={`flex-grow transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
+        } relative`}
       >
         <Navbar toggleSidebar={toggleSidebar} />
+        {isSidebarOpen && isMobileView && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
 
         <div className="p-4">
           <h2 className="text-xl font-semibold mb-4">Admin Records</h2>
@@ -128,27 +172,28 @@ const AttendanceTime = () => {
                 <table className="min-w-full bg-white border border-gray-300 mb-4 text-left">
                   <thead>
                     <tr>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2">
-                        Username
+                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
+                        Employee Name
                       </th>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2">
+                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
                         Time In
                       </th>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2">
+                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
                         Time Out
                       </th>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2">
+                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
                         Total Hours
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {groupedRecords[date]
-                      .sort((a, b) => new Date(b.time_in) - new Date(a.time_in)) 
+                      .sort((a, b) => new Date(b.time_in) - new Date(a.time_in))
                       .map((record, index) => (
                         <tr key={index} className="text-sm">
                           <td className="border-b border-gray-300 px-4 py-2">
-                            {record.employee_username}
+                            {record.employee_firstname}{" "}
+                            {record.employee_lastname}
                           </td>
                           <td className="border-b border-gray-300 px-4 py-2">
                             {formatTime(record.time_in)}

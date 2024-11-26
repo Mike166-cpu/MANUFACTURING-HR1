@@ -1,13 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import EmployeeNavbar from "../../Components/EmployeeNavbar";
 import Swal from "sweetalert2";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+};
+
 const OnboardingFeedback = () => {
   const navigate = useNavigate();
   const [employeeFirstName, setEmployeeFirstName] = useState("");
+  const isMobileView = useMediaQuery("(max-width: 768px)");
   const [employeeLastName, setEmployeeLastName] = useState("");
   const [employeeDepartment, setEmployeeDepartment] = useState("");
   const [feedback, setFeedback] = useState({
@@ -58,7 +72,6 @@ const OnboardingFeedback = () => {
       icon: "success",
       confirmButtonText: "OK",
     });
-    console.log(feedback);
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -66,6 +79,23 @@ const OnboardingFeedback = () => {
   const handleSidebarToggle = () => {
     setIsSidebarOpen((prev) => !prev);
   };
+  const handleResize = () => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   return (
     <div className="flex">
@@ -75,17 +105,25 @@ const OnboardingFeedback = () => {
       />
       <div
         className={`flex-grow transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? "ml-72" : "ml-0"
-        }`}
+          isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
+        } relative`}
       >
         <EmployeeNav
           onSidebarToggle={handleSidebarToggle}
           isSidebarOpen={isSidebarOpen}
         />
+
+        {/* Mobile overlay */}
+        {isSidebarOpen && isMobileView && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
         {/* MAIN CONTENT */}
         <div className="pt-7">
           <div className="max-w-4xl mx-auto shadow-lg bg-white rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-center mb-6">
+            <h2 className="text-2xl font-bold text-start mb-6">
               Onboarding Feedback
             </h2>
             <form onSubmit={handleSubmit}>

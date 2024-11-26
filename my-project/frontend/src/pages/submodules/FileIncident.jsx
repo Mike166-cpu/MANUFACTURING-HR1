@@ -3,9 +3,26 @@ import { Navigate } from "react-router-dom";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+};
 
 const FileIncident = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isMobileView = useMediaQuery("(max-width: 768px)");
   const [userReports, setUserReports] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -48,7 +65,10 @@ const FileIncident = () => {
       });
 
       if (response.status === 201) {
-        alert("Incident Report Submitted Successfully!");
+        toast.success("Failed to submit the report.", {
+          position: "top-right",
+        });
+
         setIncidentData({
           date: "",
           description: "",
@@ -87,7 +107,9 @@ const FileIncident = () => {
       const response = await axios.put(
         `${APIBase_URL}/api/incidentreport/archive/${id}`
       );
-      alert(response.data.message);
+      toast.success("Archived Successfully.", {
+        position: "top-right",
+      });
       fetchReports();
     } catch (error) {
       console.error("Error archiving report:", error);
@@ -111,6 +133,24 @@ const FileIncident = () => {
     );
   };
 
+  const handleResize = () => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen">
       <EmployeeSidebar
@@ -118,14 +158,22 @@ const FileIncident = () => {
         isSidebarOpen={isSidebarOpen}
       />
       <div
-        className={`flex-grow transition-all duration-300 ${
-          isSidebarOpen ? "ml-72" : "ml-0"
-        }`}
+        className={`flex-grow transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
+        } relative`}
       >
         <EmployeeNav
           onSidebarToggle={handleSidebarToggle}
           isSidebarOpen={isSidebarOpen}
         />
+
+        {/* Mobile overlay */}
+        {isSidebarOpen && isMobileView && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
 
         <div className="p-5">
           <div className="bg-white p-5 border rounded-lg">
@@ -150,7 +198,7 @@ const FileIncident = () => {
                   name="reportType"
                   value={incidentData.reportType}
                   onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-white dark:text-black"
                   required
                 >
                   <option value="" disabled>
@@ -179,7 +227,7 @@ const FileIncident = () => {
                   name="date"
                   value={incidentData.date}
                   onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-white dark:text-black"
                   required
                 />
               </div>
@@ -192,7 +240,7 @@ const FileIncident = () => {
                   name="description"
                   value={incidentData.description}
                   onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-white dark:text-black"
                   rows="2"
                   required
                 />
@@ -207,14 +255,14 @@ const FileIncident = () => {
                   name="location"
                   value={incidentData.location}
                   onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-white dark:text-black "
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-auto p-2 bg-blue-600 text-sm text-white py-3 rounded-lg hover:bg-blue-700 transition duration-200"
+                className="w-auto p-2 bg-blue-600 text-sm text-white py-3 rounded-lg hover:bg-blue-700 transition duration-200 "
               >
                 Submit Incident Report
               </button>
@@ -286,6 +334,7 @@ const FileIncident = () => {
           </div>
         </div>
       </div>
+      <ToastContainer position="top-center" autoClose={3000} />
     </div>
   );
 };

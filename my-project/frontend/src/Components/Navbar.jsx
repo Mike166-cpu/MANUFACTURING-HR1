@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { FaRegUserCircle } from "react-icons/fa";
 import { FiSettings } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
+import { IoNotificationsOutline } from "react-icons/io5";
 import useIdleLogout from "../hooks/useIdleLogout";
-
-
+import { io } from "socket.io-client";
+import { GiHamburgerMenu } from "react-icons/gi";
 
 const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   const [initials, setInitials] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
-  const [hasNewNotification, setHasNewNotification] = useState(false);
-  const [loginNotification, setLoginNotification] = useState("");
+  const [incidentReports, setIncidentReports] = useState([]);
+  const [hasNewNotifications, setHasNewNotifications] = useState(
+    JSON.parse(localStorage.getItem("hasNewNotifications")) || false // Retrieve initial value from localStorage
+  );
   const navigate = useNavigate();
+  const firstName = localStorage.getItem("firstName");
 
   useIdleLogout(1800000);
 
@@ -23,114 +25,150 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
     const lastName = localStorage.getItem("lastName");
 
     if (firstName && lastName) {
-      const initials = `${firstName[0]}${lastName[0]}`;
-      setInitials(initials.toUpperCase());
-      setLoginNotification(`Welcome back! ${firstName}!`);
+      const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
+      setInitials(initials);
     }
   }, []);
 
+  const APIBased_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   useEffect(() => {
-    // Simulating fetching or receiving a new notification
-    const notification = localStorage.getItem("loginNotification");
-    if (notification) {
-      setHasNewNotification(true); // Show red dot if there's a new notification
-    }
+    const socket = io("https://backend-hr1.jjm-manufacturing.com");
+
+    const fetchIncidentReports = async () => {
+      try {
+        const response = await fetch(`${APIBased_URL}/api/incidentreport`);
+        const data = await response.json();
+        setIncidentReports(data);
+      } catch (error) {
+        console.error("Error fetching incident reports:", error);
+      }
+    };
+
+    fetchIncidentReports();
+
+    socket.on("newIncidentReport", (data) => {
+      setIncidentReports((prevReports) => [data.report, ...prevReports]);
+      setHasNewNotifications(true);
+      localStorage.setItem("hasNewNotifications", JSON.stringify(true));
+    });
+
+    return () => {
+      socket.off("newIncidentReport");
+    };
   }, []);
-  
+
   const handleLogout = () => {
     sessionStorage.removeItem("adminToken");
     localStorage.removeItem("firstName");
     localStorage.removeItem("lastName");
+    localStorage.removeItem("hasNewNotifications");
     navigate("/login", { replace: true });
+  };
+
+  const handleToggleNotifications = () => {
+    setShowNotifications((prev) => !prev);
+
+    if (!showNotifications) {
+      setHasNewNotifications(false);
+      localStorage.setItem("hasNewNotifications", JSON.stringify(false));
+    }
   };
 
   return (
     <div
-      className={`navbar bg-white sticky top-0 z-10 transition-all duration-300 shadow-md ${
-        isSidebarOpen ? "ml-80" : "ml-0"
+      className={`navbar bg-white sticky dark:bg-gray-800 dark:text-white top-0 z-10 transition-all duration-300 shadow-md ${
+        isSidebarOpen ? "md:ml-72" : "ml-0"
       }`}
     >
-      {/* Hamburger Menu for toggling sidebar */}
       <div className="flex-none">
-        <button className="btn btn-ghost btn-circle" onClick={toggleSidebar}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h16m-7 6h7"
-            />
-          </svg>
+        <button className="btn btn-circle text-black" onClick={toggleSidebar}>
+          <GiHamburgerMenu size={24} />
         </button>
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="input input-bordered w-full max-w-xs"
-          />
-          <button className="btn btn-primary">Search</button>
-        </div>
       </div>
 
-      <div className="flex-none gap-2 ml-auto">
-        <div className="relative">
-          <button className="btn btn-ghost btn-circle"
-             onClick={() => setShowNotifications(!showNotifications)}
+      <div className="flex-none ml-auto flex items-center gap-2">
+        <div className="dropdown dropdown-end">
+          <button
+            onClick={handleToggleNotifications}
+            className="btn btn-ghost btn-circle"
           >
-            <FontAwesomeIcon icon={faBell} className="text-gray-600 text-lg" />
+            <div className="indicator">
+              <IoNotificationsOutline size={24} />
+              {hasNewNotifications && (
+                <span className="badge badge-sm indicator-item bg-red-600 rounded-full"></span>
+              )}
+            </div>
           </button>
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-20 text-sm">
-              <ul className="p-2">
-              {loginNotification && (
-                  <li className="p-2 border-b">{loginNotification}</li>
-                )}
-              </ul>
-            </div>
+            <ul
+              className="menu dropdown-content bg-base-100 dark:bg-gray-800 rounded-lg shadow-lg z-[1] mt-3 w-64 p-2"
+              style={{ width: "300px" }}
+            >
+              <li className="p-3 font-medium text-xl text-gray-800 dark:text-white">
+                Incident Reports
+              </li>
+              <hr />
+              {incidentReports.length === 0 ? (
+                <li className="text-sm text-gray-500">No new reports</li>
+              ) : (
+                <div className="flex flex-col h-48 overflow-auto w-full">
+                  {incidentReports.slice(0, 5).map((report, index) => {
+                    const createdAt = new Date(report.date);
+                    return (
+                      <li
+                        key={index}
+                        className="flex items-start bg-white dark:bg-gray-700"
+                      >
+                        <div className="flex-1 hover:bg-transparent">
+                          <span className="text-md font-md text-gray-800 dark:text-white">
+                            {report.employeeUsername}: Filed a report
+                          </span>
+                        </div>
+                        <div className="flex-1 hover:bg-transparent">
+                          <span className="text-xs font-md text-gray-400 dark:text-white -mt-4">
+                            {report.reportType}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </div>
+              )}
+            </ul>
           )}
         </div>
 
-        <div className="dropdown dropdown-end mr-5">
+        <div className="dropdown dropdown-end relative">
           <div
             tabIndex={0}
             role="button"
-            className="btn btn-ghost btn-circle avatar"
+            className="btn btn-ghost btn-circle avatar relative"
           >
             <div className="w-10 h-10 rounded-full bg-[#FF76CE] flex items-center justify-center text-white text-lg font-normal p-[4px]">
               {initials}
             </div>
+            {/* Green dot */}
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 rounded-full"></span>
           </div>
           <ul
             tabIndex={0}
             className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
           >
             <li>
-              <a>
-                {" "}
-                <FaRegUserCircle size={"18px"} />
-                Profile
-              </a>
-            </li>
-            <li>
-              <a>
-                {" "}
-                <FiSettings size={"18px"} />
-                Settings
-              </a>
-            </li>
-            <li>
               <a onClick={handleLogout} className="text-red-600">
-              <MdLogout size={"18px"}/>
+                <MdLogout size={"18px"} />
                 Logout
               </a>
             </li>
           </ul>
+        </div>
+
+        <div>
+          <span className="text-xs font-medium">
+            {firstName} <br />
+            <span className="block text-gray-400">admin</span>
+          </span>
         </div>
       </div>
     </div>

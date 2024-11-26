@@ -1,8 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"; // Update icon imports
-import { Link } from "react-router-dom"; // Import Link
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
 
 const SignUpForm = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    document.title = "Dashboard";
+
+    const token = sessionStorage.getItem("adminToken");
+    if (!token) {
+      Swal.fire({
+        title: "Not Logged In",
+        text: "You are not logged in. Redirecting to login page...",
+        icon: "warning",
+        confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/login");
+      });
+    }
+  }, [navigate]);
+
   useEffect(() => {
     document.title = "Signup - HR1";
   }, []);
@@ -12,11 +31,12 @@ const SignUpForm = () => {
     lastName: "",
     middleName: "",
     suffix: "",
-    birthday: "",
-    address: "",
+    email: "",
     contactNumber: "",
     username: "",
     password: "",
+    birthday: "",
+    address: "",
   });
 
   const [error, setError] = useState("");
@@ -33,6 +53,9 @@ const SignUpForm = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const APIBASE_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:5000";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { password } = formData;
@@ -45,7 +68,7 @@ const SignUpForm = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/signup", {
+      const response = await fetch(`${APIBASE_URL}/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,11 +85,12 @@ const SignUpForm = () => {
           lastName: "",
           middleName: "",
           suffix: "",
-          birthday: "",
-          address: "",
+          email: "",
           contactNumber: "",
           username: "",
           password: "",
+          birthday: "",
+          address: "",
         });
       } else {
         const data = await response.json();
@@ -135,19 +159,36 @@ const SignUpForm = () => {
             </div>
           </div>
 
-          {/* Suffix Field */}
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-semibold mb-2">
-              Suffix (e.g., Jr., Sr.)
-            </label>
-            <input
-              type="text"
-              name="suffix"
-              placeholder="*Optional"
-              value={formData.suffix}
-              onChange={handleChange}
-              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-            />
+          <div className="mb-4 flex space-x-2">
+            {/* Suffix Field */}
+            <div className="flex-1 mb-4">
+              <label className="block text-gray-700 text-sm font-semibold mb-2">
+                Suffix (e.g., Jr., Sr.)
+              </label>
+              <input
+                type="text"
+                name="suffix"
+                placeholder="*Optional"
+                value={formData.suffix}
+                onChange={handleChange}
+                className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+              />
+            </div>
+
+            {/* EMAIL FIElD */}
+            <div className="flex-1 mb-4">
+              <label className="block text-gray-700 text-sm font-semibold mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                placeholder="example@gmail.com"
+                value={formData.email}
+                onChange={handleChange}
+                className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+              />
+            </div>
           </div>
 
           {/* Birthday Field */}

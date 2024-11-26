@@ -1,7 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 const EmployeeSignupForm = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    document.title = "Dashboard";
+
+    const token = sessionStorage.getItem("adminToken");
+    if (!token) {
+      Swal.fire({
+        title: "Not Logged In",
+        text: "You are not logged in. Redirecting to login page...",
+        icon: "warning",
+        confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/login");
+      });
+    }
+  }, [navigate]);
+
   const [formData, setFormData] = useState({
     employee_firstname: "",
     employee_middlename: "",
@@ -20,8 +38,15 @@ const EmployeeSignupForm = () => {
 
   const [error, setError] = useState("");
 
-  const departments = ["HR", "Finance", "Engineering", "Sales", "Marketing"];
+  const departments = [
+    "Human Resources",
+    "Finance",
+    "Logistics",
+    "Administrative",
+  ];
   const genders = ["Male", "Female", "Other"];
+
+  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   const handleChange = (e) => {
     setFormData({
@@ -41,7 +66,7 @@ const EmployeeSignupForm = () => {
     console.log("Form Data:", formData); // Log the form data before sending
 
     try {
-      const response = await fetch("http://localhost:5000/api/employee/add", {
+      const response = await fetch(`${APIBase_URL}/api/employee/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
