@@ -2,147 +2,92 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 import { useNavigate } from "react-router-dom";
-
-const useMediaQuery = (query) => {
-  const [matches, setMatches] = useState(window.matchMedia(query).matches);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(query);
-    const handleChange = () => setMatches(mediaQuery.matches);
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [query]);
-
-  return matches;
-};
+import axios from "axios";
+import { FiSearch, FiFilter, FiCalendar } from 'react-icons/fi';
 
 const AttendanceTime = () => {
-  const isMobileView = useMediaQuery("(max-width: 768px)");
-  useEffect(() => {
-    document.title = "Attendance and Time Tracking";
-  }, []);
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+  const [employees, setEmployees] = useState([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [timeTrackingSessions, setTimeTrackingSessions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [monthFilter, setMonthFilter] = useState('3'); // Default to last 3 months
+  const [employeeSchedule, setEmployeeSchedule] = useState([]);
 
   const navigate = useNavigate();
+  const LOCAL = "http://localhost:5000";
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   useEffect(() => {
+    document.title = "Attendance and Time Tracking";
     const token = sessionStorage.getItem("adminToken");
-    if (!token) {
-      navigate("/login");
-    }
+    if (!token) navigate("/login");
+
+    const fetchEmployees = async () => {
+      try {
+        const response = await axios.get(`${APIBASED_URL}/api/employee/employee-data`);
+        setEmployees(response.data);
+      } catch (error) {
+        console.error("Error fetching employees:", error);
+      }
+    };
+
+    fetchEmployees();
   }, [navigate]);
 
-  const [timeRecords, setTimeRecords] = useState([]);
-
-  const APIBased_URL = "https://backend-hr1.jjm-manufacturing.com";
-
-  useEffect(() => {
-    const fetchAllTimeTrackingRecords = async () => {
-      try {
-        const response = await fetch(
-          `${APIBased_URL}/api/employee/time-tracking`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch all time tracking records");
-        }
-        const data = await response.json();
-        setTimeRecords(data);
-      } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: error.message,
-        });
-      }
-    };
-
-    fetchAllTimeTrackingRecords();
-  }, []);
-
-  const formatTime = (time) => {
-    const date = new Date(time);
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
-    return `${hours}:${minutes}:${seconds}`;
+  const fetchTimeTrackingSessions = async (username) => {
+    try {
+      const response = await axios.get(`${APIBASED_URL}/api/time-tracking/${username}`);
+      setTimeTrackingSessions(response.data);
+    } catch (error) {
+      console.error("Error fetching time tracking sessions:", error);
+    }
   };
 
-  const formatTotalHours = (seconds) => {
-    const hours = Math.floor(seconds / 3600)
-      .toString()
-      .padStart(2, "0");
-    const minutes = Math.floor((seconds % 3600) / 60)
-      .toString()
-      .padStart(2, "0");
-    const secs = Math.floor(seconds % 60)
-      .toString()
-      .padStart(2, "0");
-    return `${hours}:${minutes}:${secs}`;
+  const handleRowClick = (employee) => {
+    setSelectedEmployee(employee);
+    fetchTimeTrackingSessions(employee.employee_username);
   };
 
-  const groupRecordsByDate = (records) => {
-    const groupedRecords = {};
-    records.forEach((record) => {
-      const date = new Date(record.time_in);
-      const dateString = date.toLocaleDateString();
-      if (!groupedRecords[dateString]) {
-        groupedRecords[dateString] = [];
-      }
-      groupedRecords[dateString].push(record);
-    });
-    return groupedRecords;
+  const handleBackClick = () => {
+    setSelectedEmployee(null);
+    setTimeTrackingSessions([]);
   };
 
-  const groupedRecords = groupRecordsByDate(timeRecords);
-
-  const sortedDates = Object.keys(groupedRecords).sort((a, b) => {
-    return new Date(b) - new Date(a);
+  const filteredEmployees = employees.filter((employee) => {
+    const matchesSearch =
+      employee.employee_firstname.toLowerCase().includes(search.toLowerCase()) ||
+      employee.employee_lastname.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter =
+      filter === "all" ||
+      employee.employee_department.toLowerCase() === filter.toLowerCase();
+    return matchesSearch && matchesFilter;
   });
 
-  const formatDateForDisplay = (date) => {
-    const today = new Date();
-    const recordDate = new Date(date);
+  const uniqueDepartments = [
+    ...new Set(employees.map((employee) => employee.employee_department)),
+  ];
 
-    const options = {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "long",
-    };
-    const formattedDate = recordDate.toLocaleDateString(undefined, options);
-
-    if (recordDate.toDateString() === today.toDateString()) {
-      return "Today";
-    }
-
-    return formattedDate;
+  const getFilteredSessions = () => {
+    const now = new Date();
+    const monthsAgo = new Date();
+    monthsAgo.setMonth(now.getMonth() - parseInt(monthFilter));
+    
+    return timeTrackingSessions.filter(session => 
+      new Date(session.time_in) >= monthsAgo
+    );
   };
 
-  const handleResize = () => {
-    if (window.innerWidth >= 768) {
-      setIsSidebarOpen(true);
-    } else {
-      setIsSidebarOpen(false);
-    }
-  };
+  const filteredTimeTrackingSessions = getFilteredSessions();
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSessions = filteredTimeTrackingSessions.slice(indexOfFirstItem, indexOfLastItem);
 
-  useEffect(() => {
-    handleResize();
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  const handleSidebarToggle = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <div className="flex">
@@ -150,72 +95,240 @@ const AttendanceTime = () => {
       <div
         className={`flex-grow transition-all duration-300 ease-in-out ${
           isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
-        } relative`}
+        } relative bg-gray-50`}
       >
         <Navbar toggleSidebar={toggleSidebar} />
-        {isSidebarOpen && isMobileView && (
-          <div
-            className="fixed inset-0 bg-black opacity-50 z-10"
-            onClick={() => setIsSidebarOpen(false)}
-          ></div>
-        )}
+        <div className="p-6">
+          {selectedEmployee ? (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <button
+                  onClick={handleBackClick}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                >
+                  Back
+                </button>
+                <div className="flex items-center space-x-4">
+                  <FiCalendar className="text-gray-400" />
+                  <select
+                    value={monthFilter}
+                    onChange={(e) => setMonthFilter(e.target.value)}
+                    className="pl-4 pr-8 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  >
+                    <option value="1">Last Month</option>
+                    <option value="3">Last 3 Months</option>
+                    <option value="6">Last 6 Months</option>
+                    <option value="12">Last Year</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+                <div className="p-6 border-b border-gray-100">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Time Tracking Sessions for{' '}
+                    <span className="text-blue-600 capitalize bg-gray-100 px-2 rounded-md">
+                      {selectedEmployee.employee_firstname} {selectedEmployee.employee_lastname}
+                    </span>
+                  </h2>
+                </div>
 
-        <div className="p-4">
-          <h2 className="text-xl font-semibold mb-4">Admin Records</h2>
-
-          {sortedDates.length > 0 ? (
-            sortedDates.map((date, index) => (
-              <div key={index} className="mb-6">
-                <h3 className="text-sm font-normal p-2 mb-2 bg-gray-100 border rounded-lg">
-                  {formatDateForDisplay(date)}
-                </h3>
-                <table className="min-w-full bg-white border border-gray-300 mb-4 text-left">
-                  <thead>
-                    <tr>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
-                        Employee Name
-                      </th>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
-                        Time In
-                      </th>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
-                        Time Out
-                      </th>
-                      <th className="border-b font-normal border-gray-300 px-4 py-2 text-sm">
-                        Total Hours
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupedRecords[date]
-                      .sort((a, b) => new Date(b.time_in) - new Date(a.time_in))
-                      .map((record, index) => (
-                        <tr key={index} className="text-sm">
-                          <td className="border-b border-gray-300 px-4 py-2">
-                            {record.employee_firstname}{" "}
-                            {record.employee_lastname}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Time In
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Time Out
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Work Duration
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Break Duration
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {currentSessions.map((session) => (
+                        <tr 
+                          key={session._id} 
+                          className="hover:bg-blue-50 transition-colors duration-200"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {new Date(session.time_in).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
+                            </div>
                           </td>
-                          <td className="border-b border-gray-300 px-4 py-2">
-                            {formatTime(record.time_in)}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {new Date(session.time_in).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
                           </td>
-                          <td className="border-b border-gray-300 px-4 py-2">
-                            {record.time_out
-                              ? formatTime(record.time_out)
-                              : "N/A"}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {session.time_out 
+                                ? new Date(session.time_out).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })
+                                : "N/A"}
+                            </div>
                           </td>
-                          <td className="border-b border-gray-300 px-4 py-2">
-                            {record.total_hours
-                              ? formatTotalHours(record.total_hours)
-                              : "N/A"}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              {session.work_duration}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                              {session.break_duration 
+                                ? `${Math.floor(session.break_duration / 3600)}h ${Math.floor((session.break_duration % 3600) / 60)}m`
+                                : "N/A"}
+                            </span>
                           </td>
                         </tr>
                       ))}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700">
+                      Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredTimeTrackingSessions.length)} of {filteredTimeTrackingSessions.length} entries
+                    </span>
+                    <div className="flex space-x-2">
+                      {Array.from({ length: Math.ceil(filteredTimeTrackingSessions.length / itemsPerPage) }, (_, i) => (
+                        <button
+                          key={i + 1}
+                          onClick={() => paginate(i + 1)}
+                          className={`px-3 py-1 rounded-md ${
+                            currentPage === i + 1 
+                              ? 'bg-blue-500 text-white' 
+                              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                          } transition-colors duration-200`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))
+            </div>
           ) : (
-            <p className="text-center">No records found</p>
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Employee Records</h2>
+                <p className="text-gray-600">Manage and view employee information</p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
+                  <div className="flex-1 relative">
+                    <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search employees..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="relative">
+                    <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <select
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                      className="pl-10 pr-8 py-2 border border-gray-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    >
+                      <option value="all">All Departments</option>
+                      {uniqueDepartments.map((department) => (
+                        <option key={department} value={department}>
+                          {department}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Employee ID
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          First Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Last Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Department
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredEmployees.map((employee) => (
+                        <tr 
+                          key={employee._id}
+                          className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {employee.employee_id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                            {employee.employee_firstname}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                            {employee.employee_lastname}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {employee.employee_email}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              {employee.employee_department}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleRowClick(employee)}
+                              className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+                            >
+                              View Session
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -1,6 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const http = require("https");
+const http = require("http");
 const fs = require("fs");
 const socketIo = require("socket.io");
 const cors = require("cors");
@@ -13,25 +13,33 @@ const userProfile = require("./routes/userProfile");
 const signupRoutes = require("./routes/auth/signup");
 const loginRoutes = require("./routes/auth/login");
 const uploadRoutes = require("./routes/uploadRoutes");
-const profilePictureRoutes = require ("./routes/profilePicture");
+const profilePictureRoutes = require("./routes/profilePicture");
+const createSuperadminRoutes = require("./routes/auth/createaccount");
+const timeTrackingRoutes = require("./routes/totalTime");
+const scheduleRoutes = require("./routes/createSchedule");
 const path = require("path");
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 // CORS CONFIG
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5000",
+  "http://localhost:5173",
+  "http://localhost:7687",
   "https://hr1.jjm-manufacturing.com",
+  "https://hr3.jjm-manufacturing.com",
   "https://backend-hr1.jjm-manufacturing.com",
+  "https://backend-hr3.jjm-manufacturing.com",
 ];
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = "The CORS policy does not allow access from this origin.";
+        const msg = "The CORS policy does not allow access from this olol.";
         return callback(new Error(msg), false);
       }
       return callback(null, true);
@@ -41,15 +49,8 @@ app.use(
   })
 );
 
-const options = {
-  key: fs.readFileSync("/etc/letsencrypt/live/hr1.jjm-manufacturing.com/privkey.pem"),
-  cert: fs.readFileSync("/etc/letsencrypt/live/hr1.jjm-manufacturing.com/cert.pem"),
-  ca: fs.readFileSync("/etc/letsencrypt/live/hr1.jjm-manufacturing.com/fullchain.pem"),
-};
-
-
 // Create HTTP server and set up Socket.IO
-const server = http.createServer(options.app);
+const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: { origin: allowedOrigins, methods: ["GET", "POST"], credentials: true },
@@ -62,19 +63,20 @@ io.on("connection", (socket) => {
   });
 });
 
-
 // Routes
 app.use("/api/employee", employeeRoutes);
 app.use("/api/incidentreport", incidentRoutes(io));
 app.use("/api/policies", policyRoutes);
 app.use("/api/user", userProfile);
-app.use("/signup", signupRoutes); 
-app.use("/login", loginRoutes); 
+app.use("/signup", signupRoutes);
+app.use("/login", loginRoutes);
 app.use("/api", uploadRoutes);
 app.use("/api", profilePictureRoutes);
+app.use("/api/create-account", createSuperadminRoutes);
+app.use("/api", timeTrackingRoutes);
+app.use("/api/schedule", scheduleRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
 
 mongoose
   .connect(process.env.MONGO_URI)

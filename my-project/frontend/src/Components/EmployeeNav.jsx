@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import { GoSidebarCollapse } from "react-icons/go";
 
-
-const EmployeeNav = ({ onSidebarToggle, isSidebarOpen, currentTime, currentDate }) => {
-  const [searchQuery, setSearchQuery] = useState("");  
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);  
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);  
-  const navigate = useNavigate();  
+const EmployeeNav = ({ onSidebarToggle, isSidebarOpen }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const navigate = useNavigate();
   const [timeoutId, setTimeoutId] = useState(null);
+  const [currentTime, setCurrentTime] = useState("");
+  const [currentDay, setCurrentDay] = useState("");
 
   const routes = [
     { name: "Dashboard", path: "/employeedashboard" },
@@ -20,38 +21,59 @@ const EmployeeNav = ({ onSidebarToggle, isSidebarOpen, currentTime, currentDate 
     { name: "Onboarding Feedback", path: "/feedback" },
   ];
 
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const options = {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit", // Added seconds
+        hour12: true,
+        weekday: "long",
+      };
+      setCurrentTime(now.toLocaleTimeString("en-US", options));
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleInputChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    
+
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
 
-    setTimeoutId(setTimeout(() => {
-      if (query.length > 0) {
-        const suggestions = routes.filter(route =>
-          route.name.toLowerCase().includes(query.toLowerCase())
-        );
-        setFilteredSuggestions(suggestions);
-      } else {
-        setFilteredSuggestions([]); 
-      }
-      setHighlightedIndex(-1); 
-    }, 300));
+    setTimeoutId(
+      setTimeout(() => {
+        if (query.length > 0) {
+          const suggestions = routes.filter((route) =>
+            route.name.toLowerCase().includes(query.toLowerCase())
+          );
+          setFilteredSuggestions(suggestions);
+        } else {
+          setFilteredSuggestions([]);
+        }
+        setHighlightedIndex(-1);
+      }, 300)
+    );
   };
 
   const handleSuggestionClick = (path) => {
-    setSearchQuery("");  
-    setFilteredSuggestions([]);  
-    setHighlightedIndex(-1); 
-    navigate(path);  
+    setSearchQuery("");
+    setFilteredSuggestions([]);
+    setHighlightedIndex(-1);
+    navigate(path);
   };
 
   const clearSearch = () => {
     setSearchQuery("");
     setFilteredSuggestions([]);
-    setHighlightedIndex(-1); 
+    setHighlightedIndex(-1);
   };
 
   const handleKeyDown = (e) => {
@@ -79,23 +101,27 @@ const EmployeeNav = ({ onSidebarToggle, isSidebarOpen, currentTime, currentDate 
       <div className="navbar bg-base-100 shadow-md w-full flex flex-wrap items-center justify-between">
         <div className="flex-1 flex items-center gap-3">
           {/* Sidebar Menu Icon */}
-          <button onClick={onSidebarToggle} className="btn drawer-button text-lg text-black dark:text-white">
-            <GoSidebarCollapse className="font-bold"/> {/* Updated to use FiMenu */}
+          <button
+            onClick={onSidebarToggle}
+            className="btn drawer-button text-lg text-black dark:text-white"
+          >
+            <GoSidebarCollapse className="font-bold" />{" "}
+            {/* Updated to use FiMenu */}
           </button>
 
-          <div className="relative w-full max-w-xs">  
+          <div className="relative w-full max-w-xs">
             <label className="input input-bordered flex items-center">
               <input
                 type="text"
                 className="grow border-b rounded-t-md"
                 placeholder="Search"
                 value={searchQuery}
-                onChange={handleInputChange}  
-                onKeyDown={handleKeyDown}  
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
                 aria-label="Search"
               />
               <button onClick={clearSearch} className="ml-2 text-gray-500">
-                &times; 
+                &times;
               </button>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -103,7 +129,11 @@ const EmployeeNav = ({ onSidebarToggle, isSidebarOpen, currentTime, currentDate 
                 fill="currentColor"
                 className="h-4 w-4 opacity-70"
               >
-                <path fillRule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                  clipRule="evenodd"
+                />
               </svg>
             </label>
 
@@ -113,20 +143,35 @@ const EmployeeNav = ({ onSidebarToggle, isSidebarOpen, currentTime, currentDate 
                 {filteredSuggestions.map((suggestion, index) => (
                   <li
                     key={index}
-                    className={`cursor-pointer p-2 ${highlightedIndex === index ? "bg-gray-200" : ""}`}
+                    className={`cursor-pointer p-2 ${
+                      highlightedIndex === index ? "bg-gray-200" : ""
+                    }`}
                     onClick={() => handleSuggestionClick(suggestion.path)}
                     role="option"
                     aria-label={suggestion.name}
                   >
-                    {suggestion.name.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, i) => (
-                      <span key={i} className={part.toLowerCase() === searchQuery.toLowerCase() ? "font-bold" : ""}>
-                        {part}
-                      </span>
-                    ))}
+                    {suggestion.name
+                      .split(new RegExp(`(${searchQuery})`, "gi"))
+                      .map((part, i) => (
+                        <span
+                          key={i}
+                          className={
+                            part.toLowerCase() === searchQuery.toLowerCase()
+                              ? "font-bold"
+                              : ""
+                          }
+                        >
+                          {part}
+                        </span>
+                      ))}
                   </li>
                 ))}
               </ul>
             )}
+          </div>
+
+          <div className="ml-auto text-lg text-gray-700 dark:text-white">
+            {currentTime}
           </div>
         </div>
       </div>

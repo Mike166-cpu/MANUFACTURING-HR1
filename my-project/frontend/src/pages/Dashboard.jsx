@@ -18,6 +18,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
 
 ChartJS.register(
@@ -28,7 +29,8 @@ ChartJS.register(
   PointElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 const useMediaQuery = (query) => {
@@ -73,30 +75,58 @@ const Dashboard = () => {
 
     const token = sessionStorage.getItem("adminToken");
     if (!token) {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "You are not logged in. Redirecting to login page...",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => {
-        navigate("/login");
-      });
+      handleLogout();
     } else {
+      // Add token verification
+      const checkTokenExpiration = setInterval(() => {
+        const token = sessionStorage.getItem("adminToken");
+        if (!token) {
+          handleLogout();
+        } else {
+          try {
+            const tokenData = JSON.parse(atob(token.split('.')[1]));
+            if (tokenData.exp * 1000 < Date.now()) {
+              handleLogout();
+            }
+          } catch (error) {
+            handleLogout();
+          }
+        }
+      }, 1000); // Check every second
+
       fetchEmployees();
       fetchTimeRecords();
       fetchIncidentReports();
+
+      return () => clearInterval(checkTokenExpiration);
     }
   }, [navigate]);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("adminToken");
+    localStorage.clear();
+    Swal.fire({
+      title: "Session Expired",
+      text: "Your session has expired. Please log in again.",
+      icon: "warning",
+      confirmButtonText: "OK",
+    }).then(() => {
+      navigate("/login");
+    });
+  };
 
   const fetchEmployees = async () => {
     try {
       const response = await axios.get(`${APIBASED_URL}/api/employee`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("adminToken")}`,
         },
       });
       setEmployees(response.data);
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        handleLogout();
+      }
       console.error("Error fetching employees:", error);
     }
   };
@@ -107,12 +137,15 @@ const Dashboard = () => {
         `${APIBASED_URL}/api/employee/time-tracking`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+            Authorization: `Bearer ${sessionStorage.getItem("adminToken")}`,
           },
         }
       );
       setTimeRecords(response.data);
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        handleLogout();
+      }
       console.error("Error fetching time records:", error);
     }
   };
@@ -121,11 +154,14 @@ const Dashboard = () => {
     try {
       const response = await axios.get(`${APIBASED_URL}/api/incidentreport/`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("adminToken")}`,
         },
       });
       setIncidentReport(response.data);
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        handleLogout();
+      }
       console.error("Error fetching incident reports:", error);
     }
   };

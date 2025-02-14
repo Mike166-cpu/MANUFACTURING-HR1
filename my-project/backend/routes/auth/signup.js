@@ -29,4 +29,31 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post('/create-account', async (req, res) => {
+  const { username, email, password, role } = req.body;
+
+  // Validate required fields
+  if (!username || !email || !password || !role) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create the user
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    await newUser.save();
+    res.status(201).json({ message: 'User created successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error creating user', details: error.message });
+  }
+});
+
 module.exports = router;

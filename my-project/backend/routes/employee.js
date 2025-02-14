@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const Employee = require("../models/Employee");
-const TimeTracking = require("../models/TimeTracking");
+// const TimeTracking = require("../models/TimeTracking");
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const { forgotPassword } = require("../controllers/passwordController");
 const jwt = require("jsonwebtoken");
+const { loginEmployee } = require("../controllers/authController");
 
 router.post("/forgot-password", async (req, res) => {
   const { employee_email } = req.body;
@@ -100,43 +101,21 @@ router.post("/add", async (req, res) => {
 });
 
 // Employee login route
-router.post('/login-employee', async (req, res) => {
-  const { employee_username, employee_password } = req.body;
-
-  try {
-    const employee = await Employee.findOne({ employee_username });
-    console.log("Fetched employee data:", employee); 
-
-    if (!employee) {
-      return res.status(404).json({ success: false, message: 'Employee not found' });
-    }
-
-    const isMatch = await bcrypt.compare(employee_password, employee.employee_password);
-
-    if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign({ id: employee._id }, 'your_jwt_secret_key', { expiresIn: '1h' });
-
-    res.json({
-      success: true,
-      token,
-      employeeEmail: employee.employee_email,
-      employeeFirstName: employee.employee_firstname,
-      employeeLastName: employee.employee_lastname,
-      employeeUsername: employee.employee_username,
-      employeeId: employee.employee_id, 
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
+router.post("/login-employee", loginEmployee);
 
 // Get all employees route
 router.get("/", async (req, res) => {
+  try {
+    const employees = await Employee.find();
+    res.status(200).json(employees);
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ message: "Error fetching employees" });
+  }
+});
+
+// Fetch all employees route
+router.get("/employee-data", async (req, res) => {
   try {
     const employees = await Employee.find();
     res.status(200).json(employees);
@@ -189,130 +168,6 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// TIME IN
-router.post("/time-in", async (req, res) => {
-  const { employee_username, employee_firstname, employee_lastname, time_in } =
-    req.body;
-
-  try {
-    const newTimeTracking = new TimeTracking({
-      employee_username,
-      employee_firstname,
-      employee_lastname,
-      time_in,
-      attendance: true,
-    });
-
-    await newTimeTracking.save();
-    res.status(200).json({ message: "Time in successful!" });
-  } catch (error) {
-    console.error("Error in time in:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
-  }
-});
-
-// TIME OUT
-router.post("/time-out", async (req, res) => {
-  const { employee_username, employee_firstname, employee_lastname, time_out } =
-    req.body;
-
-  try {
-    const timeTrackingRecord = await TimeTracking.findOne({
-      employee_username,
-      employee_firstname,
-      employee_lastname,
-      time_out: null,
-    });
-
-    if (!timeTrackingRecord) {
-      return res
-        .status(404)
-        .json({ message: "No active time in record found" });
-    }
-
-    timeTrackingRecord.time_out = time_out;
-
-    const totalMilliseconds =
-      new Date(time_out) - new Date(timeTrackingRecord.time_in);
-    const totalSeconds = Math.floor(totalMilliseconds / 1000);
-
-    timeTrackingRecord.total_hours = totalSeconds;
-
-    await timeTrackingRecord.save();
-
-    res.status(200).json({ message: "Time out successful!" });
-  } catch (error) {
-    console.error("Time out error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
-
-// Fetch all time tracking records
-router.get("/time-tracking", async (req, res) => {
-  try {
-    const records = await TimeTracking.find();
-    res.status(200).json(records);
-  } catch (error) {
-    console.error("Error fetching all time tracking records:", error);
-    res.status(500).json({ message: "Error fetching time tracking records" });
-  }
-});
-
-// Fetch time tracking records for a specific employee
-router.get("/time-tracking/:username", async (req, res) => {
-  const { username } = req.params;
-
-  try {
-    const records = await TimeTracking.find({ employee_username: username });
-    res.status(200).json(records);
-  } catch (error) {
-    console.error("Error fetching time tracking records:", error);
-    res.status(500).json({ message: "Error fetching time tracking records" });
-  }
-});
-
-// Delete time tracking record
-router.delete("/time-tracking/:id", async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const deletedRecord = await TimeTracking.findByIdAndDelete(id);
-    if (!deletedRecord) {
-      return res.status(404).json({ message: "Record not found" });
-    }
-    res.status(200).json({ message: "Record deleted successfully!" });
-  } catch (error) {
-    console.error("Error deleting record:", error);
-    res
-      .status(500)
-      .json({ message: "Error deleting record", error: error.message });
-  }
-});
-
-// PROGRESS CHART
-router.get("/summary/:username", async (req, res) => {
-  const { username } = req.params;
-
-  try {
-    const records = await TimeTracking.find({ employee_username: username });
-    const groupedRecords = records.reduce((acc, record) => {
-      const date = new Date(record.time_in).toDateString();
-      if (!acc[date]) {
-        acc[date] = { date, records: [] };
-      }
-      acc[date].records.push(record);
-      return acc;
-    }, {});
-
-    const summary = Object.values(groupedRecords);
-    res.json(summary);
-  } catch (error) {
-    console.error("Error fetching summary data:", error);
-    res.status(500).json({ error: "Failed to fetch summary data" });
-  }
-});
 
 // Update employee profile by username
 router.put("/employee/:username", async (req, res) => {

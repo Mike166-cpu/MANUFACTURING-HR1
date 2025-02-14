@@ -31,22 +31,21 @@ const EmployeeLoginForm = () => {
     e.preventDefault();
     setError("");
 
-    if (!recaptchaValue) {
-      setError("Please verify that you are not a robot.");
-      return;
-    }
+    // if (!recaptchaValue) {
+    //   setError("Please verify that you are not a robot.");
+    //   return;
+    // }
 
-    const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
-    const LOCAL = "http://localhost:5000";
-    const endpoint = `${APIBase_URL}/api/employee/login-employee`;
-
+    const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com"; // or your live server URL
+    const Local = "http://localhost:5000";
+    const endpoint = `${Local}/api/employee/login-employee`;
     try {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...formData, recaptcha: recaptchaValue  }),
+        body: JSON.stringify({ ...formData /*recaptcha: recaptchaValue */ }),
       });
       const data = await response.json();
 
@@ -60,9 +59,9 @@ const EmployeeLoginForm = () => {
       localStorage.setItem("employeeUsername", data.employeeUsername);
       localStorage.setItem("employeeEmail", data.employeeEmail);
       localStorage.setItem("employeeId", data.employeeId);
-
-      console.log(data);
-
+      localStorage.setItem("employeeProfile", data.employeeProfile);
+      localStorage.setItem("employeeDepartment", data.employeeDepartment);
+      
       Swal.fire({
         icon: "success",
         title: "Login successful!",
@@ -158,7 +157,7 @@ const EmployeeLoginForm = () => {
               Forgot Password?
             </Link>
 
-             <div
+             {/* <div
               className="mb-4 "
               style={{ transform: "scale(0.90)", transformOrigin: "0 0" }}
             >
@@ -166,7 +165,7 @@ const EmployeeLoginForm = () => {
                 sitekey="6LdA22gqAAAAAH57gImSaofpR0dY3ppke4-7Jjks"
                 onChange={(value) => setRecaptchaValue(value)}
               />
-            </div> 
+            </div>  */}
           </div>
 
           <button

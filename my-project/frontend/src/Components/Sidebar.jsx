@@ -42,237 +42,218 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   return (
     <div
-      className={`fixed left-0 top-0 w-72  h-full shadow-lg z-50 transform ${
+      className={`fixed left-0 top-0 w-72 h-full z-50 transform ${
         isOpen ? "translate-x-0" : "-translate-x-full"
-      }  transition-transform duration-300 ease-in-out bg-white backdrop-blur-lg dark:bg-gray-800 dark:text-white`}
+      } transition-transform duration-300 ease-in-out bg-gradient-to-b from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700`}
     >
-      <div className="p-4 bg-base-500 h-full overflow-y-auto custom-scrollbar">
-        <div className="mt-1 space-y-3">
-          <div className="flex flex-row items-start justify-start">
-            <img
-              src={logo}
-              alt="jjm logo"
-              className="w-12 h-12 rounded-full border-2"
-            />
-            <h1 className="font-extrabold text-l pl-3 pt-3">Admin Dashboard</h1>
-            <button
-              onClick={toggleSidebar} // Corrected handler
-              className="text-gray-600 hover:text-gray-800 focus:outline-none md:hidden"
-            >
-              <AiOutlineClose className="w-4 h-4 mt-4 ml-4" />
-            </button>
+      <div className="p-6 h-full overflow-y-auto custom-scrollbar">
+        {/* Header */}
+        <div className="flex items-center space-x-3 mb-8">
+          <img
+            src={logo}
+            alt="jjm logo"
+            className="w-10 h-10 rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
+          />
+          <div className="flex-1">
+            <h1 className="font-bold text-gray-800 dark:text-white text-lg">
+              Admin
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Dashboard
+            </p>
           </div>
-
-          <hr />
-          <div
-            className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-              activePage === "/dashboard"
-                ? "bg-gray-200 text-black shadow-md"
-                : "hover:bg-gray-200 hover:shadow-md"
-            }`}
-            onClick={() => handleNavigation("/dashboard")}
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors md:hidden"
           >
-            <RxDashboard size="1.4rem" />
-            <span className="font-semibold text-[15px] pl-[5px]">Home</span>
-          </div>
+            <AiOutlineClose className="w-4 h-4" />
+          </button>
         </div>
 
-        <ul className="mt-4 space-y-4">
-          <li>
-            <span className="text-gray-400 text-[11px] font-medium">
-              EMPLOYEE RECORDS MANAGEMENT
-            </span>
+        {/* Home Button */}
+        <div
+          className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+            activePage === "/dashboard"
+              ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+              : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+          }`}
+          onClick={() => handleNavigation("/dashboard")}
+        >
+          <RxDashboard className="w-5 h-5" />
+          <span className="font-medium text-sm ml-3">Home</span>
+        </div>
 
-            {/*EMPLOYEE RECORDS MANAGEMENT */}
+        {/* Main Navigation */}
+        <div className="mt-8 space-y-6">
+          {/* Employee Records Section */}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
+              EMPLOYEE RECORDS
+            </h3>
             <div
-              className="flex items-center p-2 rounded-md transition-all duration-200 hover:bg-gray-300 "
+              className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={toggleSubmenu}
             >
-              <ImDrawer size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[7px] pt-1">
-                Employee Records
-              </span>
-              {isSubmenuOpen ? (
-                <FaChevronDown className="ml-auto" />
-              ) : (
-                <FaChevronRight className="ml-auto" />
-              )}
-            </div>
-
-            <hr className="p-1 opacity-0" />
-
-            {isSubmenuOpen && (
-              <div className="pl-4]">
-                <div className="w-full text-sm text-start ">
-                  <div
-                    className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-                      activePage === "/employeeInfo"
-                        ? "bg-gray-300 text-black"
-                        : "hover:bg-gray-200"
-                    }`}
-                    onClick={() => handleNavigation("/employeeInfo")}
-                  >
-                    <FaUsers className="ml-5" size="1.4rem" />
-                    <span className="ml-3 font-medium">
-                      Employee Account Management
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-           
-
-            <div>
-              <div
-                className={`flex items-center mt-2 p-2 rounded-md transition-all duration-200 hover:bg-gray-300 ${
-                  activePage === "/employee-documents"
-                    ? "bg-gray-300 text-black"
-                    : "hover:bg-gray-200"
-                }`}
-                onClick={() => handleNavigation("/employee-documents")}
-              >
-                <IoDocumentsOutline size="1.4rem" />
-                <span className="font-semibold text-[0.875rem] pl-[7px] pt-1">
-                  Employee Documents
+              <div className="flex items-center">
+                <ImDrawer className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <span className="font-medium text-sm ml-3 text-gray-700 dark:text-gray-300">
+                  Employee Records
                 </span>
               </div>
-            </div>
-
-            {/*HR COMPLIANCE SECTION */}
-
-            <div className="mt-3">
-              <span className="text-[11px] font-medium text-gray-400">
-                COMPANY POLICIES
-              </span>
-            </div>
-            <div
-              className="flex items-center p-2 rounded-md transition-all duration-200 hover:bg-gray-300 "
-              onClick={toggleCompliance}
-            >
-              <RiPagesLine size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">
-                HR Compliance
-              </span>
-              {isComplianceOpen ? (
-                <FaChevronDown className="ml-auto" />
+              {isSubmenuOpen ? (
+                <FaChevronDown className="w-4 h-4 text-gray-400" />
               ) : (
-                <FaChevronRight className="ml-auto" />
+                <FaChevronRight className="w-4 h-4 text-gray-400" />
               )}
             </div>
-            <hr className="p-1 opacity-0" />
 
-            {isComplianceOpen && (
-              <div className="pl-4]">
-                <div className="w-full text-sm text-start ">
-                  <div
-                    className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-                      activePage === "/compliance"
-                        ? "bg-gray-300 text-black"
-                        : "hover:bg-gray-200"
-                    }`}
-                    onClick={() => handleNavigation("/compliance")}
-                  >
-                    <MdListAlt size="1.4rem" className="ml-5" />
-                    <span className="font-semibold text-[0.875rem] ml-1">
-                      Compliance List
-                    </span>
-                  </div>
-                  <hr className="p-1 opacity-0" />
-                  <div
-                    className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-                      activePage === "/incidentreport"
-                        ? "bg-gray-300 text-black"
-                        : "hover:bg-gray-200"
-                    }`}
-                    onClick={() => handleNavigation("/incidentreport")}
-                  >
-                    <TbReport size="1.4rem" className="ml-5" />
-                    <span className="font-semibold text-[0.875rem] ml-1">
-                      Incident Report
-                    </span>
-                  </div>
-                  <hr className="p-1 opacity-0" />
+            {/* Submenu items with modern styling */}
+            {isSubmenuOpen && (
+              <div className="mt-2 ml-4 space-y-1">
+                <div
+                  className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                    activePage === "/employeeInfo"
+                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  }`}
+                  onClick={() => handleNavigation("/employeeInfo")}
+                >
+                  <FaUsers className="w-4 h-4" />
+                  <span className="text-sm font-medium ml-3">
+                    Account Management
+                  </span>
                 </div>
               </div>
             )}
+          </div>
 
-            {/*ONBOARDING SECTION */}
-            <div className="mt-3">
-              <span className="text-[11px] font-medium text-gray-400">
-                ONBOARDING & OFFBOARDING PROCESS
-              </span>
+          {/* Similar styling pattern for other sections */}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
+              COMPANY POLICIES
+            </h3>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={toggleCompliance}
+            >
+              <div className="flex items-center">
+                <RiPagesLine className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <span className="font-medium text-sm ml-3 text-gray-700 dark:text-gray-300">
+                  HR Compliance
+                </span>
+              </div>
+              {isComplianceOpen ? (
+                <FaChevronDown className="w-4 h-4 text-gray-400" />
+              ) : (
+                <FaChevronRight className="w-4 h-4 text-gray-400" />
+              )}
             </div>
 
-            <div
-              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
+            {isComplianceOpen && (
+              <div className="mt-2 ml-4 space-y-1">
+                <div
+                  className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                    activePage === "/compliance"
+                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  }`}
+                  onClick={() => handleNavigation("/compliance")}
+                >
+                  <MdListAlt className="w-4 h-4" />
+                  <span className="text-sm font-medium ml-3">
+                    Compliance List
+                  </span>
+                </div>
+                <div
+                  className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                    activePage === "/incidentreport"
+                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  }`}
+                  onClick={() => handleNavigation("/incidentreport")}
+                >
+                  <TbReport className="w-4 h-4" />
+                  <span className="text-sm font-medium ml-3">
+                    Incident Report
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
+              ONBOARDING & OFFBOARDING
+            </h3>
+            {/* <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
                 activePage === "/onboarding"
-                  ? "bg-gray-300 text-black"
-                  : "hover:bg-gray-200"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
               }`}
               onClick={() => handleNavigation("/onboarding")}
             >
-              <TbChalkboard size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">
-                Onboard New Hire
+              <TbChalkboard className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Onboard New Hire</span>
+            </div> */}
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/addemployee"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/addemployee")}
+            >
+              <IoMdPersonAdd className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Create Employee Account
               </span>
             </div>
-
-            <div>
-              <div
-                className={`flex items-center mt-2 p-2 rounded-md transition-all duration-200 hover:bg-gray-300 ${
-                  activePage === "/addemployee"
-                    ? "bg-gray-300 text-black"
-                    : "hover:bg-gray-200"
-                }`}
-                onClick={() => handleNavigation("/addemployee")}
-              >
-                <IoMdPersonAdd size="1.4rem" />
-                <span className="font-semibold text-[0.875rem] pl-[7px] pt-1">
-                  Create Employee Account
-                </span>
-              </div>
-            </div>
-            <hr className="p-1 opacity-0" />
-
-            {/*OFFBOARDING SECTION */}
-            <div
-              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
+            {/* <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
                 activePage === "/offboarding"
-                  ? "bg-gray-300 text-black"
-                  : "hover:bg-gray-200"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
               }`}
               onClick={() => handleNavigation("/offboarding")}
             >
-              <LuPackage size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">
-                Offboarding
-              </span>
-            </div>
-            <hr className="p-1 opacity-0" />
-
-            {/*Attendance and time tracking*/}
-            <div className="mt-3">
-              <span className="text-[11px] font-medium text-gray-400">
-                ATTENDANCE AND TIME TRACKING
-              </span>
-            </div>
+              <LuPackage className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Offboarding</span>
+            </div> */}
             <div
-              className={`flex items-center p-2 rounded-md transition-all duration-200 ${
-                activePage === "/atattendancetimete"
-                  ? "bg-gray-300 text-black"
-                  : "hover:bg-gray-200"
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/employee-schedule"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/employee-schedule")}
+            >
+              <RiArchiveDrawerLine className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Employee Schedule
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
+              ATTENDANCE & TIME TRACKING
+            </h3>
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/attendancetime"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
               }`}
               onClick={() => handleNavigation("/attendancetime")}
             >
-              <RiArchiveDrawerLine size="1.4rem" />
-              <span className="font-semibold text-[0.875rem] pl-[5px]">
-                Attendance and Time tracking
+              <RiArchiveDrawerLine className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Attendance & Time Tracking
               </span>
             </div>
-            <hr className="p-1 opacity-0" />
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
     </div>
   );

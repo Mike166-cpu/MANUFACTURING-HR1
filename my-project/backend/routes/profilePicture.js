@@ -56,24 +56,26 @@ router.post(
 // Backend Route to Fetch Profile Picture
 router.get("/profile-picture", async (req, res) => {
   try {
-    const { employeeId } = req.query; // Get employeeId from the query parameters
+    const { employeeId } = req.query;
     if (!employeeId) {
       return res.status(400).json({ message: "Employee ID is required" });
     }
+
+    console.log(`Fetching profile for employeeId: ${employeeId}`); // Log employeeId
 
     const user = await Employee.findOne({ employee_id: employeeId });
     if (!user || !user.profile_picture) {
       return res.status(404).json({ message: "Profile picture not found" });
     }
 
-    // Return the full URL to the profile picture
     const profilePicturePath = `${req.protocol}://${req.get("host")}${
       user.profile_picture
     }`;
+    console.log(`Returning profile picture: ${profilePicturePath}`); // Log profile picture path
 
     res.json({ profilePicture: profilePicturePath });
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching profile picture:", error);
     res.status(500).json({ message: "Error fetching profile picture" });
   }
 });

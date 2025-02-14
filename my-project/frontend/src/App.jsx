@@ -16,7 +16,7 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import IncidentReport from "./pages/submodules/IncidentReport.jsx";
 import FileIncident from "./pages/submodules/FileIncident.jsx";
 import CompanyPolicy from "./pages/submodules/CompanyPolicy.jsx";
-import TimeTracking from "./pages/submodules/TimeTracking.jsx";
+// import TimeTracking from "./pages/submodules/TimeTracking.jsx";
 import OnboardingFeedback from "./pages/submodules/OnboardingFeedback.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Profile from "./pages/submodules/Profile.jsx";
@@ -28,6 +28,10 @@ import EmployeeProtectedRoute from "./Components/EmployeeProtectedRoute.jsx";
 import SafetyProtocols from "./pages/submodules/SafetyProtocols.jsx";
 import UploadDocuments from "./pages/submodules/UploadDocuments.jsx";
 import EmployeeDocuments from "./pages/submodules/EmployeeDocuments.jsx";
+import TestTimer from "./pages/submodules/TestTimer.jsx";
+import EmployeeSchedule from "./pages/submodules/EmployeeSchedule.jsx";
+import WorkSchedule from "./pages/submodules/WorkSchedule.jsx"; 
+import HumanResourcesLogin from "./pages/HumanResourcesLogin.jsx";
 
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer, toast } from 'react-toastify';
@@ -57,6 +61,7 @@ function App() {
         <Routes>
           {/*DEFAULT ROUTE*/}
           <Route path="/" element={<Portal />} />
+          <Route path="/human-resources" element={<HumanResourcesLogin/>}></Route>
 
           {/*EMPLOYEE PAGE*/}
           <Route path="/employeesignup" element={<EmployeeSignupForm />} />
@@ -64,13 +69,16 @@ function App() {
           <Route path="/employeedashboard" element={<EmployeeProtectedRoute><EmployeeDashboard /></EmployeeProtectedRoute>} />
           <Route path="/fileincident" element={<EmployeeProtectedRoute><FileIncident /></EmployeeProtectedRoute>} />
           <Route path="/companypolicy" element={<EmployeeProtectedRoute><CompanyPolicy /></EmployeeProtectedRoute>} />
-          <Route path="/timeTracking" element={<EmployeeProtectedRoute><TimeTracking /></EmployeeProtectedRoute>} />
+          {/* <Route path="/timeTracking" element={<EmployeeProtectedRoute><TimeTracking /></EmployeeProtectedRoute>} /> */}
           <Route path="/feedback" element={<EmployeeProtectedRoute><OnboardingFeedback /></EmployeeProtectedRoute>} />
           <Route path="/userProfile" element={<EmployeeProtectedRoute><Profile /></EmployeeProtectedRoute>} />
           <Route path="/safety-protocols" element={<EmployeeProtectedRoute><SafetyProtocols /></EmployeeProtectedRoute>} />
           <Route path="/upload-documents" element={<EmployeeProtectedRoute><UploadDocuments /></EmployeeProtectedRoute>} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/test-timer" element={<EmployeeProtectedRoute><TestTimer /></EmployeeProtectedRoute>} />
+          <Route path="/work-schedule" element={<EmployeeProtectedRoute><WorkSchedule /></EmployeeProtectedRoute>} />
+
 
           {/*ADMIN PAGE*/}
           <Route path="/login" element={<LoginForm />} />
@@ -85,6 +93,9 @@ function App() {
           <Route path="/employeeInfo" element={<ProtectedRoute><EmployeeInfo /></ProtectedRoute>} />
           <Route path="/addemployee" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
           <Route path="/employee-documents" element={<ProtectedRoute><EmployeeDocuments /></ProtectedRoute>} />
+          <Route path="/employee-schedule" element={<ProtectedRoute><EmployeeSchedule /></ProtectedRoute>} />
+
+        
 
           {/*404 not found*/}
           <Route path="*" element={<NotFound />} />

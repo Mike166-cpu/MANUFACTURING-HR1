@@ -16,9 +16,6 @@ const employeeSchema = new mongoose.Schema({
   employee_gender: { type: String, required: false },
   employee_department: { type: String, required: true },
   profile_picture: { type: String, default: "" },
-  time_in: { type: Date },
-  time_out: { type: Date },
-  total_hours: { type: Number },
 });
 
 employeeSchema.pre("save", async function (next) {

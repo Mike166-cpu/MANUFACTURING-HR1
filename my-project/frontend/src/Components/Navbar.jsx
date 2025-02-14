@@ -17,12 +17,15 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   );
   const navigate = useNavigate();
   const firstName = localStorage.getItem("firstName");
+  const lastName = localStorage.getItem("lastName");
+  const userRole = localStorage.getItem("role");
 
-  useIdleLogout(1800000);
+  //useIdleLogout(1800000);
 
   useEffect(() => {
     const firstName = localStorage.getItem("firstName");
     const lastName = localStorage.getItem("lastName");
+    const userRole = localStorage.getItem("role");
 
     if (firstName && lastName) {
       const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
@@ -32,31 +35,31 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
 
   const APIBased_URL = "https://backend-hr1.jjm-manufacturing.com";
 
-  useEffect(() => {
-    const socket = io("https://backend-hr1.jjm-manufacturing.com");
+  // useEffect(() => {
+  //   const socket = io("https://backend-hr1.jjm-manufacturing.com");
 
-    const fetchIncidentReports = async () => {
-      try {
-        const response = await fetch(`${APIBased_URL}/api/incidentreport`);
-        const data = await response.json();
-        setIncidentReports(data);
-      } catch (error) {
-        console.error("Error fetching incident reports:", error);
-      }
-    };
+  //   const fetchIncidentReports = async () => {
+  //     try {
+  //       const response = await fetch(`${APIBased_URL}/api/incidentreport`);
+  //       const data = await response.json();
+  //       setIncidentReports(data);
+  //     } catch (error) {
+  //       console.error("Error fetching incident reports:", error);
+  //     }
+  //   };
 
-    fetchIncidentReports();
+  //   fetchIncidentReports();
 
-    socket.on("newIncidentReport", (data) => {
-      setIncidentReports((prevReports) => [data.report, ...prevReports]);
-      setHasNewNotifications(true);
-      localStorage.setItem("hasNewNotifications", JSON.stringify(true));
-    });
+  //   socket.on("newIncidentReport", (data) => {
+  //     setIncidentReports((prevReports) => [data.report, ...prevReports]);
+  //     setHasNewNotifications(true);
+  //     localStorage.setItem("hasNewNotifications", JSON.stringify(true));
+  //   });
 
-    return () => {
-      socket.off("newIncidentReport");
-    };
-  }, []);
+  //   return () => {
+  //     socket.off("newIncidentReport");
+  //   };
+  // }, []);
 
   const handleLogout = () => {
     sessionStorage.removeItem("adminToken");
@@ -167,7 +170,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
         <div>
           <span className="text-xs font-medium">
             {firstName} <br />
-            <span className="block text-gray-400">admin</span>
+            <span className="block text-gray-400 capitalize">{userRole}</span>
           </span>
         </div>
       </div>

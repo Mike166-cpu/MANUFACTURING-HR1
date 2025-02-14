@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
-import idleLogout from "../hooks/idleLogout";
-import { Link, useNavigate } from "react-router-dom";
-import { IoHomeOutline } from "react-icons/io5";
-import { FaRegUserCircle } from "react-icons/fa";
-import { FaRegBell } from "react-icons/fa";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  IoHomeOutline,
+  IoBookOutline,
+  IoCloudUploadOutline,
+} from "react-icons/io5";
+import { CiFileOn } from "react-icons/ci";
 import { FaRegUser } from "react-icons/fa";
-import { VscFeedback } from "react-icons/vsc";
-import logo from "../../src/assets/logo-2.png";
 import { TbFileReport } from "react-icons/tb";
 import { TfiTime } from "react-icons/tfi";
 import { MdOutlinePolicy } from "react-icons/md";
 import { FiLogOut } from "react-icons/fi";
 import { AiOutlineClose } from "react-icons/ai";
-import { IoBookOutline } from "react-icons/io5";
-import { IoCloudUploadOutline } from "react-icons/io5";
+import { VscFeedback } from "react-icons/vsc";
+import logo from "../../src/assets/logo-2.png";
 
 const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
@@ -23,8 +23,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   const [employeeFirstName, setEmployeeFirstName] = useState("");
   const [employeeLastName, setEmployeeLastName] = useState("");
   const dropdownRef = useRef(null);
-
-  idleLogout(1800000);
+  const location = useLocation();
 
   const [notifications, setNotifications] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -34,7 +33,6 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   };
 
   useEffect(() => {
-    // Simulating fetching notifications
     const dummyNotifications = [
       { id: 1, message: "You have a new message." },
       { id: 2, message: "Your incident report has been filed." },
@@ -111,9 +109,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   useEffect(() => {
     if (employeeId) {
-      fetch(
-        `${APIBase_URL}/api/profile-picture?employeeId=${employeeId}`
-      )
+      fetch(`${APIBase_URL}/api/profile-picture?employeeId=${employeeId}`)
         .then((response) => response.json())
         .then((data) => {
           if (data.profilePicture) {
@@ -125,192 +121,136 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
         );
     }
   }, [employeeId]);
-  return (
-    <div>
-      <div
-        className={`fixed top-0 left-0 h-full w-72 bg-white shadow-lg transform overflow-y-auto ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } transition-transform duration-300 ease-in-out z-20 `}
+
+  const NavItem = ({ to, icon: Icon, label, badge }) => {
+    const isActive = location.pathname === to;
+    return (
+      <Link
+        to={to}
+        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200
+          ${
+            isActive
+              ? "bg-purple-100 text-purple-600"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
       >
-        <div className="pt-4">
-          <div className="pl-3 pb-2 text-black">
-            <div className="flex gap-4 items-center pr-2">
-              {/* Logo on the left */}
-              <img
-                src={logo}
-                alt="jjm logo"
-                className="w-10 h-10 rounded-full border-2"
-              />
-              <h1 className="font-bold text-sm">JJM MANUFACTURING</h1>
-              <button
-                onClick={onSidebarToggle}
-                className="text-gray-600 hover:text-gray-800 focus:outline-none md:hidden"
-              >
-                <AiOutlineClose className="w-4 h-4" />
-              </button>
+        <Icon className="w-5 h-5" />
+        <span className="text-sm font-medium">{label}</span>
+        {badge && (
+          <span className="ml-auto text-xs px-2 py-1 rounded-md bg-yellow-100 text-yellow-800">
+            {badge}
+          </span>
+        )}
+      </Link>
+    );
+  };
+
+  const MenuSection = ({ title, children }) => (
+    <div className="px-3 py-2">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        {title}
+      </h3>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+
+  return (
+    <div
+      className={`fixed inset-y-0 left-0 w-72 bg-white shadow-lg transform 
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        transition-transform duration-300 ease-in-out z-20 flex flex-col`}
+    >
+      {/* Header */}
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="JJM Logo" className="w-8 h-8 rounded-lg" />
+            <h1 className="font-semibold text-gray-800">JJM MANUFACTURING</h1>
+          </div>
+          <button
+            onClick={onSidebarToggle}
+            className="p-1 rounded-lg hover:bg-gray-100 md:hidden"
+          >
+            <AiOutlineClose className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+      </div>
+
+      {/* Profile Section */}
+      <div className="p-4 border-b">
+        <div className="flex items-center gap-4">
+          {profilePicture ? (
+            <img
+              src={profilePicture}
+              alt="Profile"
+              className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-100"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-lg font-medium">
+              {getInitials(employeeFirstName)}
             </div>
-          </div>
-
-          {/* Profile Picture */}
-          <hr />
-          <div className="flex flex-row items-center mb-4 justify-start pl-6 pt-2 space-x-4">
-            {profilePicture ? (
-              <img
-                src={profilePicture}
-                alt="Profile"
-                className="w-12 h-12 rounded-full object-cover border-2" // Adjust size as needed
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-[#FF76CE] flex items-center justify-center text-white text-2xl font-normal p-[4px]">
-                {getInitials(employeeFirstName)}
-              </div>
-            )}
-
-            {employeeEmail && (
-              <div className="text-start mt-2">
-                <span className="text-md font-semibold text-black dark:text-white tracking-tight capitalize">
-                  {employeeFirstName} {employeeLastName}
-                </span>
-                <br />
-                <span className="text-[#94A3b8] font-normal text-xs">
-                  {employeeEmail}
-                </span>
-                <br />
-                <span className="text-[#94A3b8] font-normal text-xs">
-                  Employee Id: {employeeId}
-                </span>
-              </div>
-            )}
+          )}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold text-gray-800 truncate capitalize">
+              {employeeFirstName} {employeeLastName}
+            </h2>
+            <p className="text-xs text-gray-500 truncate">{employeeEmail}</p>
+            <p className="text-xs text-gray-400">ID: {employeeId}</p>
           </div>
         </div>
+      </div>
 
-        <div className="h-[0.8px] bg-gray-200 w-full my-4"></div>
-        <div>
-          <ul className="menu p-3 text-black dark:text-white ">
-            <span className="font-medium text-xs text-gray-400">DASHBOARD</span>
-            <li className="p-1">
-              <Link
-                to="/employeedashboard"
-                className="text-[13px] font-semibold p-2 dark:text-black hover:shadow-md hover:bg-gray-100 dark:hover:text-black "
-              >
-                <IoHomeOutline className="w-5 h-5" />
-                Home
-              </Link>
-            </li>
-            <li className="p-1">
-              <Link
-                to="/userProfile"
-                className="text-[13px] font-semibold p-2 dark:text-black  hover:bg-gray-200 hover:shadow-md dark:hover:text-black"
-              >
-                <FaRegUser className="w-5 h-5" />
-                Profile
-              </Link>
-            </li>
-          </ul>
-        </div>
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto py-2 space-y-2 hide-scrollbar">
+        <MenuSection title="Dashboard">
+          <NavItem to="/employeedashboard" icon={IoHomeOutline} label="Home" />
+          <NavItem to="/userProfile" icon={FaRegUser} label="Profile" />
+        </MenuSection>
 
-        {/*COMPLIANCE SECTION*/}
-        <div>
-          <ul className="menu p-3 text-black ">
-            <span className="font-medium text-xs text-gray-400 tracking-wide">
-              HR COMPLIANCE
-            </span>
-            <li className="p-1">
-              <Link
-                to="/fileincident"
-                className="text-[13px] font-semibold p-2  hover:bg-gray-200 hover:shadow-md dark:text-black dark:hover:text-black"
-              >
-                <TbFileReport className="w-5 h-5" />
-                Report Incident
-              </Link>
-            </li>
-            <li className="p-1">
-              <Link
-                to="/companypolicy"
-                className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md  dark:text-black dark:hover:text-black"
-              >
-                <MdOutlinePolicy className="w-5 h-5" />
-                Company Policy{" "}
-                <span className="bg-yellow-400 dark:border-black px-2 text-xs rounded-lg text-black dark:text-black">
-                  REQ.
-                </span>
-              </Link>
-            </li>
-          </ul>
-        </div>
+        <MenuSection title="HR Compliance">
+          {/* <NavItem to="/fileincident" icon={TbFileReport} label="Report Incident" /> */}
+          <NavItem
+            to="/companypolicy"
+            icon={MdOutlinePolicy}
+            label="User Handbook"
+            badge="REQ."
+          />
+        </MenuSection>
 
-        {/*ATTENDANCE*/}
-        <div>
-          <ul className="menu p-3 text-black ">
-            <span className="font-medium text-xs text-gray-400 tracking-wide">
-              ATTENDANCE TIME TRACKING
-            </span>
-            <li className="p-1">
-              <Link
-                to="/timeTracking"
-                className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md dark:text-black dark:hover:text-black"
-              >
-                <TfiTime className="w-5 h-5" />
-                Time in / Time out
-              </Link>
-            </li>
-          </ul>
-        </div>
+        <MenuSection title="Attendance">
+          <NavItem
+            to="/work-schedule"
+            icon={MdOutlinePolicy}
+            label="Work Schedule"
+          />
+          <NavItem to="/test-timer" icon={TfiTime} label="Time Tracking" />
+          <NavItem to="/#" icon={CiFileOn} label="File Leave" />
+        </MenuSection>
 
-        <div>
-          <ul className="menu p-3 text-black ">
-            <span className="font-medium text-xs text-gray-400 tracking-wide">
-              ONBOARDING
-            </span>
-            <li className="p-1">
-              <Link
-                to="/feedback"
-                className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md dark:text-black dark:hover:text-black"
-              >
-                <VscFeedback className="w-5 h-5" />
-                Onboarding Feedback
-              </Link>
-            </li>
-{/* 
-            <li className="p-1">
-              <Link
-                to="/safety-protocols"
-                className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md dark:text-white dark:hover:text-black"
-              >
-                <IoBookOutline className="w-5 h-5" />
-                Safety Protocols
-              </Link>
-            </li> */}
+        <MenuSection title="Onboarding">
+          <NavItem
+            to="/feedback"
+            icon={VscFeedback}
+            label="Onboarding Feedback"
+          />
+          <NavItem
+            to="/upload-documents"
+            icon={IoCloudUploadOutline}
+            label="Upload Documents"
+          />
+        </MenuSection>
+      </div>
 
-            <li className="p-1">
-              <Link
-                to="/upload-documents"
-                className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md dark:text-black dark:hover:text-black"
-              >
-                <IoCloudUploadOutline className="w-5 h-5" />
-                Upload Documents
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div className="h-[0.8px] bg-gray-200 w-full my-4"></div>
-        <div>
-          <ul className="menu p-3 text-black ">
-            <span className="font-medium text-xs text-gray-400 tracking-wide">
-              ACCOUNT
-            </span>
-            <li className="p-1">
-              <button
-                onClick={handleLogout}
-                className="text-[13px] font-semibold p-2 hover:bg-gray-200 hover:shadow-md dark:text-black dark:hover:text-black flex items-center"
-              >
-                <FiLogOut className="w-5 h-5 mr-1" />
-                Logout
-              </button>
-            </li>
-          </ul>
-        </div>
+      {/* Footer */}
+      <div className="p-4 border-t">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-gray-600 
+            hover:bg-gray-100 rounded-lg transition-colors duration-200"
+        >
+          <FiLogOut className="w-5 h-5" />
+          <span>Logout</span>
+        </button>
       </div>
     </div>
   );

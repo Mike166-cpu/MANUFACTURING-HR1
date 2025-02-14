@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../src/assets/logo-2.png";
 import Swal from "sweetalert2";
 import ReCAPTCHA from "react-google-recaptcha";
+import { loginUser } from "../store/authStore";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -12,7 +13,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState(null);
+  //const [captchaValue, setCaptchaValue] = useState(null); // ReCAPTCHA state
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,75 +21,25 @@ const LoginForm = () => {
     document.title = "Login - HR1";
   }, []);
 
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!captchaValue) {
+    if (!email || !password) {
       Swal.fire({
-        title: "CAPTCHA Error",
-        text: "Please complete the CAPTCHA to proceed.",
+        title: "Error",
+        text: "Please fill in all fields.",
         icon: "error",
-        confirmButtonText: "Try Again",
+        confirmButtonText: "OK",
       });
       return;
     }
 
-    const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
-    const LOCAL = "http://localhost:5000";
-
-    try {
-      const response = await fetch(`${APIBase_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, captchaValue }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.message || "Login failed");
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-
-        Swal.fire({
-          title: "Login Failed",
-          text: data.message || "Incorrect username or password.",
-          icon: "error",
-          confirmButtonText: "Try Again",
-        });
-
-        return;
-      }
-
-      const data = await response.json();
-
-      sessionStorage.setItem("adminToken", data.token);
-      localStorage.setItem("firstName", data.firstName);
-      localStorage.setItem("lastName", data.lastName);
-      localStorage.setItem("employeeUsername", data.employee_username);
-      localStorage.setItem("employeeFirstname", data.employee_firstname);
-
-      Swal.fire({
-        title: "Login Successful",
-        text: "Welcome back!",
-        icon: "success",
-        confirmButtonText: "Proceed",
-      }).then(() => {
-        const redirectTo = location.state?.from?.pathname || "/dashboard";
-        navigate(redirectTo, { replace: true });
-      });
-    } catch (error) {
-      setError("An error occurred during login.");
+    const success = await loginUser(email, password, navigate, location);
+    if (!success) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
-
-      Swal.fire({
-        title: "Error",
-        text: "Something went wrong. Please try again later.",
-        icon: "error",
-        confirmButtonText: "OK",
-      });
     }
   };
 
@@ -176,13 +127,13 @@ const LoginForm = () => {
             </div>
           </div>
 
-          {/* reCAPTCHA v2 Field */}
+          {/* reCAPTCHA v2 Field
           <div className="mb-6">
             <ReCAPTCHA
               sitekey="6LdA22gqAAAAAH57gImSaofpR0dY3ppke4-7Jjks" // Your reCAPTCHA site key
               onChange={handleCaptchaChange} // Capture the reCAPTCHA response
             />
-          </div>
+          </div> */}
 
           <button className="btn btn-primary w-full bg-green-600 text-white hover:bg-green-700 py-3 rounded transition duration-200">
             Login
