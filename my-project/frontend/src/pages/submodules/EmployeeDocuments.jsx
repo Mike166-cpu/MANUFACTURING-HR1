@@ -33,7 +33,7 @@ const EmployeeDocuments = () => {
   useEffect(() => {
     document.title = "Employee Documents";
 
-    const token = sessionStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       navigate("/login");
     } else {

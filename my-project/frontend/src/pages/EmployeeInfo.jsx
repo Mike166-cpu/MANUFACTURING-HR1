@@ -36,7 +36,7 @@ const EmployeeInfo = () => {
   useEffect(() => {
     document.title = "Dashboard";
 
-    const token = sessionStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",
@@ -91,7 +91,6 @@ const EmployeeInfo = () => {
   };
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
-  const LOCAL_URL = "http://localhost:5000";
 
   const fetchEmployees = async () => {
     try {

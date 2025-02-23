@@ -1,6 +1,68 @@
 const moment = require("moment");
 const TotalTime = require("../models/TotalTime");
 
+// Add this helper function at the top of the file
+function calculateOvertimeAndDuration(time_in, time_out) {
+  // Calculate duration (assuming time_in and time_out are Date objects or timestamps)
+  const durationInMillis =
+    new Date(time_out).getTime() - new Date(time_in).getTime();
+  const durationInMinutes = Math.floor(durationInMillis / 60000); // Convert milliseconds to minutes
+
+  // Calculate overtime (if any, assuming a standard work duration)
+  const standardWorkDuration = 8 * 60; // 8 hours = 480 minutes
+  const overtimeMinutes =
+    durationInMinutes > standardWorkDuration
+      ? durationInMinutes - standardWorkDuration
+      : 0;
+
+  // Convert minutes to HH:MM format for display
+  const formatToHHMM = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, "0")}:${mins
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Format the work duration and overtime
+  const formattedWorkDuration = formatToHHMM(durationInMinutes);
+  const formattedOvertimeDuration = formatToHHMM(overtimeMinutes);
+
+  // Return overtime duration in minutes, and the formatted versions
+  return {
+    workDuration: durationInMinutes,
+    overtimeDuration: overtimeMinutes * 60, // Store overtime in seconds
+    formattedWorkDuration,
+    formattedOvertimeDuration,
+  };
+}
+
+const checkIfLate = (actualStartTime) => {
+  const actual = new Date(actualStartTime);
+  const scheduled = new Date(actualStartTime);
+  scheduled.setHours(8, 0, 0, 0); // Set to 8:00 AM
+
+  // Calculate minutes late
+  const minutesLate = Math.max(0, (actual - scheduled) / (1000 * 60));
+
+  // Consider late if more than 15 minutes after 8 AM
+  return {
+    isLate: minutesLate > 15,
+    lateDuration: minutesLate > 15 ? minutesLate : 0,
+  };
+};
+
+function convertSecondsToHM(seconds) {
+  let minutes = Math.floor(seconds / 60);
+  let hours = Math.floor(minutes / 60);
+  minutes = minutes % 60;
+
+  // Ensure two-digit formatting for both hours and minutes
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
+}
+
 // Controller function to create a new time tracking entry
 exports.createTimeTrackingEntry = async (req, res) => {
   try {
@@ -12,6 +74,7 @@ exports.createTimeTrackingEntry = async (req, res) => {
       work_duration,
       break_duration,
       label,
+      entry_type,
     } = req.body;
 
     if (!employee_username || !time_in || !work_duration || !label) {
@@ -26,6 +89,7 @@ exports.createTimeTrackingEntry = async (req, res) => {
       work_duration,
       break_duration,
       label,
+      entry_type: entry_type || "System Entry",
     });
     await newTime.save();
     res.status(201).json({
@@ -47,13 +111,14 @@ exports.getAllTimeTrackingEntries = async (req, res) => {
   }
 };
 
-// Controller function to get time tracking entries by employee username
+// Controller function to get time tracking entries by employee username and employee_id
 exports.getTimeTrackingEntriesByUsername = async (req, res) => {
-  const { username } = req.params;
+  const { username, employee_id } = req.params;
   try {
-    const logs = await TotalTime.find({ employee_username: username });
-
-    const workDurations = logs.map((log) => log.work_duration);
+    const logs = await TotalTime.find({
+      employee_username: username,
+      employee_id: employee_id,
+    });
 
     res.status(200).json(logs);
   } catch (error) {
@@ -61,58 +126,82 @@ exports.getTimeTrackingEntriesByUsername = async (req, res) => {
   }
 };
 
-// Controller function to update a time tracking entry
-exports.updateTimeTrackingEntry = async (req, res) => {
-  const { id } = req.params;
-  const { time_out, break_start, break_end, break_duration } = req.body;
-
+// New controller function to get time tracking entries by employee ID
+exports.getTimeTrackingEntriesByEmployeeId = async (req, res) => {
   try {
-    const logEntry = await TotalTime.findById(id);
-    if (!logEntry) {
-      return res.status(404).json({ error: "Log not found" });
+    const { employee_id } = req.params;
+    console.log("Fetching time tracking entries for employee ID:", employee_id);
+
+    if (!employee_id) {
+      return res.status(400).json({ error: "Employee ID is required" });
     }
 
-    // Handle break start
-    if (break_start) {
-      logEntry.break_start = break_start;
-      logEntry.is_on_break = true;
-    }
+    const logs = await TotalTime.find({ employee_id: employee_id });
+    console.log("Raw logs from database:", logs);
 
-    // Handle break end and calculate duration
-    if (break_end && logEntry.break_start) {
-      logEntry.break_end = break_end;
-      logEntry.is_on_break = false;
+    // Process logs and preserve overtime_duration as a number
+    const processedLogs = logs.map((log) => {
+      const processedLog = log.toObject(); // Convert mongoose doc to plain object
       
-      // Calculate break duration in seconds
-      const breakStartTime = new Date(logEntry.break_start);
-      const breakEndTime = new Date(break_end);
-      const newBreakDuration = Math.floor((breakEndTime - breakStartTime) / 1000);
-      
-      // Add to existing break duration
-      logEntry.break_duration = (logEntry.break_duration || 0) + newBreakDuration;
+      // Ensure overtime_duration remains a number
+      if (typeof processedLog.overtime_duration !== 'undefined') {
+        processedLog.overtime_duration = parseInt(processedLog.overtime_duration);
+      }
+
+      console.log("Processed log:", processedLog);
+      return processedLog;
+    });
+
+    console.log("Final processed logs:", processedLogs);
+    res.status(200).json(processedLogs);
+  } catch (error) {
+    console.error("Error fetching time tracking entries:", error);
+    res.status(500).json({ error: "Failed to fetch time tracking entries" });
+  }
+};
+
+exports.updateTimeTrackingEntry = async (req, res) => {
+  try {
+    const { time_out, remarks, overtime_duration } = req.body;
+    const timeTracking = await TotalTime.findById(req.params.id);
+
+    if (!timeTracking) {
+      return res.status(404).json({ message: "Time tracking entry not found" });
     }
 
-    if (time_out) {
-      const timeIn = new Date(logEntry.time_in);
-      const timeOut = new Date(time_out);
-      const durationMs = timeOut - timeIn;
-      const hours = String(Math.floor(durationMs / 3600000)).padStart(2, "0");
-      const minutes = String(
-        Math.floor((durationMs % 3600000) / 60000)
-      ).padStart(2, "0");
-      const seconds = String(Math.floor((durationMs % 60000) / 1000)).padStart(
-        2,
-        "0"
-      );
-      logEntry.work_duration = `${hours}:${minutes}:${seconds}`;
-      logEntry.time_out = time_out;
-    }
+    // Convert time strings to Date objects
+    const timeInDate = new Date(timeTracking.time_in);
+    const timeOutDate = new Date(time_out);
 
-    const updatedLog = await logEntry.save();
-    res.status(200).json(updatedLog);
+    // Calculate work duration
+    const durationMs = timeOutDate - timeInDate;
+    const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+    const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    const formattedWorkDuration = `${String(durationHours).padStart(2, '0')}:${String(durationMinutes).padStart(2, '0')}`;
+
+    console.log("Calculated work duration:", formattedWorkDuration); // Debug log
+
+    const updateData = {
+      time_out: time_out,
+      work_duration: formattedWorkDuration,
+      overtime_duration: parseInt(overtime_duration) || 0,
+      remarks: remarks || timeTracking.remarks,
+      status: "pending"
+    };
+
+    console.log("Update data:", updateData); // Debug log
+
+    const updatedTimeTracking = await TotalTime.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    console.log("Updated tracking:", updatedTimeTracking); // Debug log
+    res.json(updatedTimeTracking);
   } catch (error) {
     console.error("Error updating time tracking entry:", error);
-    res.status(500).json({ error: "Failed to update time tracking entry" });
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -125,20 +214,45 @@ exports.startTimeTracking = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Check if late
+    const lateStatus = checkIfLate(start_time);
+
+    if (lateStatus.isLate) {
+      console.log(
+        `Employee ${employee_username} is late by ${Math.floor(
+          lateStatus.lateDuration
+        )} minutes`
+      );
+    }
+
     const timeTrackingEntry = new TotalTime({
       employee_username,
       employee_id,
       time_in: start_time,
-      is_active: true, // Marks the session as active
+      is_active: true,
+      late: lateStatus.isLate,
+      late_duration: Math.floor(lateStatus.lateDuration),
+      label: "Work",
+      entry_type: "System Entry", // Ensure this is set
+      session_id: `WORK-${employee_id}-${Date.now()}`,
     });
 
     await timeTrackingEntry.save();
+    console.log("Saved entry:", timeTrackingEntry); // Add logging
+
+    // Add warning message if late
+    const responseMessage = lateStatus.isLate
+      ? `Time tracking started successfully. You are late by ${Math.floor(
+          lateStatus.lateDuration
+        )} minutes.`
+      : "Time tracking started successfully";
+
     res.status(201).json({
-      message: "Time tracking started successfully",
+      message: responseMessage,
       data: timeTrackingEntry,
     });
   } catch (error) {
-    console.error("Error starting time tracking:", error);
+    console.error("Error with entry type:", error);
     res
       .status(500)
       .json({ message: "Failed to start time tracking", error: error.message });
@@ -318,5 +432,23 @@ exports.resumeTimeTracking = async (req, res) => {
   } catch (error) {
     console.error("Error in /resume route:", error);
     res.status(500).json({ message: "Failed to resume the timer" });
+  }
+};
+
+// Controller function to approve a time tracking entry
+exports.approveTimeTrackingEntry = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const timeTracking = await TotalTime.findById(id);
+
+    if (!timeTracking) {
+      return res.status(404).json({ message: "Time tracking entry not found" });
+    }
+
+    timeTracking.status = "approved";
+    const updatedTimeTracking = await timeTracking.save();
+    res.json(updatedTimeTracking);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };

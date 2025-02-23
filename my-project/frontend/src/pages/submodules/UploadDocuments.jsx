@@ -54,7 +54,7 @@ const UploadDocuments = () => {
   };
 
   useEffect(() => {
-    const authToken = sessionStorage.getItem("employeeToken");
+    const authToken = localStorage.getItem("employeeToken");
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const department = localStorage.getItem("employee_department") || "Unknown";

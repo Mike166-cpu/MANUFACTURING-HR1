@@ -29,7 +29,7 @@ const Compliance = () => {
   
   useEffect(() => {
     document.title = "Compliance";
-    const token = sessionStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",

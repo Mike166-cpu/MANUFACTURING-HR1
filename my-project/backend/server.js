@@ -17,7 +17,11 @@ const profilePictureRoutes = require("./routes/profilePicture");
 const createSuperadminRoutes = require("./routes/auth/createaccount");
 const timeTrackingRoutes = require("./routes/totalTime");
 const scheduleRoutes = require("./routes/createSchedule");
+const leaveRoutes = require("./routes/leaveRoutes");
+const obRoutes = require('./routes/obRoutes');
 const path = require("path");
+const leaveBalanceRoutes = require("./routes/leaveBalanceRoutes");
+const logoutRoutes = require("./routes/auth/logout");
 
 const app = express();
 app.use(express.json());
@@ -39,7 +43,7 @@ app.use(
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = "The CORS policy does not allow access from this olol.";
+        const msg = "The CORS policy does not allow access from this.";
         return callback(new Error(msg), false);
       }
       return callback(null, true);
@@ -75,6 +79,11 @@ app.use("/api", profilePictureRoutes);
 app.use("/api/create-account", createSuperadminRoutes);
 app.use("/api", timeTrackingRoutes);
 app.use("/api/schedule", scheduleRoutes);
+app.use('/api/time-tracking', require('./routes/totalTimeRoutes'));
+app.use('/api/leave', leaveRoutes);
+app.use('/api/ob', obRoutes);
+app.use("/api/leave-balance", leaveBalanceRoutes);
+app.use("/api/auth", logoutRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

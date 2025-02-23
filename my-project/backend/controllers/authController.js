@@ -1,5 +1,5 @@
 const Employee = require("../models/Employee");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.loginEmployee = async (req, res) => {
@@ -27,9 +27,17 @@ exports.loginEmployee = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: employee._id }, "your_jwt_secret_key", {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign(
+      { id: employee._id, username: employee.employee_username },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" } // Token expires in 1 hour
+    );
+
+    // Update online status and timestamps
+    employee.isOnline = true;
+    employee.lastLogin = new Date();
+    employee.lastActive = new Date();
+    await employee.save();
 
     res.json({
       success: true,
@@ -41,9 +49,16 @@ exports.loginEmployee = async (req, res) => {
       employeeId: employee.employee_id,
       employeeProfile: employee.profile_picture,
       employeeDepartment: employee.employee_department,
+      lastLogin: employee.lastLogin,
+      isOnline: employee.isOnline,
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
+};
+
+exports.logoutEmployee = async (req, res) => {
+  res.clearCookie("employeeToken");
+  res.json({ message: "Employee logged out" });
 };

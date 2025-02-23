@@ -1,12 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const Employee = require("../models/Employee");
+const axios = require("axios");
 // const TimeTracking = require("../models/TimeTracking");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const { forgotPassword } = require("../controllers/passwordController");
 const jwt = require("jsonwebtoken");
 const { loginEmployee } = require("../controllers/authController");
+const { generateServiceToken } = require("../middleware/gatewayTokenGenerator");
 
 router.post("/forgot-password", async (req, res) => {
   const { employee_email } = req.body;
@@ -96,7 +98,9 @@ router.post("/add", async (req, res) => {
     });
   } catch (error) {
     console.error("Error while adding employee:", error);
-    res.status(500).json({ message: "Error adding employee", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error adding employee", error: error.message });
   }
 });
 
@@ -167,7 +171,6 @@ router.delete("/:id", async (req, res) => {
       .json({ message: "Error deleting employee", error: error.message });
   }
 });
-
 
 // Update employee profile by username
 router.put("/employee/:username", async (req, res) => {
@@ -255,11 +258,11 @@ router.put("/:username", async (req, res) => {
 // Fetch current user data
 router.get("/current-user", async (req, res) => {
   console.log("req.user:", req.user);
-  const { employee_username } = req.user; 
+  const { employee_username } = req.user;
 
   try {
     const employee = await Employee.findOne({ employee_username });
-    console.log("Fetched employee data:", employee); 
+    console.log("Fetched employee data:", employee);
 
     if (!employee) {
       return res.status(404).json({ message: "User not found" });
@@ -293,6 +296,87 @@ router.get("/profile/:username", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Verify Token Middleware
+const verifyToken = (req, res, next) => {
+  const token = req.header("Authorization").replace("Bearer ", "");
+  if (!token)
+    return res.status(401).json({ message: "No token, authorization denied" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+// Protected Route
+router.get("/protected", verifyToken, async (req, res) => {
+  try {
+    // Generate the service token for API authentication
+    const serviceToken = generateServiceToken();
+
+    // Make the API call to fetch real data from the API Gateway
+    const response = await axios.get(
+      `${process.env.API_GATEWAY_URL}/admin/get-accounts`,
+      {
+        headers: { Authorization: `Bearer ${serviceToken}` },
+      }
+    );
+
+    // Log the fetched data to the server console
+    console.log("Fetched data:", response.data);
+
+    // Return the fetched data to the client instead of a static message
+    res.status(200).json(response.data);
+  } catch (err) {
+    console.error("Error fetching data:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+//LOGIN ADMIN FETCHED DATA
+router.post("/testLog", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const serviceToken = generateServiceToken();
+
+    const response = await axios.get(
+      `${process.env.API_GATEWAY_URL}/admin/get-accounts`,
+      {
+        headers: { Authorization: `Bearer ${serviceToken}` },
+      }
+    );
+
+    const users = response.data;
+
+    const user = users.find((u) => u.email === email);
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(200).json({ token, user });
+  } catch (err) {
+    console.error("Error during login:", err.message);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

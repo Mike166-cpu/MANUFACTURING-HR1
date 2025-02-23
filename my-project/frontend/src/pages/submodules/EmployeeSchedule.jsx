@@ -46,7 +46,7 @@ const EmployeeSchedule = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const token = sessionStorage.getItem("adminToken");
+        const token = localStorage.getItem("adminToken");
         const response = await fetch(`${APIBASE_URL}/api/employee`, {
           method: 'GET',
           headers: {
@@ -87,7 +87,7 @@ const EmployeeSchedule = () => {
   useEffect(() => {
     document.title = "Employee Schedule";
 
-    const token = sessionStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       // Show SweetAlert if not logged in
       Swal.fire({

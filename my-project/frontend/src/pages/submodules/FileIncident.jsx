@@ -28,7 +28,7 @@ const FileIncident = () => {
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
 
-  const authToken = sessionStorage.getItem("employeeToken");
+  const authToken = localStorage.getItem("employeeToken");
   const employeeUsername = localStorage.getItem("employeeUsername");
   if (!authToken) {
     return <Navigate to="/employeelogin" replace />;

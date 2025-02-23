@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import logo from "../../src/assets/logo-2.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Swal from "sweetalert2";
-import ReCAPTCHA from "react-google-recaptcha";
 
 const EmployeeLoginForm = () => {
   useEffect(() => {
@@ -18,7 +17,6 @@ const EmployeeLoginForm = () => {
 
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [recaptchaValue, setRecaptchaValue] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -27,25 +25,42 @@ const EmployeeLoginForm = () => {
     });
   };
 
+  const validateForm = () => {
+    const { employee_username, employee_password } = formData;
+
+    // Check for empty fields
+    if (!employee_username.trim() || !employee_password.trim()) {
+      setError("Username and password are required.");
+      return false;
+    }
+
+    // Username validation: only letters, numbers, underscores allowed
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(employee_username)) {
+      setError("Username can only contain letters, numbers, and underscores.");
+      return false;
+    }
+
+    setError(""); // Clear previous errors
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
-    // if (!recaptchaValue) {
-    //   setError("Please verify that you are not a robot.");
-    //   return;
-    // }
+    if (!validateForm()) return; // Stop submission if validation fails
 
-    const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com"; // or your live server URL
-    const Local = "http://localhost:5000";
-    const endpoint = `${Local}/api/employee/login-employee`;
+    const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com"; // Change for live deployment
+    const Local = "http://localhost:7685";
+    const endpoint = `${APIBase_URL}/api/employee/login-employee`;
+
     try {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...formData /*recaptcha: recaptchaValue */ }),
+        body: JSON.stringify(formData),
       });
       const data = await response.json();
 
@@ -53,7 +68,7 @@ const EmployeeLoginForm = () => {
         throw new Error(data.message || "Login failed");
       }
 
-      sessionStorage.setItem("employeeToken", data.token);
+      localStorage.setItem("employeeToken", data.token);
       localStorage.setItem("employeeFirstName", data.employeeFirstName);
       localStorage.setItem("employeeLastName", data.employeeLastName);
       localStorage.setItem("employeeUsername", data.employeeUsername);
@@ -61,7 +76,7 @@ const EmployeeLoginForm = () => {
       localStorage.setItem("employeeId", data.employeeId);
       localStorage.setItem("employeeProfile", data.employeeProfile);
       localStorage.setItem("employeeDepartment", data.employeeDepartment);
-      
+
       Swal.fire({
         icon: "success",
         title: "Login successful!",
@@ -98,9 +113,7 @@ const EmployeeLoginForm = () => {
           </h2>
         </div>
 
-        {error && (
-          <p className="text-red-500 text-xs text-center mb-2">{error}</p>
-        )}
+        {error && <p className="text-red-500 text-xs text-center mb-2">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
@@ -150,22 +163,9 @@ const EmployeeLoginForm = () => {
           </div>
 
           <div className="text-right">
-            <Link
-              to="/forgotpassword"
-              className="text-xs text-blue-600 hover:underline"
-            >
+            <Link to="/forgotpassword" className="text-xs text-blue-600 hover:underline">
               Forgot Password?
             </Link>
-
-             {/* <div
-              className="mb-4 "
-              style={{ transform: "scale(0.90)", transformOrigin: "0 0" }}
-            >
-              <ReCAPTCHA
-                sitekey="6LdA22gqAAAAAH57gImSaofpR0dY3ppke4-7Jjks"
-                onChange={(value) => setRecaptchaValue(value)}
-              />
-            </div>  */}
           </div>
 
           <button
@@ -177,10 +177,7 @@ const EmployeeLoginForm = () => {
 
           <p className="text-center text-xs text-gray-600">
             Don't have an account?
-            <Link
-              to="/employeesignup"
-              className="text-blue-600 hover:underline ml-1"
-            >
+            <Link to="/employeesignup" className="text-blue-600 hover:underline ml-1">
               Sign Up
             </Link>
           </p>

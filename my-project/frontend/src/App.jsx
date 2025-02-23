@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+// ADMIN IMPORTS
 import LoginForm from "./Components/LoginForm";
 import SignUpForm from "./Components/SignUpForm";
 import Dashboard from "./pages/Dashboard";
@@ -8,35 +9,43 @@ import Compliance from "./pages/Compliance";
 import Onboarding from "./pages/Onboarding";
 import Offboarding from "./pages/Offboarding";
 import AttendanceTime from "./pages/AttendanceTime";
+import AddEmployee from "./pages/AddEmployee.jsx";
+import EmployeeDocuments from "./pages/submodules/EmployeeDocuments.jsx";
+import EmployeeSchedule from "./pages/submodules/EmployeeSchedule.jsx";
+import LeaveManagement from "./pages/LeaveManagement.jsx";
+
+
+
+// EMPLOYEE IMPORTS
+// import TimeTracking from "./pages/submodules/TimeTracking.jsx";
+import EmployeeDashboard from "./pages/Employee/EmployeeDashboard";
 import EmployeeInfo from "./pages/EmployeeInfo";
 import Portal from "./pages/Portal";
 import EmployeeSignupForm from "./pages/EmployeeSingupForm";
 import EmployeeLoginForm from "./pages/EmployeeLoginForm";
-import EmployeeDashboard from "./pages/EmployeeDashboard";
-import IncidentReport from "./pages/submodules/IncidentReport.jsx";
-import FileIncident from "./pages/submodules/FileIncident.jsx";
-import CompanyPolicy from "./pages/submodules/CompanyPolicy.jsx";
-// import TimeTracking from "./pages/submodules/TimeTracking.jsx";
-import OnboardingFeedback from "./pages/submodules/OnboardingFeedback.jsx";
+import CompanyPolicy from "./pages/Employee/CompanyPolicy.jsx";
 import NotFound from "./pages/NotFound.jsx";
-import Profile from "./pages/submodules/Profile.jsx";
-import AddEmployee from "./pages/AddEmployee.jsx";
+import Profile from "./pages/Employee/Profile.jsx";
 import ForgotPassword from "./Components/ForgotPassword";
 import ResetPassword from "./Components/ResestPassword";
 import ProtectedRoute from "./Components/ProtectedRoute.jsx";
 import EmployeeProtectedRoute from "./Components/EmployeeProtectedRoute.jsx";
+import TestTimer from "./pages/Employee/TestTimer.jsx";
+import WorkSchedule from "./pages/Employee/WorkSchedule.jsx"; 
+import FileLeave from "./pages/Employee/FileLeave.jsx";
+import RequestForm from "./pages/Employee/RequestForm.jsx";
+import ResignationForm from "./pages/Employee/ResignationForm.jsx";
+
+
+//TO REMOVE
+import IncidentReport from "./pages/submodules/IncidentReport.jsx";
 import SafetyProtocols from "./pages/submodules/SafetyProtocols.jsx";
 import UploadDocuments from "./pages/submodules/UploadDocuments.jsx";
-import EmployeeDocuments from "./pages/submodules/EmployeeDocuments.jsx";
-import TestTimer from "./pages/submodules/TestTimer.jsx";
-import EmployeeSchedule from "./pages/submodules/EmployeeSchedule.jsx";
-import WorkSchedule from "./pages/submodules/WorkSchedule.jsx"; 
-import HumanResourcesLogin from "./pages/HumanResourcesLogin.jsx";
+import OnboardingFeedback from "./pages/submodules/OnboardingFeedback.jsx";
+import FileIncident from "./pages/submodules/FileIncident.jsx";
+
 
 import 'react-toastify/dist/ReactToastify.css';
-import { ToastContainer, toast } from 'react-toastify';
-
-
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -61,7 +70,7 @@ function App() {
         <Routes>
           {/*DEFAULT ROUTE*/}
           <Route path="/" element={<Portal />} />
-          <Route path="/human-resources" element={<HumanResourcesLogin/>}></Route>
+    
 
           {/*EMPLOYEE PAGE*/}
           <Route path="/employeesignup" element={<EmployeeSignupForm />} />
@@ -78,6 +87,9 @@ function App() {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/test-timer" element={<EmployeeProtectedRoute><TestTimer /></EmployeeProtectedRoute>} />
           <Route path="/work-schedule" element={<EmployeeProtectedRoute><WorkSchedule /></EmployeeProtectedRoute>} />
+          <Route path="/file-leave" element={<EmployeeProtectedRoute><FileLeave /></EmployeeProtectedRoute>} />
+          <Route path="/request-form" element={<EmployeeProtectedRoute><RequestForm /></EmployeeProtectedRoute>} />
+          <Route path="/resignation-form" element={<EmployeeProtectedRoute><ResignationForm /></EmployeeProtectedRoute>} />
 
 
           {/*ADMIN PAGE*/}
@@ -94,8 +106,9 @@ function App() {
           <Route path="/addemployee" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
           <Route path="/employee-documents" element={<ProtectedRoute><EmployeeDocuments /></ProtectedRoute>} />
           <Route path="/employee-schedule" element={<ProtectedRoute><EmployeeSchedule /></ProtectedRoute>} />
-
-        
+          <Route path="/leave-management" element={<ProtectedRoute><LeaveManagement /></ProtectedRoute>} />
+       
+          
 
           {/*404 not found*/}
           <Route path="*" element={<NotFound />} />

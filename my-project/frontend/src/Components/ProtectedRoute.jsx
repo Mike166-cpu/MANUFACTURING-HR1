@@ -5,7 +5,7 @@ import Swal from "sweetalert2";
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const adminToken = sessionStorage.getItem("adminToken");
+  const adminToken = localStorage.getItem("adminToken");
   const [showAlert, setShowAlert] = useState(false);
 
   useEffect(() => {

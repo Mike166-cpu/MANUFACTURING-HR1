@@ -53,9 +53,16 @@ const Dashboard = () => {
   const [employees, setEmployees] = useState([]);
   const [timeRecords, setTimeRecords] = useState([]);
   const [incidentReport, setIncidentReport] = useState([]);
+  const [employeeStats, setEmployeeStats] = useState({
+    totalEmployees: 0,
+    departmentCounts: {},
+    activeEmployees: 0,
+    newEmployees: 0,
+  });
+  const [lastLogins, setLastLogins] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [count, setCount] = useState(0);
-  const [progress, setProgress] = useState(0);
 
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
 
@@ -67,43 +74,8 @@ const Dashboard = () => {
     "text-purple-500",
   ];
 
-  const getRandomColor = () =>
-    colors[Math.floor(Math.random() * colors.length)];
-
-  useEffect(() => {
-    document.title = "Dashboard";
-
-    const token = sessionStorage.getItem("adminToken");
-    if (!token) {
-      handleLogout();
-    } else {
-      // Add token verification
-      const checkTokenExpiration = setInterval(() => {
-        const token = sessionStorage.getItem("adminToken");
-        if (!token) {
-          handleLogout();
-        } else {
-          try {
-            const tokenData = JSON.parse(atob(token.split('.')[1]));
-            if (tokenData.exp * 1000 < Date.now()) {
-              handleLogout();
-            }
-          } catch (error) {
-            handleLogout();
-          }
-        }
-      }, 1000); // Check every second
-
-      fetchEmployees();
-      fetchTimeRecords();
-      fetchIncidentReports();
-
-      return () => clearInterval(checkTokenExpiration);
-    }
-  }, [navigate]);
-
   const handleLogout = () => {
-    sessionStorage.removeItem("adminToken");
+    localStorage.removeItem("adminToken");
     localStorage.clear();
     Swal.fire({
       title: "Session Expired",
@@ -113,57 +85,6 @@ const Dashboard = () => {
     }).then(() => {
       navigate("/login");
     });
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const response = await axios.get(`${APIBASED_URL}/api/employee`, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("adminToken")}`,
-        },
-      });
-      setEmployees(response.data);
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        handleLogout();
-      }
-      console.error("Error fetching employees:", error);
-    }
-  };
-
-  const fetchTimeRecords = async () => {
-    try {
-      const response = await axios.get(
-        `${APIBASED_URL}/api/employee/time-tracking`,
-        {
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("adminToken")}`,
-          },
-        }
-      );
-      setTimeRecords(response.data);
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        handleLogout();
-      }
-      console.error("Error fetching time records:", error);
-    }
-  };
-
-  const fetchIncidentReports = async () => {
-    try {
-      const response = await axios.get(`${APIBASED_URL}/api/incidentreport/`, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("adminToken")}`,
-        },
-      });
-      setIncidentReport(response.data);
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        handleLogout();
-      }
-      console.error("Error fetching incident reports:", error);
-    }
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -180,36 +101,16 @@ const Dashboard = () => {
     ],
   };
 
-  // Chart data for Incident Reports
-  const groupByDate = (reports) => {
-    const grouped = reports.reduce((acc, report) => {
-      const date = new Date(report.date).toLocaleDateString(); // Format date as needed
-      if (acc[date]) {
-        acc[date]++;
-      } else {
-        acc[date] = 1;
-      }
-      return acc;
-    }, {});
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const loginTime = new Date(date);
+    const diffInMinutes = Math.floor((now - loginTime) / (1000 * 60));
 
-    return Object.entries(grouped).map(([date, count]) => ({
-      date,
-      count,
-    }));
-  };
-
-  const incidentReportData = {
-    labels: groupByDate(incidentReport).map((entry) => entry.date), // Labels are the grouped dates
-    datasets: [
-      {
-        label: "Incidents",
-        data: groupByDate(incidentReport).map((entry) => entry.count), // Data is the count of incidents per day
-        borderColor: "rgba(255, 99, 132, 0.6)", // Line color
-        backgroundColor: "rgba(255, 99, 132, 0.2)", // Fill color under the line
-        fill: true, // Fill area under the line
-        tension: 0.4, // Smooth the line curve
-      },
-    ],
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+    if (diffInMinutes < 1440)
+      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    return `${Math.floor(diffInMinutes / 1440)} days ago`;
   };
 
   const handleResize = () => {
@@ -235,24 +136,78 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const target = timeRecords.length;
-    const duration = 200;
-    const stepTime = duration / target;
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`${APIBASED_URL}/api/employee/`);
+        const employeeData = response.data;
+        setEmployees(employeeData);
 
-    let current = 0;
-    const interval = setInterval(() => {
-      if (current < target) {
-        current++;
-        setCount(current);
-      } else {
-        clearInterval(interval);
+        // Ensure we get exactly 3 recent logins
+        const recentLogins = employeeData
+          .filter((emp) => emp.lastLogin)
+          .sort((a, b) => new Date(b.lastLogin) - new Date(a.lastLogin))
+          .slice(0, 3);
+
+        console.log("Recent logins:", recentLogins); // Add this line to debug
+        setLastLogins(recentLogins);
+
+        // Calculate statistics
+        const stats = {
+          totalEmployees: employeeData.length,
+          departmentCounts: {},
+          activeEmployees: employeeData.filter(
+            (emp) => emp.employee_status === "Active"
+          ).length,
+          newEmployees: employeeData.filter((emp) => {
+            const joinDate = new Date(emp.employee_dateJoined);
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            return joinDate >= oneMonthAgo;
+          }).length,
+        };
+
+        employeeData.forEach((employee) => {
+          stats.departmentCounts[employee.employee_department] =
+            (stats.departmentCounts[employee.employee_department] || 0) + 1;
+        });
+
+        setEmployeeStats(stats);
+      } catch (error) {
+        console.error("Error fetching employee data:", error);
+        if (error.response && error.response.status === 401) {
+          handleLogout();
+        }
       }
-    }, stepTime);
+    };
 
-    setProgress(Math.min(target / 100, 1));
+    fetchData();
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [timeRecords.length]);
+  // Add this function to get the full profile picture URL
+  const getProfilePicUrl = (profilePath) => {
+    if (!profilePath) return null;
+    return `${APIBASED_URL}${profilePath}`;
+  };
+
+  //FETCH DATA ADMIN
+  useEffect(() => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      console.error("No token found in localStorage");
+      return;
+    }
+    axios
+      .get("http://localhost:7685/api/employee/protected", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((response) => {
+        // Log the real fetched data
+        console.log("Protected Data:", response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching protected data:", error);
+      });
+  }, []);
 
   return (
     <div className="flex min-h-screen">
@@ -270,114 +225,149 @@ const Dashboard = () => {
           ></div>
         )}
 
-        <div className="min-h-screen">
-          <div className="m-5 p-5 border rounded-lg bg-white">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-          </div>
-          <div className="px-5 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
-              <div
-                className="bg-white p-6 rounded shadow cursor-pointer transform transition duration-300 hover:scale-105 hover:shadow-lg"
-                onClick={() => navigate("/employeeInfo")}
-              >
-                <FaUsers className={`text-3xl ${getRandomColor()}`} />{" "}
-                <div className="flex gap-x-5">
-                  <h2 className="font-bold text-lg mb-2 text-gray-700">
-                    Total Employees
-                  </h2>
-                  <p className="text-lg text-gray-500">{employees.length}</p>
+        <div className="p-6 bg-gray-50">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Main Content */}
+            <div className="flex-grow">
+              <h2 className="text-2xl font-bold mb-6 text-gray-800">
+                Dashboard Overview
+              </h2>
+
+              {/* Analytics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Total Employees Card */}
+                <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">
+                        Total Employees
+                      </p>
+                      <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                        {employeeStats.totalEmployees}
+                      </h3>
+                      <p className="text-sm text-green-500 mt-2">
+                        +2% from last month
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <FaUsers className="text-2xl text-blue-500" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Employees Card */}
+                <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">
+                        Active Employees
+                      </p>
+                      <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                        {employeeStats.activeEmployees}
+                      </h3>
+                      <p className="text-sm text-green-500 mt-2">
+                        Currently Working
+                      </p>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <FaClock className="text-2xl text-green-500" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* New Employees Card */}
+                <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">
+                        New Employees
+                      </p>
+                      <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                        {employeeStats.newEmployees}
+                      </h3>
+                      <p className="text-sm text-blue-500 mt-2">Last 30 days</p>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <FaArrowRight className="text-2xl text-purple-500" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div
-                className="bg-white p-6 rounded-xl shadow-md cursor-pointer transform transition duration-300 "
-                onClick={() => navigate("/attendancetime")}
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-600">
-                    Total Time Records
-                  </h2>
-                </div>
-
-                <div className="w-full h-2 bg-gray-200 rounded-full mb-6">
-                  <div
-                    className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full"
-                    style={{ width: `${progress * 100}%` }}
-                  ></div>
-                </div>
-
-                <div className="flex flex-col items-center mt-4">
-                  <p className="text-3xl font-semibold text-gray-800">
-                    {count}
-                  </p>{" "}
-                  <p className="text-sm text-gray-500 mt-1">Records</p>
-                </div>
-                <div className="mt-4 text-center">
-                  <button className="text-sm text-blue-500 hover:underline focus:outline-none flex items-center">
-                    See Details
-                    <FaArrowRight className="ml-2" />
-                  </button>
-                </div>
-              </div>
-
-              <div
-                className="bg-white p-6 rounded shadow cursor-pointer transform transition duration-300 hover:scale-105 hover:shadow-lg"
-                onClick={() => navigate("/incidentreport")}
-              >
-                <FaExclamationTriangle
-                  className={`text-3xl ${getRandomColor()}`}
-                />{" "}
-                <div className="flex gap-x-5">
-                  <h2 className="font-bold text-lg mb-2 text-gray-700">
-                    Incident Report
-                  </h2>
-                  <p className="text-lg text-gray-500">
-                    {incidentReport.length}
-                  </p>
+              {/* Department Distribution */}
+              <div className="mt-8 bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Department Distribution
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {Object.entries(employeeStats.departmentCounts).map(
+                    ([dept, count], index) => (
+                      <div key={dept} className="bg-gray-50 rounded-lg p-4">
+                        <p
+                          className={`${
+                            colors[index % colors.length]
+                          } font-medium`}
+                        >
+                          {dept}
+                        </p>
+                        <p className="text-2xl font-bold text-gray-800 mt-2">
+                          {count}
+                        </p>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mt-5 pb-5">
-              {/* left container */}
-
-              <div className="flex-row md:flex-row gap-6 ">
-                <div className="bg-white p-5 mb-10 rounded shadow">
-                  <h3 className="text-lg font-semibold text-gray-700">
-                    Incident Reports
-                  </h3>
-                  <Line
-                    data={incidentReportData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: true,
-                      plugins: {
-                        legend: {
-                          position: "top",
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: (tooltipItem) =>
-                              `${tooltipItem.raw} incidents`,
-                          },
-                        },
-                      },
-                    }}
-                  />
-                </div>
-                <div className="bg-white mb-5 p-5 rounded shadow">
-                  <h3 className="text-lg font-semibold text-gray-700">
-                    Time Records
-                  </h3>
-                  <Bar
-                    data={timeRecordsData}
-                    options={{ responsive: true, maintainAspectRatio: true }}
-                  />
+            {/* Recent Logins Sidebar */}
+            <div className="lg:w-80">
+              <div className="bg-white rounded-xl shadow-sm p-6 sticky top-6">
+                <h3 className="text-md font-semibold text-gray-800 mb-4 flex items-center">
+                  <FaClock className="mr-2 text-blue-500" />
+                  Recent Employe Login
+                </h3>
+                <div className="space-y-4">
+                  {lastLogins.map((employee, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border-l-4 border-blue-500 bg-gray-50 rounded-r-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3 capitalize">
+                        {employee.profile_picture ? (
+                          <img
+                            src={getProfilePicUrl(employee.profile_picture)}
+                            alt={`${employee.employee_firstname}'s profile`}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-blue-200"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `https://ui-avatars.com/api/?name=${employee.employee_firstname}+${employee.employee_lastname}&background=random`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-semibold">
+                              {employee.employee_firstname[0]}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-grow">
+                          <p className="font-medium text-gray-800 truncate">
+                            {employee.employee_firstname}{" "}
+                            {employee.employee_lastname}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {employee.employee_department}
+                          </p>
+                          <p className="text-xs text-blue-500 mt-1">
+                            {getTimeAgo(employee.lastLogin)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {/* right container */}
-              <div></div>
             </div>
           </div>
         </div>

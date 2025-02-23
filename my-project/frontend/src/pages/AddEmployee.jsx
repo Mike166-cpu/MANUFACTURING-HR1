@@ -57,7 +57,7 @@ const AddEmployee = () => {
 
   const navigate = useNavigate();
   useEffect(() => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken");
     if (!token) {
       Swal.fire({
         title: "Not Logged In",
@@ -104,8 +104,6 @@ const AddEmployee = () => {
   const genders = ["Male", "Female", "Other"];
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
-
-  const LOCAL_URL = "http://localhost:5000";
 
   const handleChange = (e) => {
     setFormData({

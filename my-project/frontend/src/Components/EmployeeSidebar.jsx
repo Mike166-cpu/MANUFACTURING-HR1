@@ -1,18 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   IoHomeOutline,
   IoBookOutline,
   IoCloudUploadOutline,
 } from "react-icons/io5";
-import { CiFileOn } from "react-icons/ci";
+import { CiFileOn, CiCalendar } from "react-icons/ci";
 import { FaRegUser } from "react-icons/fa";
+import { FaPenToSquare } from "react-icons/fa6";
 import { TbFileReport } from "react-icons/tb";
 import { TfiTime } from "react-icons/tfi";
 import { MdOutlinePolicy } from "react-icons/md";
 import { FiLogOut } from "react-icons/fi";
 import { AiOutlineClose } from "react-icons/ai";
 import { VscFeedback } from "react-icons/vsc";
+import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
 import logo from "../../src/assets/logo-2.png";
 
 const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
@@ -27,6 +32,8 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   const [notifications, setNotifications] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   const toggleNotifications = () => {
     setIsNotificationsOpen((prev) => !prev);
@@ -66,9 +73,16 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
     setIsDropdownOpen((prev) => !prev);
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("employeeToken");
-    navigate("/employeelogin");
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${APIBASED_URL}/api/auth/logout`);
+      localStorage.removeItem("employeeToken");
+      toast.success("Logged out successfully!");
+      navigate("/employeelogin");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast.error("Error logging out!");
+    }
   };
 
   useEffect(() => {
@@ -105,11 +119,10 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   };
 
   const [profilePicture, setProfilePicture] = useState("");
-  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   useEffect(() => {
     if (employeeId) {
-      fetch(`${APIBase_URL}/api/profile-picture?employeeId=${employeeId}`)
+      fetch(`${APIBASED_URL}/api/profile-picture?employeeId=${employeeId}`)
         .then((response) => response.json())
         .then((data) => {
           if (data.profilePicture) {
@@ -156,28 +169,32 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 w-72 bg-white shadow-lg transform 
+      className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-lg transform 
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         transition-transform duration-300 ease-in-out z-20 flex flex-col`}
     >
+      <ToastContainer position="top-right" autoClose={3000} />
+
       {/* Header */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logo} alt="JJM Logo" className="w-8 h-8 rounded-lg" />
-            <h1 className="font-semibold text-gray-800">JJM MANUFACTURING</h1>
+            <h1 className="font-semibold text-gray-800 dark:text-gray-200">
+              JJM MANUFACTURING
+            </h1>
           </div>
           <button
             onClick={onSidebarToggle}
-            className="p-1 rounded-lg hover:bg-gray-100 md:hidden"
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden"
           >
-            <AiOutlineClose className="w-5 h-5 text-gray-500" />
+            <AiOutlineClose className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
       </div>
 
       {/* Profile Section */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b dark:border-gray-700">
         <div className="flex items-center gap-4">
           {profilePicture ? (
             <img
@@ -186,67 +203,93 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
               className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-100"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-lg font-medium">
+            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-700 flex items-center justify-center text-purple-600 dark:text-purple-100 text-lg font-medium">
               {getInitials(employeeFirstName)}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-gray-800 truncate capitalize">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate capitalize">
               {employeeFirstName} {employeeLastName}
             </h2>
-            <p className="text-xs text-gray-500 truncate">{employeeEmail}</p>
-            <p className="text-xs text-gray-400">ID: {employeeId}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {employeeEmail}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              ID: {employeeId}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-2 space-y-2 hide-scrollbar">
+
+        {/* HOME SECTION */}
         <MenuSection title="Dashboard">
           <NavItem to="/employeedashboard" icon={IoHomeOutline} label="Home" />
           <NavItem to="/userProfile" icon={FaRegUser} label="Profile" />
         </MenuSection>
 
+
+          {/* HR COMPLIANCE SECTION */}
         <MenuSection title="HR Compliance">
-          {/* <NavItem to="/fileincident" icon={TbFileReport} label="Report Incident" /> */}
           <NavItem
             to="/companypolicy"
             icon={MdOutlinePolicy}
             label="User Handbook"
-            badge="REQ."
+          />
+          <NavItem
+            to="/request-form"
+            icon={FaPenToSquare}
+            label="Manual Time Entries"
           />
         </MenuSection>
 
+
+          {/* ATTENDANCE AND TIME TRACKING SECTION */}
         <MenuSection title="Attendance">
-          <NavItem
+       
+          <NavItem to="/test-timer" icon={CiCalendar} label="Time Tracking" />
+          <NavItem to="/file-leave" icon={CiFileOn} label="File Leave" />
+        </MenuSection>
+
+
+          {/* ONBOARDING SECTION */}
+        <MenuSection title="Onboarding">
+        <NavItem
             to="/work-schedule"
             icon={MdOutlinePolicy}
             label="Work Schedule"
           />
-          <NavItem to="/test-timer" icon={TfiTime} label="Time Tracking" />
-          <NavItem to="/#" icon={CiFileOn} label="File Leave" />
-        </MenuSection>
-
-        <MenuSection title="Onboarding">
-          <NavItem
-            to="/feedback"
-            icon={VscFeedback}
-            label="Onboarding Feedback"
-          />
-          <NavItem
+          {/* <NavItem
             to="/upload-documents"
             icon={IoCloudUploadOutline}
             label="Upload Documents"
+          /> */}
+        </MenuSection>
+
+
+          {/* OFFBOARDING SECTION */}
+        <MenuSection title="Offboarding">
+          <NavItem
+            to="/resignation-form"
+            icon={VscFeedback}
+            label="Resignation Form"
           />
+          {/* <NavItem
+            to="/upload-documents"
+            icon={IoCloudUploadOutline}
+            label="Upload Documents"
+          /> */}
         </MenuSection>
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t">
+      <div className="p-4 border-t dark:border-gray-700">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-gray-600 
-            hover:bg-gray-100 rounded-lg transition-colors duration-200"
+          className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300
+            hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
         >
           <FiLogOut className="w-5 h-5" />
           <span>Logout</span>

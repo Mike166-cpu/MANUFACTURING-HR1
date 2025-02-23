@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoSidebarCollapse } from "react-icons/go";
 
-const EmployeeNav = ({ onSidebarToggle, isSidebarOpen }) => {
+const EmployeeNav = ({ onSidebarToggle }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -11,14 +11,15 @@ const EmployeeNav = ({ onSidebarToggle, isSidebarOpen }) => {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDay, setCurrentDay] = useState("");
 
+  // Define routes to match the sidebar
   const routes = [
     { name: "Dashboard", path: "/employeedashboard" },
-    { name: "File Incident", path: "/fileincident" },
     { name: "Company Policy", path: "/companypolicy" },
-    { name: "Time Tracking", path: "/timeTracking" },
+    { name: "Time Tracking", path: "/test-timer" },
     { name: "Feedback", path: "/feedback" },
     { name: "User Profile", path: "/userProfile" },
-    { name: "Onboarding Feedback", path: "/feedback" },
+    { name: "Work Schedule", path: "/work-schedule" },
+    { name: "Upload Documents", path: "/upload-documents" },
   ];
 
   useEffect(() => {
@@ -98,7 +99,7 @@ const EmployeeNav = ({ onSidebarToggle, isSidebarOpen }) => {
 
   return (
     <div className={`flex-grow transition-all duration-300 ease-in-out`}>
-      <div className="navbar bg-base-100 shadow-md w-full flex flex-wrap items-center justify-between">
+      <div className="navbar bg-green-50 shadow-md w-full flex flex-wrap items-center justify-between ">
         <div className="flex-1 flex items-center gap-3">
           {/* Sidebar Menu Icon */}
           <button

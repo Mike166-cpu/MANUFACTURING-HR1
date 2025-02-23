@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 const employeeSchema = new mongoose.Schema({
   employee_id: { type: String, unique: true },
@@ -16,6 +16,9 @@ const employeeSchema = new mongoose.Schema({
   employee_gender: { type: String, required: false },
   employee_department: { type: String, required: true },
   profile_picture: { type: String, default: "" },
+  lastLogin: { type: Date },
+  lastActive: { type: Date },
+  
 });
 
 employeeSchema.pre("save", async function (next) {

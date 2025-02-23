@@ -130,55 +130,35 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           {/* Similar styling pattern for other sections */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
-              COMPANY POLICIES
+              HR COMPLIANCE
             </h3>
+            {/* COMPLIANCE LIST */}
             <div
-              className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-              onClick={toggleCompliance}
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/compliance"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/compliance")}
             >
-              <div className="flex items-center">
-                <RiPagesLine className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <span className="font-medium text-sm ml-3 text-gray-700 dark:text-gray-300">
-                  HR Compliance
-                </span>
-              </div>
-              {isComplianceOpen ? (
-                <FaChevronDown className="w-4 h-4 text-gray-400" />
-              ) : (
-                <FaChevronRight className="w-4 h-4 text-gray-400" />
-              )}
+              <MdListAlt className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Company Policy List
+              </span>
             </div>
 
-            {isComplianceOpen && (
-              <div className="mt-2 ml-4 space-y-1">
-                <div
-                  className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
-                    activePage === "/compliance"
-                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => handleNavigation("/compliance")}
-                >
-                  <MdListAlt className="w-4 h-4" />
-                  <span className="text-sm font-medium ml-3">
-                    Compliance List
-                  </span>
-                </div>
-                <div
-                  className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
-                    activePage === "/incidentreport"
-                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => handleNavigation("/incidentreport")}
-                >
-                  <TbReport className="w-4 h-4" />
-                  <span className="text-sm font-medium ml-3">
-                    Incident Report
-                  </span>
-                </div>
-              </div>
-            )}
+            {/* LEAVE MANAGEMENT */}
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/leave-management"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/leave-management")}
+            >
+              <TbReport className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Leave Management</span>
+            </div>
           </div>
 
           <div>
@@ -196,7 +176,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <TbChalkboard className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">Onboard New Hire</span>
             </div> */}
-            <div
+            {/* <div
               className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
                 activePage === "/addemployee"
                   ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
@@ -208,7 +188,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <span className="font-medium text-sm ml-3">
                 Create Employee Account
               </span>
-            </div>
+            </div> */}
             {/* <div
               className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
                 activePage === "/offboarding"
@@ -220,6 +200,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <LuPackage className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">Offboarding</span>
             </div> */}
+
+            {/* CREATE EMPLOYEE WORK SCHEDULE */}
             <div
               className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
                 activePage === "/employee-schedule"
@@ -231,6 +213,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <RiArchiveDrawerLine className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">
                 Employee Schedule
+              </span>
+            </div>
+
+            {/* RESIGNATION REQUST */}
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/")}
+            >
+              <RiArchiveDrawerLine className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Resignation Request (wala pa to)
               </span>
             </div>
           </div>
