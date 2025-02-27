@@ -250,7 +250,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
           {/* ATTENDANCE AND TIME TRACKING SECTION */}
         <MenuSection title="Attendance">
        
-          <NavItem to="/test-timer" icon={CiCalendar} label="Time Tracking" />
+          <NavItem to="/timetracking" icon={CiCalendar} label="Time Tracking" />
           <NavItem to="/file-leave" icon={CiFileOn} label="File Leave" />
         </MenuSection>
 
@@ -277,11 +277,6 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
             icon={VscFeedback}
             label="Resignation Form"
           />
-          {/* <NavItem
-            to="/upload-documents"
-            icon={IoCloudUploadOutline}
-            label="Upload Documents"
-          /> */}
         </MenuSection>
       </div>
 

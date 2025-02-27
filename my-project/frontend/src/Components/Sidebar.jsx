@@ -13,6 +13,10 @@ import { TbChalkboard } from "react-icons/tb";
 import { AiOutlineClose } from "react-icons/ai";
 import { IoMdPersonAdd } from "react-icons/io";
 import { IoDocumentsOutline } from "react-icons/io5";
+import { AiOutlineSchedule } from "react-icons/ai";
+import { RiLogoutBoxRLine } from "react-icons/ri"; // Resignation Request
+import { TbCalendarTime } from "react-icons/tb";
+
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -127,6 +131,25 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             )}
           </div>
 
+           <div>
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
+              ATTENDANCE & TIME TRACKING
+            </h3>
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/attendancetime"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/attendancetime")}
+            >
+              <TbCalendarTime className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Attendance & Time Tracking
+              </span>
+            </div>
+          </div>
+
           {/* HR Compliance Section */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
@@ -165,41 +188,6 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
               ONBOARDING & OFFBOARDING
             </h3>
-            {/* <div
-              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
-                activePage === "/onboarding"
-                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-              }`}
-              onClick={() => handleNavigation("/onboarding")}
-            >
-              <TbChalkboard className="w-5 h-5" />
-              <span className="font-medium text-sm ml-3">Onboard New Hire</span>
-            </div> */}
-            {/* <div
-              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
-                activePage === "/addemployee"
-                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-              }`}
-              onClick={() => handleNavigation("/addemployee")}
-            >
-              <IoMdPersonAdd className="w-5 h-5" />
-              <span className="font-medium text-sm ml-3">
-                Create Employee Account
-              </span>
-            </div> */}
-            {/* <div
-              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
-                activePage === "/offboarding"
-                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-              }`}
-              onClick={() => handleNavigation("/offboarding")}
-            >
-              <LuPackage className="w-5 h-5" />
-              <span className="font-medium text-sm ml-3">Offboarding</span>
-            </div> */}
 
             {/* CREATE EMPLOYEE WORK SCHEDULE */}
             <div
@@ -210,7 +198,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               }`}
               onClick={() => handleNavigation("/employee-schedule")}
             >
-              <RiArchiveDrawerLine className="w-5 h-5" />
+              <AiOutlineSchedule className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">
                 Employee Schedule
               </span>
@@ -238,33 +226,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                   ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
                   : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
               }`}
-              onClick={() => handleNavigation("/")}
+              onClick={() => handleNavigation("/resignation-request")}
             >
-              <RiArchiveDrawerLine className="w-5 h-5" />
+              <RiLogoutBoxRLine className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">
-                Resignation Request (wala pa to)
+                Resignation Request
               </span>
             </div>
           </div>
 
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
-              ATTENDANCE & TIME TRACKING
-            </h3>
-            <div
-              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
-                activePage === "/attendancetime"
-                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-              }`}
-              onClick={() => handleNavigation("/attendancetime")}
-            >
-              <RiArchiveDrawerLine className="w-5 h-5" />
-              <span className="font-medium text-sm ml-3">
-                Attendance & Time Tracking
-              </span>
-            </div>
-          </div>
+         
         </div>
       </div>
     </div>

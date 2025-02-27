@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../Components/Navbar";
-import Sidebar from "../Components/Sidebar";
+import Navbar from "../../Components/Navbar";
+import Sidebar from "../../Components/Sidebar";
+import BreadCrumbs from "../../Components/BreadCrumb";
 import { HiOutlineArrowNarrowLeft } from "react-icons/hi";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { CiFilter } from "react-icons/ci";
-import ExportModal from "./ExportModal";
+import ExportModal from "../ExportModal";
 import { FaDownload } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -327,14 +328,14 @@ const EmployeeInfo = () => {
           ></div>
         )}
 
-        <div className="min-h-screen p-5 bg-gray-100 flex-1 overflow-y-auto bg-base-500">
-          <div className="flex border-2 m-5 rounded-lg bg-white">
-            <h2 className="text-2xl font-bold mb-4 pl-5 pt-5 pb-2">
-              <Breadcrumbs items={breadcrumbItems} />
-              Employee List
-            </h2>
-          </div>
+        {/* BREADCRUMBS */}
+        <div className="bg-white pb-4 px-5">
+          <BreadCrumbs />
+          <span className="px-4 font-bold text-2xl"> Employee Information</span>
+        </div>
 
+        {/* MAIN CONTENT */}
+        <div className="min-h-screen p-5 bg-gray-100 flex-1 overflow-y-auto bg-base-500">
           <ToastContainer />
 
           <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 mb-4 px-5">

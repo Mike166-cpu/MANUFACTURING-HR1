@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../Components/Navbar";
-import Sidebar from "../Components/Sidebar";
+import Navbar from "../../Components/Navbar";
+import Sidebar from "../../Components/Sidebar";
+import BreadCrumbs from "../../Components/BreadCrumb";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -26,7 +27,7 @@ const Compliance = () => {
   const [viewMode, setViewMode] = useState("view");
   const [policies, setPolicies] = useState([]);
   const [editingPolicy, setEditingPolicy] = useState(null);
-  
+
   useEffect(() => {
     document.title = "Compliance";
     const token = localStorage.getItem("adminToken");
@@ -140,30 +141,6 @@ const Compliance = () => {
     });
   };
 
-  const Breadcrumbs = ({ items }) => {
-    return (
-      <nav>
-        <ol className="list-reset flex flex-wrap mb-4">
-          {items.map((item, index) => (
-            <li key={index} className="flex items-center">
-              <span className="text-blue-800 text-xs md:text-base font-bold truncate">
-                {item.label}
-              </span>
-              {index < items.length - 1 && (
-                <span className="font-md text-xs mx-2 md:text-base">{">"}</span>
-              )}
-            </li>
-          ))}
-        </ol>
-      </nav>
-    );
-  };
-
-  const breadcrumbItems = [
-    { label: "HR Compliance" },
-    { label: viewMode === "create" ? "Create Policy" : "View Policy" },
-  ];
-
   const handleResize = () => {
     setIsSidebarOpen(window.innerWidth >= 768);
   };
@@ -194,12 +171,13 @@ const Compliance = () => {
           ></div>
         )}
 
-        <div className="flex-1 overflow-y-auto bg-base-500">
-          <div className="m-5 border rounded-md shadow-sm p-5 bg-white">
-            <Breadcrumbs className="pl-5 font-md" items={breadcrumbItems} />
-            <h2 className="text-2xl font-bold ">Company Policies</h2>
-          </div>
+        {/* BREADCRUMBS */}
+        <div className="bg-white pb-4 px-5">
+          <BreadCrumbs />
+          <span className="px-4 font-bold text-2xl"> View Policy</span>
+        </div>
 
+        <div className="flex-1 overflow-y-auto bg-base-500">
           <div className="p-6">
             <div className="flex space-x-4 mb-4 justify-end items-end">
               <button

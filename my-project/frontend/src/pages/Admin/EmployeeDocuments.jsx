@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../Components/Navbar";
 import Sidebar from "../../Components/Sidebar";
+import BreadCrumbs from "../../Components/BreadCrumb";
 import axios from "axios";
 
 const useMediaQuery = (query) => {
@@ -97,6 +98,13 @@ const EmployeeDocuments = () => {
             onClick={() => setIsSidebarOpen(false)}
           ></div>
         )}
+
+        {/* BREADCRUMBS */}
+        <div className="bg-white pb-4 px-5">
+          <BreadCrumbs />
+          <span className="px-4 font-bold text-2xl"> Dashboard Overview</span>
+        </div>
+
         <div className="p-6 min-h-screen bg-gray-100">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
             Employee Documents

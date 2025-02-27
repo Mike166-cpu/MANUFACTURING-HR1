@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../Components/Navbar";
-import Sidebar from "../Components/Sidebar";
+import Navbar from "../../Components/Navbar";
+import Sidebar from "../../Components/Sidebar";
+import BreadCrumbs from "../../Components/BreadCrumb";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -8,7 +9,6 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FiCheck, FiX } from "react-icons/fi"; // Remove FiEye icon
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
-
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -236,14 +236,17 @@ const RequestDocuments = () => {
         >
           <Navbar toggleSidebar={toggleSidebar} />
 
+          {/* BREADCRUMBS */}
+          <div className="bg-white pb-4 px-5">
+            <BreadCrumbs />
+            <span className="px-4 font-bold text-2xl"> Send Document Request</span>
+          </div>
+
           <div className="p-4 md:p-8">
             {/* Combined Header and Filters Card */}
             <div className="card bg-base-100 shadow-sm mb-6">
               <div className="card-body">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <h1 className="card-title text-2xl font-bold">
-                    Request Employee Document
-                  </h1>
                   <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
                     <div className="form-control w-full md:w-64">
                       <input
@@ -384,7 +387,11 @@ const RequestDocuments = () => {
                 <div className="flex justify-center mt-4 mb-4">
                   <div className="join">
                     {Array.from(
-                      { length: Math.ceil(filteredRequests.length / itemsPerPage) },
+                      {
+                        length: Math.ceil(
+                          filteredRequests.length / itemsPerPage
+                        ),
+                      },
                       (_, index) => (
                         <button
                           key={index}

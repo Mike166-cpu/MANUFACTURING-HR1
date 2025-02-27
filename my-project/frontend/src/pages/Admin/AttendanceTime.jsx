@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../Components/Navbar";
-import Sidebar from "../Components/Sidebar";
+import Navbar from "../../Components/Navbar";
+import Sidebar from "../../Components/Sidebar";
+import BreadCrumbs from "../../Components/BreadCrumb";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -14,7 +15,7 @@ import {
   FiCoffee,
   FiAlertCircle,
 } from "react-icons/fi";
-import { formatDuration, calculateDuration } from "../utils/timeUtils";
+import { formatDuration, calculateDuration } from "../../utils/timeUtils";
 import Swal from "sweetalert2";
 
 const AttendanceTime = () => {
@@ -67,14 +68,17 @@ const AttendanceTime = () => {
 
   const approveSession = async (sessionId) => {
     try {
-      await axios.put(`${LOCAL}/api/timetrack/admin/update-status/${sessionId}`, {
-        status: "approved",
-        remarks: "Approved by admin"
-      });
+      await axios.put(
+        `${LOCAL}/api/timetrack/admin/update-status/${sessionId}`,
+        {
+          status: "approved",
+          remarks: "Approved by admin",
+        }
+      );
 
       // Update local state
-      setAllTimeTrackingSessions(prevSessions =>
-        prevSessions.map(session =>
+      setAllTimeTrackingSessions((prevSessions) =>
+        prevSessions.map((session) =>
           session._id === sessionId
             ? { ...session, status: "approved" }
             : session
@@ -84,14 +88,14 @@ const AttendanceTime = () => {
       Swal.fire({
         title: "Success",
         text: "Session approved successfully",
-        icon: "success"
+        icon: "success",
       });
     } catch (error) {
       console.error("Error approving session:", error);
       Swal.fire({
         title: "Error",
         text: "Failed to approve session",
-        icon: "error"
+        icon: "error",
       });
     }
   };
@@ -108,18 +112,21 @@ const AttendanceTime = () => {
           if (!value) {
             return "You need to provide a reason for rejection!";
           }
-        }
+        },
       });
 
       if (rejectionReason) {
-        await axios.put(`${LOCAL}/api/timetrack/admin/update-status/${sessionId}`, {
-          status: "rejected",
-          remarks: rejectionReason
-        });
+        await axios.put(
+          `${LOCAL}/api/timetrack/admin/update-status/${sessionId}`,
+          {
+            status: "rejected",
+            remarks: rejectionReason,
+          }
+        );
 
         // Update local state
-        setAllTimeTrackingSessions(prevSessions =>
-          prevSessions.map(session =>
+        setAllTimeTrackingSessions((prevSessions) =>
+          prevSessions.map((session) =>
             session._id === sessionId
               ? { ...session, status: "rejected" }
               : session
@@ -129,7 +136,7 @@ const AttendanceTime = () => {
         Swal.fire({
           title: "Success",
           text: "Session rejected successfully",
-          icon: "success"
+          icon: "success",
         });
       }
     } catch (error) {
@@ -137,7 +144,7 @@ const AttendanceTime = () => {
       Swal.fire({
         title: "Error",
         text: "Failed to reject session",
-        icon: "error"
+        icon: "error",
       });
     }
   };
@@ -171,12 +178,17 @@ const AttendanceTime = () => {
         } relative bg-gray-50`}
       >
         <Navbar toggleSidebar={toggleSidebar} />
-        <div className="p-6">
+
+        {/* BREADCRUMBS */}
+        <div className="bg-white pb-4 px-5">
+          <BreadCrumbs />
+          <span className="px-4 font-bold text-2xl"> Time Tracking Records</span>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <div className="p-6 bg-gray-100">
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
-                All Time Tracking Sessions
-              </h2>
               <div className="flex items-center space-x-4">
                 <FiCalendar className="text-gray-400" />
                 <select
@@ -218,7 +230,7 @@ const AttendanceTime = () => {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Work Duration
                       </th>
-                     
+
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Overtime
                       </th>
@@ -287,7 +299,7 @@ const AttendanceTime = () => {
                               : "-"}
                           </span>
                         </td>
-                      
+
                         <td className="px-6 py-4">
                           <span className="px-3 py-1 inline-flex items-center gap-1 text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                             {session.overtime_duration != null &&

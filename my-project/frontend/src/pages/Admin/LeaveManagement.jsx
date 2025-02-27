@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import Navbar from "../Components/Navbar";
-import Sidebar from "../Components/Sidebar";
+import Navbar from "../../Components/Navbar";
+import Sidebar from "../../Components/Sidebar";
+import BreadCrumbs from "../../Components/BreadCrumb";
 import axios from "axios";
 import { FaUsers, FaClock, FaExclamationTriangle } from "react-icons/fa";
 import { FaArrowRight } from "react-icons/fa";
 import { Bar, Line } from "react-chartjs-2";
-import LeaveNavigationHeader from "../Components/LeaveNavigationHeader";
+import LeaveNavigationHeader from "../../Components/LeaveNavigationHeader";
 
 import {
   Chart as ChartJS,
@@ -394,7 +395,7 @@ const LeaveManagement = () => {
           title: "Success!",
           text: "Leave balance deleted successfully",
         });
-        
+
         // Clear the form and local state
         setLeaveBalanceForm({
           vacation_leave: 0,
@@ -491,7 +492,14 @@ const LeaveManagement = () => {
             onClick={() => setIsSidebarOpen(false)}
           ></div>
         )}
-        
+
+
+        {/* BREADCRUMBS */}
+        <div className="bg-white pb-4 px-5">
+          <BreadCrumbs />
+          <span className="px-4 font-bold text-2xl"> Manage Employee Leave</span>
+        </div>
+
         {/* Main Content */}
         <div className="p-6">
           {isViewingLeaveRecords ? (
@@ -748,7 +756,6 @@ const LeaveManagement = () => {
             </div>
           ) : (
             <div>
-              <h1 className="text-3xl font-bold mb-6">Employee List</h1>
               {loading ? (
                 <div className="flex justify-center items-center">
                   <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-blue-500"></div>

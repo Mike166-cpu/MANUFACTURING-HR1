@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import Navbar from "../Components/Navbar";
-import Sidebar from "../Components/Sidebar";
+import Navbar from "../../Components/Navbar";
+import Sidebar from "../../Components/Sidebar";
+import BreadCrumbs from "../../Components/BreadCrumb";
 import axios from "axios";
 import { FaUsers, FaClock, FaExclamationTriangle } from "react-icons/fa";
 import { FaArrowRight } from "react-icons/fa";
@@ -122,6 +123,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    document.title = "Admin Dashboard - HRMS";
     handleResize();
 
     window.addEventListener("resize", handleResize);
@@ -148,7 +150,7 @@ const Dashboard = () => {
           .sort((a, b) => new Date(b.lastLogin) - new Date(a.lastLogin))
           .slice(0, 3);
 
-        console.log("Recent logins:", recentLogins); // Add this line to debug
+        // console.log("Recent logins:", recentLogins); // Add this line to debug
         setLastLogins(recentLogins);
 
         // Calculate statistics
@@ -212,17 +214,17 @@ const Dashboard = () => {
   //ALL APPROVED DATA TIME ENTRIES
   const [approvedData, setApprovedData] = useState([]);
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:7685/api/time-tracking/get-all/approved") // Fetch only approved entries
-      .then((response) => {
-        console.log("Approved Time Tracking Data:", response.data); // Log in frontend console
-        setApprovedData(response.data); // Store in state
-      })
-      .catch((error) =>
-        console.error("Error fetching approved time tracking data:", error)
-      );
-  }, []);
+  // useEffect(() => {
+  //   axios
+  //     .get("http://localhost:7685/api/time-tracking/get-all/approved") // Fetch only approved entries
+  //     .then((response) => {
+  //       console.log("Approved Time Tracking Data:", response.data); // Log in frontend console
+  //       setApprovedData(response.data); // Store in state
+  //     })
+  //     .catch((error) =>
+  //       console.error("Error fetching approved time tracking data:", error)
+  //     );
+  // }, []);
 
   // FETCH ALL APPROVED DOCUMENTS
   const fetchApprovedRequests = async () => {
@@ -231,7 +233,7 @@ const Dashboard = () => {
         "http://localhost:7685/api/uploaded-documents/approved"
       );
       const data = await response.json();
-      console.log("Approved Documents in Frontend:", data);
+      // console.log("Approved Documents in Frontend:", data);
     } catch (error) {
       console.error("Error fetching approved requests:", error);
     }
@@ -241,11 +243,24 @@ const Dashboard = () => {
     fetchApprovedRequests();
   }, []);
 
-
   // FETCH ALL TIME RECORDS
-  cons [timeSession, setApprovedData] = useState([]);
+  const [approveRecods, setApproveRecords] = useState([]);
+  useEffect(() => {
+    const fetchAllTimeSessions = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:7685/api/timetrack/approveSessions"
+        );
+        const data = await response.json();
+        console.log("Approve Time Session:", data);
+        setApproveRecords(data);
+      } catch (error) {
+        console.error("Error fetching all time tracking data:", error);
+      }
+    };
 
-
+    fetchAllTimeSessions(); 
+  }, []);
 
   return (
     <div className="flex min-h-screen">
@@ -263,14 +278,16 @@ const Dashboard = () => {
           ></div>
         )}
 
-        <div className="p-6 bg-gray-50">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Main Content */}
-            <div className="flex-grow">
-              <h2 className="text-2xl font-bold mb-6 text-gray-800">
-                Dashboard Overview
-              </h2>
+        {/* BREADCRUMBS */}
+        <div className="bg-white pb-4 px-5">
+          <BreadCrumbs />
+          <span className="px-4 font-bold text-2xl"> Dashboard Overview</span>
+        </div>
 
+        {/* MAIN CONTENT */}
+        <div className="p-6 bg-gray-100">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-grow">
               {/* Analytics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Total Employees Card */}
@@ -409,6 +426,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        {/* END OF MAIN CONTENT */}
       </div>
     </div>
   );
