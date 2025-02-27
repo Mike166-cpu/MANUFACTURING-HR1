@@ -241,6 +241,12 @@ const Dashboard = () => {
     fetchApprovedRequests();
   }, []);
 
+
+  // FETCH ALL TIME RECORDS
+  cons [timeSession, setApprovedData] = useState([]);
+
+
+
   return (
     <div className="flex min-h-screen">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />

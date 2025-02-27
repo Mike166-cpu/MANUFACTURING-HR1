@@ -14,6 +14,7 @@ import EmployeeDocuments from "./pages/submodules/EmployeeDocuments.jsx";
 import EmployeeSchedule from "./pages/submodules/EmployeeSchedule.jsx";
 import LeaveManagement from "./pages/LeaveManagement.jsx";
 import RequestDocuments from "./pages/RequestDocuments.jsx";
+import TimeTracking from "./pages/submodules/TimeTracking.jsx";
 
 
 // EMPLOYEE IMPORTS
@@ -76,13 +77,13 @@ function App() {
           <Route path="/" element={<Portal />} />
     
 
-          {/*EMPLOYEE PAGE*/}
+          {/*EMPLOYEE DASBOARD*/}
           <Route path="/employeesignup" element={<EmployeeSignupForm />} />
           <Route path="/employeelogin" element={<EmployeeLoginForm />} />
           <Route path="/employeedashboard" element={<EmployeeProtectedRoute><EmployeeDashboard /></EmployeeProtectedRoute>} />
           <Route path="/fileincident" element={<EmployeeProtectedRoute><FileIncident /></EmployeeProtectedRoute>} />
           <Route path="/companypolicy" element={<EmployeeProtectedRoute><CompanyPolicy /></EmployeeProtectedRoute>} />
-          {/* <Route path="/timeTracking" element={<EmployeeProtectedRoute><TimeTracking /></EmployeeProtectedRoute>} /> */}
+          <Route path="/timeTracking" element={<EmployeeProtectedRoute><TimeTracking /></EmployeeProtectedRoute>} /> 
           <Route path="/feedback" element={<EmployeeProtectedRoute><OnboardingFeedback /></EmployeeProtectedRoute>} />
           <Route path="/userProfile" element={<EmployeeProtectedRoute><Profile /></EmployeeProtectedRoute>} />
           <Route path="/safety-protocols" element={<EmployeeProtectedRoute><SafetyProtocols /></EmployeeProtectedRoute>} />
@@ -97,7 +98,7 @@ function App() {
           <Route path="/upload-requirements" element={<EmployeeProtectedRoute><UploadRequiremens /></EmployeeProtectedRoute>} />
 
 
-          {/*ADMIN PAGE*/}
+          {/*ADMIN DASHBORAD*/}
           <Route path="/login" element={<LoginForm />} />
           <Route path="/signup" element={<ProtectedRoute><SignUpForm/></ProtectedRoute>} />
           <Route path="/incidentreport" element={<ProtectedRoute><IncidentReport /></ProtectedRoute>} />

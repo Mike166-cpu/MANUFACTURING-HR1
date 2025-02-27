@@ -1,465 +1,298 @@
-// import React, { useState, useEffect } from "react";
-// import Swal from "sweetalert2";
-// import { useNavigate } from "react-router-dom";
-// import { FaPlay, FaPause } from "react-icons/fa";
-// import { MdOutlineTimer } from "react-icons/md";
-// import EmployeeSidebar from "../../Components/EmployeeSidebar";
-// import EmployeeNav from "../../Components/EmployeeNav";
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import EmployeeSidebar from "../../Components/EmployeeSidebar";
+import EmployeeNav from "../../Components/EmployeeNav";
+import Swal from "sweetalert2";
+import Breadcrumb from "../../Components/BreadCrumb";
+import Calendar from "react-calendar";
+import axios from "axios";
+import { formatDuration, calculateDuration } from '../../utils/timeUtils';
 
-// const useMediaQuery = (query) => {
-//   const [matches, setMatches] = useState(window.matchMedia(query).matches);
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(window.matchMedia(query).matches);
 
-//   useEffect(() => {
-//     const mediaQuery = window.matchMedia(query);
-//     const handleChange = () => setMatches(mediaQuery.matches);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = () => setMatches(mediaQuery.matches);
 
-//     mediaQuery.addEventListener("change", handleChange);
-//     return () => mediaQuery.removeEventListener("change", handleChange);
-//   }, [query]);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
 
-//   return matches;
-// };
+  return matches;
+};
 
-// const TimeTracking = () => {
-//   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-//   const isMobileView = useMediaQuery("(max-width: 768px)");
-//   const navigate = useNavigate();
-//   const [timeRecords, setTimeRecords] = useState([]);
-//   const [timeIn, setTimeIn] = useState(null);
-//   const [timeOut, setTimeOut] = useState(null);
-//   const [totalHours, setTotalHours] = useState(null);
-//   const [timer, setTimer] = useState(0);
-//   const [isClockedIn, setIsClockedIn] = useState(false);
-//   const [intervalId, setIntervalId] = useState(null);
-//   const [filterDate, setFilterDate] = useState("");
+const TimeTracking = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isMobileView = useMediaQuery("(max-width: 768px)");
+  const [employeeFirstName, setEmployeeFirstName] = useState("");
+  const [employeeLastName, setEmployeeLastName] = useState("");
+  const [employeeDepartment, setEmployeeDepartment] = useState("");
+  const [timeTracking, setTimeTracking] = useState(null);
+  const [activeSession, setActiveSession] = useState(null);
+  const [timeTrackingHistory, setTimeTrackingHistory] = useState([]);
+  const navigate = useNavigate();
 
-//   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
-//   const LocalURL = "http://localhost:5000";
+  useEffect(() => {
+    document.title = "Dashboard - Home";
+    const authToken = localStorage.getItem("employeeToken");
+    const firstName = localStorage.getItem("employeeFirstName") || "";
+    const lastName = localStorage.getItem("employeeLastName") || "";
+    const department = localStorage.getItem("employeeDepartment") || "Unknown";
+    const employeeUsername = localStorage.getItem("employeeUsername");
 
-//   const handleStopTimer = () => {
-//     if (intervalId) {
-//       clearInterval(intervalId);
-//       setIntervalId(null);
-//     }
-//     setTimer(0); // Reset the timer
-//     setIsClockedIn(false);
-//     localStorage.removeItem("timeIn");
+    if (!authToken) {
+      Swal.fire({
+        title: "Not Logged In",
+        text: "You are not logged in. Redirecting to Login Page",
+        icon: "warning",
+        confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/employeelogin");
+      });
+    } else {
+      setEmployeeFirstName(firstName);
+      setEmployeeLastName(lastName);
+      setEmployeeDepartment(department);
+    }
+  }, [navigate]);
 
-//     Swal.fire({
-//       icon: "info",
-//       title: "Timer Stopped",
-//       text: "You have manually stopped the timer.",
-//     });
-//   };
+  const handleSidebarToggle = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
-//   const filterRecordsByDate = () => {
-//     if (!filterDate) return timeRecords; // If no date is selected, return all records
+  const handleResize = () => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    } else {
+      setIsSidebarOpen(false);
+    }
+  };
 
-//     const selectedDate = new Date(filterDate);
-//     return timeRecords.filter((record) => {
-//       const recordDate = new Date(record.time_in);
-//       return (
-//         recordDate.getFullYear() === selectedDate.getFullYear() &&
-//         recordDate.getMonth() === selectedDate.getMonth() &&
-//         recordDate.getDate() === selectedDate.getDate()
-//       );
-//     });
-//   };
+  useEffect(() => {
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
-//   useEffect(() => {
-//     const authToken = sessionStorage.getItem("employeeToken");
-//     if (!authToken) {
-//       Swal.fire({
-//         title: "Not Logged In",
-//         text: "You are not logged in. Redirecting to Login Page",
-//         icon: "warning",
-//         confirmButtonText: "OK",
-//       }).then(() => {
-//         navigate("/employeelogin");
-//       });
+  // Fetch Active Session
+  const fetchActiveSession = async () => {
+    try {
+      const employeeId = localStorage.getItem("employeeId");
+      const response = await axios.get(`http://localhost:7685/api/timetrack/active-session/${employeeId}`);
+      setActiveSession(response.data);
+    } catch (error) {
+      console.error("Error fetching active session:", error);
+    }
+  };
 
-//       const storedTimeIn = localStorage.getItem("timeIn");
-//       if (storedTimeIn) {
-//         setTimeIn(new Date(storedTimeIn));
-//         setIsClockedIn(false);
-//         startTimer(new Date(storedTimeIn));
-//       }
-//     }
+  useEffect(() => {
+    const employeeId = localStorage.getItem("employeeId");
+    if (employeeId) {
+      fetchActiveSession();
+    }
+  }, []);
 
-//     const storedTimeIn = localStorage.getItem("timeIn");
-//     if (storedTimeIn) {
-//       setTimeIn(new Date(storedTimeIn));
-//       setIsClockedIn(false);
-//       startTimer(new Date(storedTimeIn));
-//     }
+  // Fetch Time Tracking History
+  useEffect(() => {
+    const fetchTimeTrackingHistory = async () => {
+      try {
+        const employeeId = localStorage.getItem("employeeId");
+        const response = await axios.get(`http://localhost:7685/api/timetrack/history/${employeeId}`);
+        setTimeTrackingHistory(response.data);
+      } catch (error) {
+        console.error("Error fetching time tracking history:", error);
+      }
+    };
 
-//     fetchTimeTrackingRecords();
-//   }, [navigate]);
+    fetchTimeTrackingHistory();
+  }, [activeSession]); // Refresh when active session changes
 
-//   const fetchTimeTrackingRecords = async () => {
-//     const employeeUsername = localStorage.getItem("employeeUsername");
+  // Time In Function
+  const timeIn = async () => {
+    try {
+      const employeeId = localStorage.getItem("employeeId");
+      const response = await axios.post("http://localhost:7685/api/timetrack/time-in", {
+        employee_id: employeeId,
+        entry_type: "System Entry"  // Add this line
+      });
 
-//     if (!employeeUsername) {
-//       return;
-//     }
+      setActiveSession(response.data.session);
+      Swal.fire("Success!", "Time In recorded successfully!", "success");
+    } catch (error) {
+      console.error("Error recording Time In:", error);
+      Swal.fire("Error!", error.response?.data?.message || "Failed to record Time In.", "error");
+    }
+  };
 
-//     try {
-//       const response = await fetch(
-//         `${LocalURL}/api/employee/time-tracking/${employeeUsername}`
-//       );
-//       if (!response.ok) {
-//         throw new Error("Failed to fetch time tracking records");
-//       }
-//       const data = await response.json();
-//       setTimeRecords(data);
-//     } catch (error) {
-//       console.error("Error fetching time tracking records:", error);
-//       Swal.fire({
-//         icon: "error",
-//         title: "Error",
-//         text: "Failed to fetch time tracking records.",
-//       });
-//     }
-//   };
+  // Time Out Function
+  const timeOut = async () => {
+    try {
+      const employeeId = localStorage.getItem("employeeId");
+      const response = await axios.put("http://localhost:7685/api/timetrack/time-out", {
+        employee_id: employeeId,
+      });
 
-//   const startTimer = (startTime) => {
-//     const id = setInterval(() => {
-//       const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
-//       setTimer(timeElapsed);
-//     }, 1000);
-//     setIntervalId(id);
-//   };
+      setActiveSession(null);
+      Swal.fire("Success!", "Time Out recorded successfully!", "success");
+    } catch (error) {
+      console.error("Error recording Time Out:", error);
+      Swal.fire("Error!", error.response?.data?.message || "Failed to record Time Out.", "error");
+    }
+  };
 
-//   const clearTimer = () => {
-//     if (intervalId) {
-//       clearInterval(intervalId);
-//       setIntervalId(null);
-//     }
-//     setTimer(0); // Reset the timer
-//   };
-//   const employeeUsername = localStorage.getItem("employeeUsername");
-//   const employeeFirstname = localStorage.getItem("employeeFirstName");
-//   const employeeLastname = localStorage.getItem("employeeLastName");
+  return (
+    <div className="flex">
+      <EmployeeSidebar
+        onSidebarToggle={handleSidebarToggle}
+        isSidebarOpen={isSidebarOpen}
+      />
+      <div
+        className={`flex-grow transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
+        } relative`}
+      >
+        <EmployeeNav
+          onSidebarToggle={handleSidebarToggle}
+          isSidebarOpen={isSidebarOpen}
+        />
+        {isSidebarOpen && isMobileView && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
 
-//   const handleTimeIn = async () => {
-//     if (!employeeUsername) {
-//       alert("Employee username not found in local storage.");
-//       return;
-//     }
+        {/* MAIN CONTENT */}
+        <div className="transition-all duration-300 ease-in-out flex-grow p-5">
+          {/* Welcome Card */}
+          <div className="card bg-base-100 shadow-xl mb-6">
+            <div className="card-body">
+              <h2 className="card-title text-2xl">
+                Welcome, {employeeFirstName} {employeeLastName}
+              </h2>
+              <p className="text-gray-600">
+                Department: <span className="badge badge-primary">{employeeDepartment}</span>
+              </p>
+            </div>
+          </div>
 
-//     console.log(employeeLastname);
+          {/* Time Tracking Controls */}
+          <div className="card bg-base-100 shadow-xl mb-6">
+            <div className="card-body">
+              <h2 className="card-title mb-4">Time Tracking Controls</h2>
+              <div className="flex gap-4">
+                <button
+                  onClick={timeIn}
+                  disabled={activeSession !== null}
+                  className={`btn ${
+                    activeSession ? 'btn-disabled' : 'btn-success'
+                  }`}
+                >
+                  <i className="fas fa-sign-in-alt mr-2"></i> Time In
+                </button>
+                <button
+                  onClick={timeOut}
+                  disabled={activeSession === null}
+                  className={`btn ${
+                    !activeSession ? 'btn-disabled' : 'btn-error'
+                  }`}
+                >
+                  <i className="fas fa-sign-out-alt mr-2"></i> Time Out
+                </button>
+              </div>
+            </div>
+          </div>
 
-//     const timeInNow = new Date();
-//     localStorage.setItem("timeIn", timeInNow.toISOString());
-//     try {
-//       const response = await fetch(`${LocalURL}/api/employee/time-in`, {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           employee_username: employeeUsername,
-//           employee_firstname: employeeFirstname,
-//           employee_lastname: employeeLastname,
-//           time_in: timeInNow,
-//         }),
-//       });
+          {/* Active Session Card */}
+          {activeSession && (
+            <div className="card bg-base-100 shadow-xl mb-6">
+              <div className="card-body">
+                <h2 className="card-title text-success">
+                  <i className="fas fa-clock mr-2"></i> Active Session
+                </h2>
+                <div className="stats shadow">
+                  <div className="stat">
+                    <div className="stat-title">Time In</div>
+                    <div className="stat-value text-success">
+                      {new Date(activeSession.time_in).toLocaleTimeString()}
+                    </div>
+                    <div className="stat-desc">
+                      {new Date(activeSession.time_in).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-//       if (response.ok) {
-//         const data = await response.json();
-//         console.log("Time in successful:", data.message);
-//         setTimeIn(timeInNow);
-//         setIsClockedIn(false);
-//         startTimer(timeInNow);
-//         fetchTimeTrackingRecords(); // Fetch updated records
-//       } else {
-//         const errorMessage = await response.text();
-//         throw new Error(errorMessage || "Time in failed");
-//       }
-//     } catch (error) {
-//       console.error("Error during time in:", error);
-//       Swal.fire({
-//         icon: "error",
-//         title: "Error",
-//         text: `Error: ${error.message}`,
-//       });
-//     }
-//   };
+          {/* Time Tracking History Table */}
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              <h2 className="card-title mb-4">Time Tracking History</h2>
+              <div className="overflow-x-auto">
+                <table className="table table-zebra w-full">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Time In</th>
+                      <th>Time Out</th>
+                      <th>Duration</th>
+                      <th>Overtime</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {timeTrackingHistory.map((record) => (
+                      <tr key={record._id}>
+                        <td>{new Date(record.time_in).toLocaleDateString()}</td>
+                        <td>{new Date(record.time_in).toLocaleTimeString()}</td>
+                        <td>
+                          {record.time_out
+                            ? new Date(record.time_out).toLocaleTimeString()
+                            : "-"}
+                        </td>
+                        <td>
+                          {record.total_hours
+                            ? formatDuration(record.total_hours)
+                            : "-"}
+                        </td>
+                        <td>
+                          {record.overtime_hours > 0 ? (
+                            <span className="text-orange-500 font-semibold">
+                              {formatDuration(record.overtime_hours)}
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              record.status === "active"
+                                ? "badge-success"
+                                : record.overtime_hours > 0
+                                ? "badge-warning"
+                                : "badge-neutral"
+                            }`}
+                          >
+                            {record.status}
+                            {record.overtime_hours > 0 && " (OT)"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-//   const handleTimeOut = async () => {
-//     const currentTime = new Date();
-//     setTimeOut(currentTime);
-
-//     const timeInStored = localStorage.getItem("timeIn");
-//     if (!timeInStored) {
-//       Swal.fire({
-//         icon: "warning",
-//         title: "Time In Missing",
-//         text: "You must clock in before you can clock out.",
-//       });
-//       return;
-//     }
-
-//     const timeInDate = new Date(timeInStored);
-//     const totalMilliseconds = currentTime - timeInDate;
-//     const totalSeconds = Math.floor(totalMilliseconds / 1000);
-//     const hours = Math.floor(totalSeconds / 3600);
-//     const minutes = Math.floor((totalSeconds % 3600) / 60);
-//     const seconds = totalSeconds % 60;
-
-//     const totalHoursFormatted = `${String(hours).padStart(2, "0")}:${String(
-//       minutes
-//     ).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-//     setTotalHours(totalHoursFormatted);
-
-//     try {
-//       const response = await fetch(`${LocalURL}/api/employee/time-out`, {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           employee_username: employeeUsername,
-//           employee_firstname: employeeFirstname,
-//           employee_lastname: employeeLastname,
-//           time_out: currentTime,
-//           total_hours: totalSeconds,
-//         }),
-//       });
-
-//       if (!response.ok) {
-//         const errorMessage = await response.text();
-//         throw new Error(errorMessage || "Time out failed");
-//       }
-
-//       localStorage.removeItem("timeIn");
-//       clearTimer();
-//       setIsClockedIn(false);
-
-//       Swal.fire({
-//         icon: "success",
-//         title: "Time Out Successful",
-//         text: `You have clocked out at ${currentTime.toLocaleTimeString()} and worked ${totalHoursFormatted} hours. Refresh this page.`,
-//       }).then(() => {
-//         window.location.reload();
-//       });
-
-//       fetchTimeTrackingRecords(); // Fetch updated records
-//     } catch (error) {
-//       console.error("Error during time out:", error);
-//       Swal.fire({
-//         icon: "error",
-//         title: "Error",
-//         text: error.message,
-//       });
-//     }
-//   };
-
-//   const formatDate = (someDate) => {
-//     const options = { year: "numeric", month: "long", day: "numeric" };
-//     return someDate.toLocaleDateString(undefined, options);
-//   };
-
-//   const groupRecordsByDay = (records) => {
-//     const grouped = {};
-
-//     records.forEach((record) => {
-//       const date = new Date(record.time_in);
-//       const dateKey = formatDate(date);
-
-//       if (!grouped[dateKey]) {
-//         grouped[dateKey] = [];
-//       }
-
-//       grouped[dateKey].push(record);
-//     });
-
-//     for (const dateKey in grouped) {
-//       grouped[dateKey].sort(
-//         (a, b) => new Date(b.time_in) - new Date(a.time_in)
-//       );
-//     }
-
-//     return grouped;
-//   };
-
-//   const groupedRecords = groupRecordsByDay(filterRecordsByDate()); // Apply filter here
-
-//   const sortedDateKeys = Object.keys(groupedRecords).sort((a, b) => {
-//     const dateA = new Date(a);
-//     const dateB = new Date(b);
-//     return dateB - dateA;
-//   });
-
-//   const handleSidebarToggle = () => {
-//     setIsSidebarOpen((prev) => !prev);
-//   };
-
-//   const formatTimer = (seconds) => {
-//     const hours = Math.floor(seconds / 3600);
-//     const minutes = Math.floor((seconds % 3600) / 60);
-//     const secs = seconds % 60;
-//     return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
-//       2,
-//       "0"
-//     )}:${String(secs).padStart(2, "0")}`;
-//   };
-
-//   const handleResize = () => {
-//     if (window.innerWidth >= 768) {
-//       setIsSidebarOpen(true);
-//     } else {
-//       setIsSidebarOpen(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     handleResize();
-
-//     window.addEventListener("resize", handleResize);
-
-//     return () => {
-//       window.removeEventListener("resize", handleResize);
-//     };
-//   }, []);
-
-//   return (
-//     <div>
-//       <EmployeeSidebar
-//         onSidebarToggle={handleSidebarToggle}
-//         isSidebarOpen={isSidebarOpen}
-//       />
-//       <div
-//         className={`flex-grow transition-all duration-300 ease-in-out ${
-//           isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
-//         } relative`}
-//       >
-//         <EmployeeNav
-//           onSidebarToggle={handleSidebarToggle}
-//           isSidebarOpen={isSidebarOpen}
-//         />
-
-//         {/* Mobile overlay */}
-//         {isSidebarOpen && isMobileView && (
-//           <div
-//             className="fixed inset-0 bg-black opacity-50 z-10"
-//             onClick={() => setIsSidebarOpen(false)}
-//           ></div>
-//         )}
-//         {/* MAIN CONTENT */}
-//         <div className="p-5 ">
-//           <div className="flex p-5 border-2 rounded-lg gap">
-//             <h1 className="text-xl font-bold">Time Tracking</h1>
-//             <button
-//               className="bg-red-500 text-white px-4 py-2 rounded-md mt-2"
-//               onClick={handleStopTimer}
-//               disabled={!isClockedIn} // Disable if not clocked in
-//             >
-//               <FaPause className="inline-block mr-2" /> Stop Timer
-//             </button>
-//           </div>
-//           <div className="w-full flex flex-col sm:flex-row justify-between items-center mt-1 p-5 border-b border-gray-300 border rounded-lg whitespace-nowrap overflow-x-auto max-w-screen-lg mx-auto flex-shrink-0">
-//             <div className="flex items-center whitespace-nowrap flex-shrink-0">
-//               <MdOutlineTimer className="mr-2 text-2xl" />
-//               <span className="text-lg font-bold whitespace-nowrap">
-                
-//               </span>
-//               <div className="ml-4">
-//                 {!isClockedIn ? (
-//                   <button
-//                     onClick={handleTimeIn}
-//                     className="bg-green-500 font-bold py-2 px-4 rounded-xl shadow hover:bg-blue-600 transition duration-200 text-white"
-//                   >
-//                     <FaPlay className="inline-block mr-2" /> Start
-//                   </button>
-//                 ) : (
-//                   <button
-//                     onClick={handleTimeOut}
-//                     className="bg-red-500 text-white font-bold py-2 px-4 rounded shadow hover:bg-red-600 transition duration-200"
-//                   >
-//                     <FaPause className="inline-block mr-2" /> Stop
-//                   </button>
-//                 )}
-//               </div>
-//             </div>
-
-//             {/* Right Side: Date Filter */}
-//             <div className="flex items-center whitespace-nowrap flex-shrink-0">
-//               <label
-//                 htmlFor="dateFilter"
-//                 className="mr-2 text-sm font-semibold"
-//               >
-//                 Filter by Date:
-//               </label>
-//               <input
-//                 type="date"
-//                 id="dateFilter"
-//                 value={filterDate}
-//                 onChange={(e) => setFilterDate(e.target.value)}
-//                 className="border border-gray-300 rounded p-2 text-sm"
-//               />
-//             </div>
-//           </div>
-
-//           <h1 className="text-xl font-bold mt-5">All time record</h1>
-//           <div className="mt-5">
-//             {sortedDateKeys.length === 0 ? (
-//               <p>No time tracking records found.</p>
-//             ) : (
-//               sortedDateKeys.map((dateKey) => (
-//                 <div key={dateKey} className="mt-4">
-//                   <h2 className="text-sm pl-2 font-semibold ">{dateKey}</h2>
-//                   <div className="border rounded-md mt-2">
-//                     <table className="min-w-full divide-y divide-gray-200">
-//                       <thead className="bg-gray-50">
-//                         <tr>
-//                           <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
-//                             Time In
-//                           </th>
-//                           <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
-//                             Time Out
-//                           </th>
-//                           <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
-//                             Total Hours
-//                           </th>
-//                         </tr>
-//                       </thead>
-//                       <tbody className="bg-white divide-y divide-gray-200">
-//                         {groupedRecords[dateKey].map((record) => (
-//                           <tr
-//                             key={record._id}
-//                             className="hover:bg-gray-100 transition duration-200"
-//                           >
-//                             <td className="px-4 py-2 text-gray-600">
-//                               {new Date(record.time_in).toLocaleTimeString()}
-//                             </td>
-//                             <td className="px-4 py-2 text-gray-600">
-//                               {new Date(record.time_out).toLocaleTimeString()}
-//                             </td>
-//                             <td className="px-4 py-2 text-gray-500">
-//                               {`${String(
-//                                 Math.floor(record.total_hours / 3600)
-//                               ).padStart(2, "0")}:${String(
-//                                 Math.floor((record.total_hours % 3600) / 60)
-//                               ).padStart(2, "0")}:${String(
-//                                 record.total_hours % 60
-//                               ).padStart(2, "0")}`}
-//                             </td>
-//                           </tr>
-//                         ))}
-//                       </tbody>
-//                     </table>
-//                   </div>
-//                 </div>
-//               ))
-//             )}
-//           </div>
-
-//           {/* Time In and Time Out Buttons */}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default TimeTracking;
+export default TimeTracking;

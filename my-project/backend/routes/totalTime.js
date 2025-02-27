@@ -11,6 +11,8 @@ router.post("/time-tracking/start", totalTimeController.startTimeTracking);
 router.put("/update-break/:id", totalTimeController.updateBreakDuration);
 router.post("/time-tracking/pause", totalTimeController.pauseTimeTracking);
 router.post("/time-tracking/resume", totalTimeController.resumeTimeTracking);
-router.post("/time-tracking/stop-break", totalTimeController.stopBreak);
+
+
+
 
 module.exports = router;

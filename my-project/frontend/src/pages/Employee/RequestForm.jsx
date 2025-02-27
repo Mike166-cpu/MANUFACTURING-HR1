@@ -31,7 +31,7 @@ const RequestForm = () => {
   const navigate = useNavigate();
   const authToken = localStorage.getItem("employeeToken");
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
-
+  const LOCAL = "http://localhost:7685";
   useEffect(() => {
     document.title = "Request Form";
     const authToken = localStorage.getItem("employeeToken");
@@ -144,57 +144,42 @@ const RequestForm = () => {
       return;
     }
 
-    // Calculate work duration
+    // Calculate work duration and overtime duration
     let workDuration = 0;
+    let overtimeHours = 0;
+
     if (formData.morning_time_in && formData.morning_time_out) {
-      const morningStart = new Date(
-        `${formData.date}T${formData.morning_time_in}:00`
-      );
-      const morningEnd = new Date(
-        `${formData.date}T${formData.morning_time_out}:00`
-      );
-      workDuration += (morningEnd - morningStart) / 1000; // Duration in seconds
-    }
-    if (formData.afternoon_time_in && formData.afternoon_time_out) {
-      const afternoonStart = new Date(
-        `${formData.date}T${formData.afternoon_time_in}:00`
-      );
-      const afternoonEnd = new Date(
-        `${formData.date}T${formData.afternoon_time_out}:00`
-      );
-      workDuration += (afternoonEnd - afternoonStart) / 1000; // Duration in seconds
+      const morningStart = new Date(`${formData.date}T${formData.morning_time_in}`);
+      const morningEnd = new Date(`${formData.date}T${formData.morning_time_out}`);
+      workDuration += (morningEnd - morningStart) / (1000 * 60 * 60); // Convert to hours
     }
 
-    // Calculate overtime duration
-    let overtimeDuration = 0;
+    if (formData.afternoon_time_in && formData.afternoon_time_out) {
+      const afternoonStart = new Date(`${formData.date}T${formData.afternoon_time_in}`);
+      const afternoonEnd = new Date(`${formData.date}T${formData.afternoon_time_out}`);
+      workDuration += (afternoonEnd - afternoonStart) / (1000 * 60 * 60);
+    }
+
     if (formData.overtime_start && formData.overtime_end) {
-      const overtimeStart = new Date(
-        `${formData.date}T${formData.overtime_start}:00`
-      );
-      const overtimeEnd = new Date(
-        `${formData.date}T${formData.overtime_end}:00`
-      );
-      overtimeDuration = (overtimeEnd - overtimeStart) / 1000; // Duration in seconds
+      const overtimeStart = new Date(`${formData.date}T${formData.overtime_start}`);
+      const overtimeEnd = new Date(`${formData.date}T${formData.overtime_end}`);
+      overtimeHours = (overtimeEnd - overtimeStart) / (1000 * 60 * 60);
     }
 
     try {
       const response = await axios.post(
-        `${APIBASED_URL}/api/ob/request`,
+        `${LOCAL}/api/timetrack/manual-entry`,  // Changed endpoint
         {
-          employee_username: formData.employee_username,
           employee_id: formData.employee_id,
-          time_in: new Date(
-            `${formData.date}T${formData.morning_time_in}:00`
-          ).toISOString(), // Convert to date-time string
-          time_out: new Date(
-            `${formData.date}T${formData.afternoon_time_out}:00`
-          ).toISOString(), // Convert to date-time string
-          date: new Date(formData.date).toISOString(),
-          purpose: formData.purpose,
+          employee_username: formData.employee_username,
+          time_in: new Date(`${formData.date}T${formData.morning_time_in}`),
+          time_out: new Date(`${formData.date}T${formData.afternoon_time_out}`),
+          total_hours: workDuration,
+          overtime_hours: overtimeHours,
+          status: "pending",
           remarks: formData.remarks,
-          entry_type: formData.entry_type,
-          work_duration: workDuration, // Add this field
-          overtime_duration: overtimeDuration, // Add this field
+          purpose: formData.purpose,
+          entry_type: "Manual Entry"
         },
         {
           headers: {
@@ -207,10 +192,10 @@ const RequestForm = () => {
       if (response.status === 201) {
         Swal.fire({
           title: "Success",
-          text: "OB Request Submitted Successfully",
+          text: "Manual time entry submitted successfully",
           icon: "success",
         }).then(() => {
-          navigate("/request-form"); // Make sure this route exists
+          navigate("/employeedashboard");  // Changed navigation
         });
       }
     } catch (error) {
@@ -237,7 +222,7 @@ const RequestForm = () => {
   const fetchManualEntries = async () => {
     try {
       const response = await axios.get(
-        `${APIBASED_URL}/api/ob/manual-entries/${employeeId}`
+        `${LOCAL}/api/ob/requests/${employeeId}`
       );
       console.log("Manual Entries:", response.data);
     } catch (error) {

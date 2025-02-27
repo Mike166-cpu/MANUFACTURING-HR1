@@ -1,4 +1,4 @@
-const TotalTime = require("../models/TotalTime");
+const TotalTime = require("../models/TimeTracking");
 
 // Create new OB request
 exports.createOBRequest = async (req, res) => {
