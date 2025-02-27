@@ -190,23 +190,55 @@ const Dashboard = () => {
   };
 
   //FETCH DATA ADMIN
+  // useEffect(() => {
+  //   const token = localStorage.getItem("adminToken");
+  //   if (!token) {
+  //     console.error("No token found in localStorage");
+  //     return;
+  //   }
+  //   axios
+  //     .get("http://localhost:7685/api/employee/protected", {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     })
+  //     .then((response) => {
+  //       // Log the real fetched data
+  //       console.log("Protected Data:", response.data);
+  //     })
+  //     .catch((error) => {
+  //       console.error("Error fetching protected data:", error);
+  //     });
+  // }, []);
+
+  //ALL APPROVED DATA TIME ENTRIES
+  const [approvedData, setApprovedData] = useState([]);
+
   useEffect(() => {
-    const token = localStorage.getItem("adminToken");
-    if (!token) {
-      console.error("No token found in localStorage");
-      return;
-    }
     axios
-      .get("http://localhost:7685/api/employee/protected", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get("http://localhost:7685/api/time-tracking/get-all/approved") // Fetch only approved entries
       .then((response) => {
-        // Log the real fetched data
-        console.log("Protected Data:", response.data);
+        console.log("Approved Time Tracking Data:", response.data); // Log in frontend console
+        setApprovedData(response.data); // Store in state
       })
-      .catch((error) => {
-        console.error("Error fetching protected data:", error);
-      });
+      .catch((error) =>
+        console.error("Error fetching approved time tracking data:", error)
+      );
+  }, []);
+
+  // FETCH ALL APPROVED DOCUMENTS
+  const fetchApprovedRequests = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:7685/api/uploaded-documents/approved"
+      );
+      const data = await response.json();
+      console.log("Approved Documents in Frontend:", data);
+    } catch (error) {
+      console.error("Error fetching approved requests:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchApprovedRequests();
   }, []);
 
   return (

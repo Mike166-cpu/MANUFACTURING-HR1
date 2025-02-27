@@ -71,9 +71,6 @@ const EmployeeDashboard = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
-  const LOCAL = "http://localhost:5000";
-
   const handleResize = () => {
     if (window.innerWidth >= 768) {
       setIsSidebarOpen(true);

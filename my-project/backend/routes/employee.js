@@ -87,9 +87,23 @@ router.post("/reset-password/:token", async (req, res) => {
 // Employee registration route
 router.post("/add", async (req, res) => {
   try {
-    const employeeData = req.body;
+    const { employee_password, ...employeeData } = req.body;
 
-    const newEmployee = new Employee(employeeData); // No need to hash again
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(employee_password, salt);
+
+    // Generate unique employee ID
+    const lastEmployee = await Employee.findOne().sort({ employee_id: -1 });
+    const newId = lastEmployee ? parseInt(lastEmployee.employee_id.slice(1)) + 1 : 1;
+    const employee_id = `E${newId.toString().padStart(3, "0")}`;
+
+    const newEmployee = new Employee({
+      ...employeeData,
+      employee_password: hashedPassword, // Save the hashed password
+      employee_id,
+    });
+
     await newEmployee.save();
 
     res.status(201).json({
@@ -98,9 +112,7 @@ router.post("/add", async (req, res) => {
     });
   } catch (error) {
     console.error("Error while adding employee:", error);
-    res
-      .status(500)
-      .json({ message: "Error adding employee", error: error.message });
+    res.status(500).json({ message: "Error adding employee", error: error.message });
   }
 });
 

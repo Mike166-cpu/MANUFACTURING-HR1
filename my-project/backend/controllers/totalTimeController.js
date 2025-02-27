@@ -126,6 +126,20 @@ exports.getTimeTrackingEntriesByUsername = async (req, res) => {
   }
 };
 
+// GET ALL APPROVED TIME ENTRIES
+exports.getApprovedTimeTrackingEntries = async (req, res) => {
+  try {
+    const approvedLogs = await TotalTime.find({ status: "approved" }); 
+    console.log("Approved Time Tracking Entries:", approvedLogs); 
+    res.status(200).json(approvedLogs);
+  } catch (error) {
+    console.error("Error fetching approved time tracking entries:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch approved time tracking entries" });
+  }
+};
+
 // New controller function to get time tracking entries by employee ID
 exports.getTimeTrackingEntriesByEmployeeId = async (req, res) => {
   try {
@@ -142,10 +156,12 @@ exports.getTimeTrackingEntriesByEmployeeId = async (req, res) => {
     // Process logs and preserve overtime_duration as a number
     const processedLogs = logs.map((log) => {
       const processedLog = log.toObject(); // Convert mongoose doc to plain object
-      
+
       // Ensure overtime_duration remains a number
-      if (typeof processedLog.overtime_duration !== 'undefined') {
-        processedLog.overtime_duration = parseInt(processedLog.overtime_duration);
+      if (typeof processedLog.overtime_duration !== "undefined") {
+        processedLog.overtime_duration = parseInt(
+          processedLog.overtime_duration
+        );
       }
 
       console.log("Processed log:", processedLog);
@@ -176,8 +192,13 @@ exports.updateTimeTrackingEntry = async (req, res) => {
     // Calculate work duration
     const durationMs = timeOutDate - timeInDate;
     const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-    const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    const formattedWorkDuration = `${String(durationHours).padStart(2, '0')}:${String(durationMinutes).padStart(2, '0')}`;
+    const durationMinutes = Math.floor(
+      (durationMs % (1000 * 60 * 60)) / (1000 * 60)
+    );
+    const formattedWorkDuration = `${String(durationHours).padStart(
+      2,
+      "0"
+    )}:${String(durationMinutes).padStart(2, "0")}`;
 
     console.log("Calculated work duration:", formattedWorkDuration); // Debug log
 
@@ -186,7 +207,7 @@ exports.updateTimeTrackingEntry = async (req, res) => {
       work_duration: formattedWorkDuration,
       overtime_duration: parseInt(overtime_duration) || 0,
       remarks: remarks || timeTracking.remarks,
-      status: "pending"
+      status: "pending",
     };
 
     console.log("Update data:", updateData); // Debug log

@@ -34,6 +34,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:7685";
 
   const toggleNotifications = () => {
     setIsNotificationsOpen((prev) => !prev);
@@ -122,7 +123,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   useEffect(() => {
     if (employeeId) {
-      fetch(`${APIBASED_URL}/api/profile-picture?employeeId=${employeeId}`)
+      fetch(`${LOCAL}/api/profile-picture?employeeId=${employeeId}`)
         .then((response) => response.json())
         .then((data) => {
           if (data.profilePicture) {
@@ -261,11 +262,11 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
             icon={MdOutlinePolicy}
             label="Work Schedule"
           />
-          {/* <NavItem
-            to="/upload-documents"
+           <NavItem
+            to="/upload-requirements"
             icon={IoCloudUploadOutline}
-            label="Upload Documents"
-          /> */}
+            label="Submit Requirements"
+          /> 
         </MenuSection>
 
 

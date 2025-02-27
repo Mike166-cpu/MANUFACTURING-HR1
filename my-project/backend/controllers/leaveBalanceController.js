@@ -68,3 +68,19 @@ exports.getLeaveBalance = async (req, res) => {
     res.status(500).json({ message: "Error retrieving leave balance", error: error.message });
   }
 };
+
+// Delete leave balance for a specific employee
+exports.deleteLeaveBalance = async (req, res) => {
+  try {
+    const { employee_id } = req.params;
+    const result = await LeaveBalance.findOneAndDelete({ employee_id });
+
+    if (!result) {
+      return res.status(404).json({ message: "Leave balance not found" });
+    }
+
+    res.status(200).json({ message: "Leave balance deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting leave balance", error: error.message });
+  }
+};

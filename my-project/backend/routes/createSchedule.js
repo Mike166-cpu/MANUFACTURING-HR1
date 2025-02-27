@@ -2,6 +2,24 @@ const express = require("express");
 const router = express.Router();
 const Schedule = require("../models/Schedule");
 
+// Add validation middleware for schedule creation
+router.post("/", async (req, res, next) => {
+  try {
+    const existingSchedule = await Schedule.findOne({ employeeId: req.body.employeeId });
+    if (existingSchedule) {
+      return res.status(400).json({
+        message: "Employee already has a schedule. Please update the existing one."
+      });
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({
+      message: "Error checking existing schedule",
+      error: error.message
+    });
+  }
+});
+
 // Create a new schedule
 router.post("/", async (req, res) => {
   try {
@@ -107,6 +125,23 @@ router.put("/:scheduleId", async (req, res) => {
     console.error('Schedule update error:', error);
     res.status(400).json({
       message: "Failed to update schedule",
+      error: error.message
+    });
+  }
+});
+
+// Delete a schedule
+router.delete("/:scheduleId", async (req, res) => {
+  try {
+    const schedule = await Schedule.findByIdAndDelete(req.params.scheduleId);
+    if (!schedule) {
+      return res.status(404).json({ message: "Schedule not found" });
+    }
+    res.status(200).json({ message: "Schedule deleted successfully" });
+  } catch (error) {
+    console.error('Schedule deletion error:', error);
+    res.status(500).json({
+      message: "Failed to delete schedule",
       error: error.message
     });
   }

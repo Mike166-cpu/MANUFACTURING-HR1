@@ -1,0 +1,31 @@
+// DOCUMENT REQUEST
+
+const mongoose = require("mongoose");
+
+const DocumentRequestSchema = new mongoose.Schema({
+  request_id: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+  employee_id: {
+    type: String,
+    ref: "Employee", // References the Employee model
+    required: true,
+  },
+  document_name: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["Pending", "Submitted for Approval", "Approved", "Rejected"],
+    default: "Pending",
+  },
+  requested_at: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+module.exports = mongoose.model("DocumentRequest", DocumentRequestSchema);

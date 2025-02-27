@@ -21,7 +21,7 @@ const useMediaQuery = (query) => {
 };
 
 const APIBASE_URL = "https://backend-hr1.jjm-manufacturing.com";
-const Local = "http://localhost:5000";
+const Local = "http://localhost:7685";
 
 const EmployeeSchedule = () => {
   const navigate = useNavigate();
@@ -42,6 +42,7 @@ const EmployeeSchedule = () => {
     endTime: "17:00",
   });
   const [editingSchedule, setEditingSchedule] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -224,6 +225,7 @@ const EmployeeSchedule = () => {
 
   const handleEditClick = (schedule) => {
     setEditingSchedule(schedule);
+    setIsModalOpen(true);
     setNewSchedule({
       days: schedule.days,
       startTime: schedule.startTime,
@@ -240,6 +242,16 @@ const EmployeeSchedule = () => {
     e.preventDefault();
     
     try {
+      if (!editingSchedule && schedules.length > 0) {
+        Swal.fire({
+          title: "Schedule Exists",
+          text: "This employee already has a schedule. Please update the existing one.",
+          icon: "warning",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
       const scheduleData = {
         ...newSchedule,
         employeeId: selectedEmployee._id,
@@ -266,6 +278,7 @@ const EmployeeSchedule = () => {
         fetchSchedules(selectedEmployee._id);
         setNewSchedule({ days: [], startTime: "08:00", endTime: "17:00" });
         setEditingSchedule(null);
+        setIsModalOpen(false);
         Swal.fire({
           title: "Success",
           text: `Schedule ${editingSchedule ? "updated" : "created"} successfully`,
@@ -280,6 +293,41 @@ const EmployeeSchedule = () => {
       Swal.fire({
         title: "Error",
         text: `Failed to ${editingSchedule ? "update" : "create"} schedule`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleId) => {
+    try {
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "You won't be able to revert this!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!"
+      });
+
+      if (result.isConfirmed) {
+        const response = await fetch(`${Local}/api/schedule/${scheduleId}`, {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          fetchSchedules(selectedEmployee._id);
+          Swal.fire("Deleted!", "Schedule has been deleted.", "success");
+        } else {
+          throw new Error("Failed to delete schedule");
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting schedule:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to delete schedule",
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -367,6 +415,16 @@ const EmployeeSchedule = () => {
     doc.save(`${selectedEmployee.employee_firstname}_${selectedEmployee.employee_lastname}_Schedule.pdf`);
   };
 
+  const openModal = () => {
+    setIsModalOpen(true);
+    setNewSchedule({ days: [], startTime: "08:00", endTime: "17:00" });
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setNewSchedule({ days: [], startTime: "08:00", endTime: "17:00" });
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen">
       <div className="flex">
@@ -406,107 +464,157 @@ const EmployeeSchedule = () => {
                   </button>
                 </div>
 
-                {schedules.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Schedules</h3>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {schedules.map((schedule) => (
-                            <tr key={schedule._id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.days ? schedule.days.join(", ") : "N/A"}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.startTime}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.endTime}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <button
-                                  onClick={() => handleEditClick(schedule)}
-                                  className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
-                                >
-                                  Edit
-                                </button>
-                              </td>
+                {schedules.length > 0 ? (
+                  <div className="card bg-base-100 shadow-xl">
+                    <div className="card-body">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="card-title text-lg">Current Schedule</h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="table table-zebra w-full">
+                          <thead>
+                            <tr>
+                              <th>Days</th>
+                              <th>Start Time</th>
+                              <th>End Time</th>
+                              <th>Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {schedules.map((schedule) => (
+                              <tr key={schedule._id}>
+                                <td>{schedule.days.join(", ")}</td>
+                                <td>{schedule.startTime}</td>
+                                <td>{schedule.endTime}</td>
+                                <td className="space-x-2">
+                                  <button
+                                    onClick={() => handleEditClick(schedule)}
+                                    className="btn btn-sm btn-primary"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSchedule(schedule._id)}
+                                    className="btn btn-sm btn-error"
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="card bg-base-100 shadow-xl">
+                    <div className="card-body text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="text-gray-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <h3 className="text-xl font-semibold mb-2">No Schedule Found</h3>
+                          <p className="text-gray-600 mb-4">This employee doesn't have any schedule yet.</p>
+                        </div>
+                        <button 
+                          onClick={openModal} 
+                          className="btn btn-primary"
+                        >
+                          Create New Schedule
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                <form onSubmit={handleScheduleSubmit} className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">{editingSchedule ? "Edit Schedule" : "Create New Schedule"}</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Working Days</label>
-                      <div className="flex flex-wrap gap-2">
-                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
-                          <label key={day} className="relative">
-                            <input
-                              type="checkbox"
-                              name="days"
-                              value={day}
-                              checked={newSchedule.days.includes(day)}
-                              onChange={handleScheduleChange}
-                              className="sr-only peer"
-                            />
-                            <div className="px-4 py-2 bg-white border rounded-lg cursor-pointer peer-checked:bg-blue-100 peer-checked:border-blue-200 text-gray-700 peer-checked:text-blue-700 transition-colors duration-200">
-                              {day}
+                {/* Add Modal */}
+                {isModalOpen && (
+                  <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                      <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                        <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                      </div>
+
+                      <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <form onSubmit={handleScheduleSubmit} className="bg-white">
+                          <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
+                              {editingSchedule ? 'Edit Schedule' : 'Create New Schedule'}
+                            </h3>
+                            
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Select Working Days
+                                </label>
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                                    <label key={day} className="inline-flex items-center">
+                                      <input
+                                        type="checkbox"
+                                        name="days"
+                                        value={day}
+                                        checked={newSchedule.days.includes(day)}
+                                        onChange={handleScheduleChange}
+                                        className="checkbox checkbox-primary"
+                                      />
+                                      <span className="ml-2">{day}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Start Time
+                                  </label>
+                                  <input
+                                    type="time"
+                                    name="startTime"
+                                    value={newSchedule.startTime}
+                                    disabled
+                                    className="input input-bordered w-full"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    End Time
+                                  </label>
+                                  <input
+                                    type="time"
+                                    name="endTime"
+                                    value={newSchedule.endTime}
+                                    disabled
+                                    className="input input-bordered w-full"
+                                  />
+                                </div>
+                              </div>
                             </div>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
+                          </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-                        <input
-                          type="time"
-                          name="startTime"
-                          value={newSchedule.startTime}
-                          disabled
-                          className="w-full px-4 py-2 rounded-lg border bg-gray-50 text-gray-500 cursor-not-allowed"
-                        />
+                          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button
+                              type="submit"
+                              className="btn btn-primary w-full sm:w-auto sm:ml-3"
+                            >
+                              {editingSchedule ? 'Update Schedule' : 'Create Schedule'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={closeModal}
+                              className="mt-3 sm:mt-0 btn btn-ghost w-full sm:w-auto"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
-                        <input
-                          type="time"
-                          name="endTime"
-                          value={newSchedule.endTime}
-                          disabled
-                          className="w-full px-4 py-2 rounded-lg border bg-gray-50 text-gray-500 cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <button
-                        type="submit"
-                        className="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                      >
-                        {editingSchedule ? "Update Schedule" : "Create Schedule"}
-                      </button>
-                      {editingSchedule && (
-                        <button
-                          type="button"
-                          onClick={handleCancelEdit}
-                          className="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
-                        >
-                          Cancel
-                        </button>
-                      )}
                     </div>
                   </div>
-                </form>
+                )}
               </div>
             ) : (
               <div className="space-y-6">

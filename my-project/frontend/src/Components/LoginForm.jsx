@@ -21,7 +21,6 @@ const LoginForm = () => {
     document.title = "Login - HR1";
   }, []);
 
-  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   const handleSubmit = async (e) => {
     e.preventDefault();

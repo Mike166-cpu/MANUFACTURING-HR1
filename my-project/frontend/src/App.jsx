@@ -13,7 +13,7 @@ import AddEmployee from "./pages/AddEmployee.jsx";
 import EmployeeDocuments from "./pages/submodules/EmployeeDocuments.jsx";
 import EmployeeSchedule from "./pages/submodules/EmployeeSchedule.jsx";
 import LeaveManagement from "./pages/LeaveManagement.jsx";
-
+import RequestDocuments from "./pages/RequestDocuments.jsx";
 
 
 // EMPLOYEE IMPORTS
@@ -35,7 +35,11 @@ import WorkSchedule from "./pages/Employee/WorkSchedule.jsx";
 import FileLeave from "./pages/Employee/FileLeave.jsx";
 import RequestForm from "./pages/Employee/RequestForm.jsx";
 import ResignationForm from "./pages/Employee/ResignationForm.jsx";
+import UploadRequiremens from "./pages/Employee/UploadRequirements.jsx";
 
+
+//Template
+import AdminTemplate from "./pages/AdminTemplate.jsx";
 
 //TO REMOVE
 import IncidentReport from "./pages/submodules/IncidentReport.jsx";
@@ -90,6 +94,7 @@ function App() {
           <Route path="/file-leave" element={<EmployeeProtectedRoute><FileLeave /></EmployeeProtectedRoute>} />
           <Route path="/request-form" element={<EmployeeProtectedRoute><RequestForm /></EmployeeProtectedRoute>} />
           <Route path="/resignation-form" element={<EmployeeProtectedRoute><ResignationForm /></EmployeeProtectedRoute>} />
+          <Route path="/upload-requirements" element={<EmployeeProtectedRoute><UploadRequiremens /></EmployeeProtectedRoute>} />
 
 
           {/*ADMIN PAGE*/}
@@ -107,6 +112,9 @@ function App() {
           <Route path="/employee-documents" element={<ProtectedRoute><EmployeeDocuments /></ProtectedRoute>} />
           <Route path="/employee-schedule" element={<ProtectedRoute><EmployeeSchedule /></ProtectedRoute>} />
           <Route path="/leave-management" element={<ProtectedRoute><LeaveManagement /></ProtectedRoute>} />
+          <Route path="/request-documents" element={<ProtectedRoute><RequestDocuments /></ProtectedRoute>} />
+          <Route path="/admin-template" element={<ProtectedRoute><AdminTemplate /></ProtectedRoute>} />
+          
        
           
 

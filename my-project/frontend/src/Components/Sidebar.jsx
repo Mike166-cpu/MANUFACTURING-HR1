@@ -127,7 +127,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             )}
           </div>
 
-          {/* Similar styling pattern for other sections */}
+          {/* HR Compliance Section */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
               HR COMPLIANCE
@@ -213,6 +213,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <RiArchiveDrawerLine className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">
                 Employee Schedule
+              </span>
+            </div>
+
+            {/* SEND REQUEST DOCUMENT TO EMPLOYEE */}
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/request-documents"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/request-documents")}
+            >
+              <RiArchiveDrawerLine className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Request Document
               </span>
             </div>
 

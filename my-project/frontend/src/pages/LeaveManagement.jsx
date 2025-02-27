@@ -130,7 +130,7 @@ const LeaveManagement = () => {
   const getEmployeeLeaveData = async (id) => {
     try {
       const response = await axios.get(
-        `${Local}/api/leave/get-user-leave/${id}` //
+        `${APIBASED_URL}/api/leave/get-user-leave/${id}` //
       );
       setSelectedEmployeeLeaveData(response.data);
       console.log(response.data);
@@ -212,10 +212,10 @@ const LeaveManagement = () => {
   const handleLeaveTypeSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${Local}/api/leave/leave-types`, newLeaveType);
+      await axios.post(`${APIBASED_URL}/api/leave/leave-types`, newLeaveType);
       setIsLeaveTypeModalOpen(false);
       // Refresh leave types
-      const response = await axios.get(`${Local}/api/leave/leave-types`);
+      const response = await axios.get(`${APIBASED_URL}/api/leave/leave-types`);
       setLeaveTypes(response.data);
     } catch (error) {
       console.error("Error creating leave type:", error);
@@ -226,7 +226,7 @@ const LeaveManagement = () => {
   const handleStatusUpdate = async (leaveId, newStatus) => {
     try {
       const response = await axios.put(
-        `http://localhost:7685/api/leave/update-leave-status/${leaveId}`,
+        `${APIBASED_URL}/api/leave/update-leave-status/${leaveId}`,
         { status: newStatus }
       );
 
@@ -322,7 +322,7 @@ const LeaveManagement = () => {
     }
 
     try {
-      await axios.post(`${Local}/api/leave-balance/set-leave-balance`, {
+      await axios.post(`${APIBASED_URL}/api/leave-balance/set-leave-balance`, {
         employee_id: selectedEmployee.employee_id,
         vacation_leave: parseInt(leaveBalanceForm.vacation_leave, 10),
         sick_leave: parseInt(leaveBalanceForm.sick_leave, 10),
@@ -358,7 +358,7 @@ const LeaveManagement = () => {
   const handleUpdateLeaveBalance = async (employeeId, updatedLeaveBalance) => {
     try {
       const response = await axios.put(
-        `${Local}/api/leave-balance/update-leave-balance/${employeeId}`,
+        `${APIBASED_URL}/api/leave-balance/update-leave-balance/${employeeId}`,
         updatedLeaveBalance
       );
 
@@ -385,7 +385,7 @@ const LeaveManagement = () => {
   const handleDeleteLeaveBalance = async (employeeId) => {
     try {
       const response = await axios.delete(
-        `${Local}/api/leave-balance/delete-leave-balance/${employeeId}`
+        `${APIBASED_URL}/api/leave-balance/delete-leave-balance/${employeeId}`
       );
 
       if (response.status === 200) {
@@ -394,16 +394,21 @@ const LeaveManagement = () => {
           title: "Success!",
           text: "Leave balance deleted successfully",
         });
-
-        // Update UI if necessary
-        // For example, you might want to remove the deleted leave balance from the state
+        
+        // Clear the form and local state
+        setLeaveBalanceForm({
+          vacation_leave: 0,
+          sick_leave: 0,
+        });
+        setLeaveBalance(null);
+        setIsLeaveBalanceModalOpen(false);
       }
     } catch (error) {
       console.error("Error deleting leave balance:", error);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Failed to delete leave balance",
+        text: error.response?.data?.message || "Failed to delete leave balance",
       });
     }
   };
@@ -450,7 +455,7 @@ const LeaveManagement = () => {
   const fetchLeaveBalance = async (id) => {
     try {
       const response = await axios.get(
-        `${Local}/api/leave-balance/get-leave-balance/${id}`
+        `${APIBASED_URL}/api/leave-balance/get-leave-balance/${id}`
       );
       if (response.data && response.data.leaveBalance) {
         setLeaveBalance(response.data.leaveBalance);
@@ -486,6 +491,7 @@ const LeaveManagement = () => {
             onClick={() => setIsSidebarOpen(false)}
           ></div>
         )}
+        
         {/* Main Content */}
         <div className="p-6">
           {isViewingLeaveRecords ? (
@@ -505,6 +511,7 @@ const LeaveManagement = () => {
                 setFilterStatus={setFilterStatus}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
+                setIsLeaveBalanceModalOpen={setIsLeaveBalanceModalOpen} // Add this line
               />
 
               {/* Leave Balance Modal */}

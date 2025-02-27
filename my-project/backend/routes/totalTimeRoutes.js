@@ -10,9 +10,13 @@ router.get('/employee/:employee_id', totalTimeController.getTimeTrackingEntriesB
 // Approve time tracking entry
 router.put('/approve/:id', totalTimeController.approveTimeTrackingEntry);
 
+router.get("/get-all/approved", totalTimeController.getApprovedTimeTrackingEntries);
+
 // Other routes
 router.post('/start', totalTimeController.startTimeTracking);
 router.put('/:id', totalTimeController.updateTimeTrackingEntry);
 router.get('/', authenticateToken, totalTimeController.getAllTimeTrackingEntries);
+
+
 
 module.exports = router;

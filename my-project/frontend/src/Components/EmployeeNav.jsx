@@ -1,179 +1,164 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
 import { GoSidebarCollapse } from "react-icons/go";
+import { FaBell } from "react-icons/fa";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:7685");
 
 const EmployeeNav = ({ onSidebarToggle }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const navigate = useNavigate();
-  const [timeoutId, setTimeoutId] = useState(null);
   const [currentTime, setCurrentTime] = useState("");
-  const [currentDay, setCurrentDay] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const dropdownRef = useRef(null);
+  const employeeId = localStorage.getItem("employeeId");
 
-  // Define routes to match the sidebar
-  const routes = [
-    { name: "Dashboard", path: "/employeedashboard" },
-    { name: "Company Policy", path: "/companypolicy" },
-    { name: "Time Tracking", path: "/test-timer" },
-    { name: "Feedback", path: "/feedback" },
-    { name: "User Profile", path: "/userProfile" },
-    { name: "Work Schedule", path: "/work-schedule" },
-    { name: "Upload Documents", path: "/upload-documents" },
-  ];
+  // Function to load notifications from localStorage
+  const loadNotifications = () => {
+    const storedNotifications = localStorage.getItem("notifications");
+    return storedNotifications ? JSON.parse(storedNotifications) : [];
+  };
+
+  useEffect(() => {
+    // Load stored notifications and filter for employee dashboard only
+    const storedNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+    const filteredNotifications = storedNotifications.filter(n => n.dashboard === 'employee');
+    setNotifications(filteredNotifications);
+
+    socket.on(`notification-${employeeId}`, (data) => {
+      if (data.dashboard === 'employee') {
+        setNotifications((prev) => {
+          const notificationExists = prev.some(
+            (n) => n.request_id === data.request_id
+          );
+
+          if (notificationExists) return prev;
+
+          // Get existing notifications from localStorage
+          const existingNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+          // Filter out employee notifications and add the new one
+          const otherNotifications = existingNotifications.filter(n => n.dashboard !== 'employee');
+          const updatedNotifications = [data, ...prev];
+          
+          // Save combined notifications
+          localStorage.setItem("notifications", JSON.stringify([...otherNotifications, ...updatedNotifications]));
+          return updatedNotifications;
+        });
+      }
+    });
+
+    return () => {
+      socket.removeAllListeners(`notification-${employeeId}`);
+    };
+  }, [employeeId]);
 
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      const options = {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit", // Added seconds
-        hour12: true,
-        weekday: "long",
-      };
-      setCurrentTime(now.toLocaleTimeString("en-US", options));
+      setCurrentTime(
+        new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
+      );
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 1000); // Update every second
-
+    const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleInputChange = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    setTimeoutId(
-      setTimeout(() => {
-        if (query.length > 0) {
-          const suggestions = routes.filter((route) =>
-            route.name.toLowerCase().includes(query.toLowerCase())
-          );
-          setFilteredSuggestions(suggestions);
-        } else {
-          setFilteredSuggestions([]);
-        }
-        setHighlightedIndex(-1);
-      }, 300)
-    );
-  };
-
-  const handleSuggestionClick = (path) => {
-    setSearchQuery("");
-    setFilteredSuggestions([]);
-    setHighlightedIndex(-1);
-    navigate(path);
-  };
-
-  const clearSearch = () => {
-    setSearchQuery("");
-    setFilteredSuggestions([]);
-    setHighlightedIndex(-1);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "ArrowDown") {
-      setHighlightedIndex((prevIndex) =>
-        Math.min(prevIndex + 1, filteredSuggestions.length - 1)
-      );
-    } else if (e.key === "ArrowUp") {
-      setHighlightedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-    } else if (e.key === "Enter") {
-      if (highlightedIndex >= 0) {
-        handleSuggestionClick(filteredSuggestions[highlightedIndex].path);
-      }
-    } else if (e.key === "Escape") {
-      clearSearch();
-    }
-  };
-
   useEffect(() => {
-    return () => clearTimeout(timeoutId);
-  }, [timeoutId]);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Clear notifications
+  const clearNotifications = () => {
+    setNotifications([]);
+    const allNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+    const adminNotifications = allNotifications.filter(n => n.dashboard !== 'employee');
+    localStorage.setItem("notifications", JSON.stringify(adminNotifications));
+  };
+
+  const handleToggleNotifications = () => {
+    setShowNotifications((prev) => !prev);
+
+    if (!showNotifications) {
+      // Mark all notifications as read
+      const updatedNotifications = notifications.map(notif => ({ ...notif, read: true }));
+      setNotifications(updatedNotifications);
+      const allNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+      const otherNotifications = allNotifications.filter(n => n.dashboard !== 'employee');
+      localStorage.setItem("notifications", JSON.stringify([...otherNotifications, ...updatedNotifications]));
+    }
+  };
 
   return (
-    <div className={`flex-grow transition-all duration-300 ease-in-out`}>
-      <div className="navbar bg-green-50 shadow-md w-full flex flex-wrap items-center justify-between ">
-        <div className="flex-1 flex items-center gap-3">
-          {/* Sidebar Menu Icon */}
+    <div className="flex-grow transition-all duration-300 ease-in-out">
+      <div className="navbar bg-white shadow-md w-full flex items-center justify-between p-4">
+        <div className="flex items-center gap-3">
+          <button onClick={onSidebarToggle} className="btn text-lg text-black">
+            <GoSidebarCollapse className="font-bold" />
+          </button>
+          <span className="text-lg text-gray-700">{currentTime}</span>
+        </div>
+
+        {/* Notification Icon */}
+        <div className="relative" ref={dropdownRef}>
           <button
-            onClick={onSidebarToggle}
-            className="btn drawer-button text-lg text-black dark:text-white"
+            className="relative p-2 text-gray-700 hover:text-blue-600 transition"
+            onClick={handleToggleNotifications}
           >
-            <GoSidebarCollapse className="font-bold" />{" "}
-            {/* Updated to use FiMenu */}
+            <FaBell className="text-2xl" />
+            {notifications.length > 0 && notifications.some(notif => !notif.read) && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
+                {notifications.filter(notif => !notif.read).length}
+              </span>
+            )}
           </button>
 
-          <div className="relative w-full max-w-xs">
-            <label className="input input-bordered flex items-center">
-              <input
-                type="text"
-                className="grow border-b rounded-t-md"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                aria-label="Search"
-              />
-              <button onClick={clearSearch} className="ml-2 text-gray-500">
-                &times;
-              </button>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="h-4 w-4 opacity-70"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </label>
-
-            {/* Suggestions Dropdown */}
-            {filteredSuggestions.length > 0 && (
-              <ul className="absolute left-0 w-full bg-white border border-gray-300 rounded-b-md shadow-md max-h-48 overflow-y-auto z-10 mt-[-1px]">
-                {filteredSuggestions.map((suggestion, index) => (
-                  <li
-                    key={index}
-                    className={`cursor-pointer p-2 ${
-                      highlightedIndex === index ? "bg-gray-200" : ""
-                    }`}
-                    onClick={() => handleSuggestionClick(suggestion.path)}
-                    role="option"
-                    aria-label={suggestion.name}
-                  >
-                    {suggestion.name
-                      .split(new RegExp(`(${searchQuery})`, "gi"))
-                      .map((part, i) => (
-                        <span
-                          key={i}
-                          className={
-                            part.toLowerCase() === searchQuery.toLowerCase()
-                              ? "font-bold"
-                              : ""
-                          }
-                        >
-                          {part}
-                        </span>
-                      ))}
+          {/* Notification Dropdown (Directly Below the Button) */}
+          {showNotifications && (
+            <div className="absolute top-full right-0 mt-2 w-80 bg-white shadow-xl rounded-xl overflow-hidden z-50 border border-gray-200 animate-fade-in">
+              <div className="flex items-center justify-between p-4 border-b bg-blue-50">
+                <span className="font-semibold text-gray-700">
+                  Notifications
+                </span>
+                <button
+                  onClick={clearNotifications}
+                  className="text-xs text-gray-500 hover:text-gray-700 transition"
+                >
+                  Clear All
+                </button>
+              </div>
+              <ul className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+                {notifications.length > 0 ? (
+                  notifications.map((notif, index) => (
+                    <li
+                      key={index}
+                      className={`flex p-3 hover:bg-gray-100 transition ${notif.read ? 'bg-gray-200' : ''}`}
+                    >
+                      <a
+                        className="text-sm text-gray-700 hover:text-blue-600 transition w-full"
+                      >
+                        {notif.message}
+                      </a>
+                    </li>
+                  ))
+                ) : (
+                  <li className="p-4 text-center text-gray-500">
+                    No new notifications
                   </li>
-                ))}
+                )}
               </ul>
-            )}
-          </div>
-
-          <div className="ml-auto text-lg text-gray-700 dark:text-white">
-            {currentTime}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

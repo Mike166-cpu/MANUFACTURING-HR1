@@ -73,10 +73,19 @@ exports.fileLeave = async (req, res) => {
 
     await newLeave.save();
 
+    global.io.emit(`notification-admin`, {
+      message: `Employee ${employee_username} requested a leave.`,
+      employee_id,
+      leave_id,
+      dashboard: "admin",
+      link: `/admin/leave-requests/${leave_id}`,
+    });
+
     res.status(201).json({
       message: "Leave request submitted successfully",
       leave: newLeave,
       updatedLeaveBalance: leaveBalance,
+      link: "http://localhost:3000/file-leave",
     });
   } catch (error) {
     console.error("Error filing leave request:", error);
@@ -161,6 +170,17 @@ exports.updateLeaveStatus = async (req, res) => {
 
     leave.status = status;
     await leave.save();
+
+    // Emit notification for status update
+    if (global.io) {
+      global.io.emit("notification-employee", {
+        message: `Your leave request has been ${status.toLowerCase()}`,
+        employee_id: leave.employee_id,
+        request_id: leaveId,
+        type: "leave_status_update",
+        status: status,
+      });
+    }
 
     res.status(200).json({
       message: `Leave request ${status.toLowerCase()} successfully`,

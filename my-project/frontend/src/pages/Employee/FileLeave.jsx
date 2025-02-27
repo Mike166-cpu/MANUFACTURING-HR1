@@ -77,13 +77,16 @@ const FileLeave = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:7685";
+
   //FETCH LEAVE RECORDS
   const fetchLeaves = async () => {
     const employeeId = localStorage.getItem("employeeId"); // Ensure this is stored correctly
 
     try {
       const response = await axios.get(
-        `http://localhost:7685/api/leave/get-employee-leaves/${employeeId}`
+        `${APIBASED_URL}/api/leave/get-employee-leaves/${employeeId}`
       );
       setLeaves(response.data);
     } catch (error) {
@@ -98,7 +101,7 @@ const FileLeave = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:7685/api/leave/file-leave", {
+      await axios.post(`${LOCAL}/api/leave/file-leave`, {
         employee_id: employeeId,
         employee_username: employeeUsername,
         employee_firstname: employeeFirstName,
@@ -123,11 +126,10 @@ const FileLeave = () => {
   const fetchLeaveBalance = async (id) => {
     try {
       const response = await axios.get(
-        `http://localhost:7685/api/leave-balance/get-leave-balance/${id}`
+        `${APIBASED_URL}/api/leave-balance/get-leave-balance/${id}`
       );
       console.log("Leave Balance:", response.data.leaveBalance);
-      console.log("Vacation Leave:", response.data.leaveBalance.vacation_leave);
-      console.log("Sick Leave:", response.data.leaveBalance.sick_leave);
+      console.log("Sick Leave Balance:", response.data.leaveBalance.sick_leave);
       setLeaveBalance(response.data.leaveBalance);
     } catch (error) {
       console.error("Error fetching leave balance:", error);

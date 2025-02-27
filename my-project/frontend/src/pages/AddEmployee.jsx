@@ -104,6 +104,7 @@ const AddEmployee = () => {
   const genders = ["Male", "Female", "Other"];
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const Local= "http://localhost:7685";
 
   const handleChange = (e) => {
     setFormData({
@@ -123,7 +124,7 @@ const AddEmployee = () => {
     console.log("Form Data:", formData); // Log the form data before sending
 
     try {
-      const response = await fetch(`${APIBase_URL}/api/employee/add`, {
+      const response = await fetch(`${Local}/api/employee/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

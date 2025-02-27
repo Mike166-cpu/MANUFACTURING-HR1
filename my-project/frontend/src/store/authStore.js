@@ -89,7 +89,7 @@ export const loginUser = async (email, password, navigate, location) => {
     console.log("HR1 login attempt:", { email, password });
 
     // Make the request to the new login endpoint
-    const response = await fetch(`${LOCAL}/api/employee/testLog`, {
+    const response = await fetch(`${APIBASED_URL}/api/employee/testLog`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
