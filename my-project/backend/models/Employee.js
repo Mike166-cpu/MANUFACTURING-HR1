@@ -20,3 +20,15 @@ const employeeSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("Employee", employeeSchema, "employee");
+
+
+
+// employee_id: { type: String, unique: true },
+// employee_firstname: { type: String, required: true },
+// employee_middlename: { type: String },
+// employee_lastname: { type: String, required: true },
+// employee_suffix: { type: String },
+// position or role {type: String},
+// department {type: String},
+// employee_email: { type: String, required: true, unique: true },
+// employee_phone: { type: String, required: false },

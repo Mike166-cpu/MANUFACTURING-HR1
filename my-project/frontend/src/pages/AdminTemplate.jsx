@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
-
-import { FaUsers, FaClock, FaExclamationTriangle } from "react-icons/fa";
-import { FaArrowRight } from "react-icons/fa";
-
+import axios from "axios";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -26,30 +22,16 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const isMobileView = useMediaQuery("(max-width: 768px)");
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
-
-  const colors = [
-    "text-red-500",
-    "text-blue-500",
-    "text-green-500",
-    "text-yellow-500",
-    "text-purple-500",
-  ];
-
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.clear();
-    Swal.fire({
-      title: "Session Expired",
-      text: "Your session has expired. Please log in again.",
-      icon: "warning",
-      confirmButtonText: "OK",
-    }).then(() => {
-      navigate("/login");
-    });
-  };
+  const Local = "http://localhost:7685";
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  const adminToken = localStorage.getItem("adminToken");
+  const gatewayToken = localStorage.getItem("gatewayToken");
+
+  // console.log("Admin Token:", adminToken);
+  // console.log("Gateway Token:", gatewayToken);
 
   const handleResize = () => {
     if (window.innerWidth >= 768) {
@@ -73,6 +55,23 @@ const Dashboard = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+
+
+  // DISPLAY DATA ON TABLE
+  const [employeeData, setEmployeeData] = useState([]);
+  useEffect(() => {
+    axios
+      .get("http://localhost:7685/api/hr/all-employee") // Replace with your actual backend URL
+      .then((response) => {
+        console.log("Fetched employees:", response.data); // ✅ Log response
+        setEmployeeData(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching employees:", error);
+      });
+  }, []);
+
+
   return (
     <div className="flex min-h-screen">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -90,9 +89,50 @@ const Dashboard = () => {
         )}
 
         <div className="p-6 bg-gray-50 min-h-screen">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Main Content */}
-          </div>
+          {/* EMPLOYEE TABLE */}
+          <table className="min-w-full border border-gray-300">
+            <thead>
+              <tr className="bg-gray-200">
+                <th className="border px-4 py-2">Name</th>
+                <th className="border px-4 py-2">Email</th>
+                <th className="border px-4 py-2">Mobile</th>
+                <th className="border px-4 py-2">Address</th>
+                <th className="border px-4 py-2">Position</th>
+                <th className="border px-4 py-2">Role</th>
+                <th className="border px-4 py-2">Status</th>
+                <th className="border px-4 py-2">Gender</th>
+                <th className="border px-4 py-2">Joining Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employeeData.length > 0 ? (
+                employeeData.map((employee, index) => (
+                  <tr key={index} className="hover:bg-gray-100">
+                    <td className="border px-4 py-2">{employee.employee_id}</td>
+                    <td className="border px-4 py-2">{employee.email}</td>
+                    <td className="border px-4 py-2">{employee.mobile}</td>
+                    <td className="border px-4 py-2">{employee.address}</td>
+                    <td className="border px-4 py-2">{employee.position}</td>
+                    <td className="border px-4 py-2">{employee.role}</td>
+                    <td className="border px-4 py-2">
+                      {employee.employeeStatus}
+                    </td>
+                    <td className="border px-4 py-2">{employee.gender}</td>
+                    <td className="border px-4 py-2">
+                      {new Date(employee.joiningDate).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9" className="text-center border px-4 py-2">
+                    No employees found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          {/* END OF THE TABLE */}
         </div>
       </div>
     </div>

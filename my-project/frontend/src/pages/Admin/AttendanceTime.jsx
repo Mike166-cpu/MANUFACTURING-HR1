@@ -27,7 +27,9 @@ const AttendanceTime = () => {
   const [allTimeTrackingSessions, setAllTimeTrackingSessions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [monthFilter, setMonthFilter] = useState("3"); // Default to last 3 months
+  const [monthFilter, setMonthFilter] = useState("1"); // Default to last 3 months
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const navigate = useNavigate();
   const LOCAL = "http://localhost:7685";
@@ -41,7 +43,7 @@ const AttendanceTime = () => {
     const fetchEmployees = async () => {
       try {
         const response = await axios.get(
-          `${APIBASED_URL}/api/employee/employee-data`
+          `${APIBASED_URL}/api/hr/employee-data`
         );
         setEmployees(response.data);
         console.log("Fetched employees:", response.data); // Add console log
@@ -53,7 +55,7 @@ const AttendanceTime = () => {
     const fetchAllTimeTrackingSessions = async () => {
       try {
         const response = await axios.get(
-          `${LOCAL}/api/timetrack/admin/all-sessions`
+          `${APIBASED_URL}/api/timetrack/admin/all-sessions`
         );
         setAllTimeTrackingSessions(response.data);
         console.log("Fetched all time tracking sessions:", response.data);
@@ -69,7 +71,7 @@ const AttendanceTime = () => {
   const approveSession = async (sessionId) => {
     try {
       await axios.put(
-        `${LOCAL}/api/timetrack/admin/update-status/${sessionId}`,
+        `${APIBASED_URL}/api/timetrack/admin/update-status/${sessionId}`,
         {
           status: "approved",
           remarks: "Approved by admin",
@@ -117,7 +119,7 @@ const AttendanceTime = () => {
 
       if (rejectionReason) {
         await axios.put(
-          `${LOCAL}/api/timetrack/admin/update-status/${sessionId}`,
+          `${APIBASED_URL}/api/timetrack/admin/update-status/${sessionId}`,
           {
             status: "rejected",
             remarks: rejectionReason,
@@ -151,20 +153,38 @@ const AttendanceTime = () => {
 
   const getFilteredSessions = () => {
     const now = new Date();
-    const monthsAgo = new Date();
-    monthsAgo.setMonth(now.getMonth() - parseInt(monthFilter));
-
-    return allTimeTrackingSessions.filter(
-      (session) => new Date(session.time_in) >= monthsAgo
+    const threeMonthsAgo = new Date(
+      now.getFullYear(),
+      now.getMonth() - 3,
+      now.getDate()
     );
+    const selectedMonthsAgo = new Date(
+      now.getFullYear(),
+      now.getMonth() - parseInt(monthFilter),
+      now.getDate()
+    );
+
+    // Use the more recent date between threeMonthsAgo and selectedMonthsAgo
+    const cutoffDate = new Date(Math.max(threeMonthsAgo, selectedMonthsAgo));
+
+    return allTimeTrackingSessions.filter((session) => {
+      const sessionDate = new Date(session.time_in);
+      const dateFilter = sessionDate >= cutoffDate && sessionDate <= now;
+      const deptFilter =
+        departmentFilter === "all" || session.department === departmentFilter;
+      const statFilter =
+        statusFilter === "all" || session.status === statusFilter;
+
+      return dateFilter && deptFilter && statFilter;
+    });
   };
 
   const filteredTimeTrackingSessions = getFilteredSessions();
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
   const currentSessions = filteredTimeTrackingSessions.slice(
-    indexOfFirstItem,
-    indexOfLastItem
+    startIndex,
+    endIndex
   );
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -175,231 +195,278 @@ const AttendanceTime = () => {
       <div
         className={`flex-grow transition-all duration-300 ease-in-out ${
           isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
-        } relative bg-gray-50`}
+        } relative bg-base-200`}
       >
         <Navbar toggleSidebar={toggleSidebar} />
 
         {/* BREADCRUMBS */}
-        <div className="bg-white pb-4 px-5">
+        <div className="bg-base-100 pb-4 px-5">
           <BreadCrumbs />
-          <span className="px-4 font-bold text-2xl"> Time Tracking Records</span>
+          <span className="px-4 font-bold text-2xl">
+            {" "}
+            Time Tracking Records
+          </span>
         </div>
 
         {/* MAIN CONTENT */}
-        <div className="p-6 bg-gray-100">
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center space-x-4">
-                <FiCalendar className="text-gray-400" />
+        <div className="p-6 min-h-screen">
+          <div className="mb-6 flex flex-col gap-4">
+            {/* Filters Row */}
+            <div className="flex flex-wrap gap-4 items-center bg-base-100 p-4 rounded-lg shadow">
+              <div className="flex items-center gap-2">
+                <FiCalendar className="text-primary" />
                 <select
                   value={monthFilter}
                   onChange={(e) => setMonthFilter(e.target.value)}
-                  className="pl-4 pr-8 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="select select-bordered select-sm"
                 >
                   <option value="1">Last Month</option>
+                  <option value="2">Last 2 Months</option>
                   <option value="3">Last 3 Months</option>
-                  <option value="6">Last 6 Months</option>
-                  <option value="12">Last Year</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <FiFilter className="text-primary" />
+                <select
+                  value={departmentFilter}
+                  onChange={(e) => setDepartmentFilter(e.target.value)}
+                  className="select select-bordered select-sm"
+                >
+                  <option value="all">All Departments</option>
+                  <option value="IT">IT Department</option>
+                  <option value="HR">HR Department</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Operations">Operations</option>
                 </select>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-              <div className="w-full">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <FiUser className="text-gray-400" />
-                          Employee ID
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <FiCalendar className="text-gray-400" />
-                          Date
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <FiClock className="text-gray-400" />
-                          Time In/Out
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Work Duration
-                      </th>
+            {/* Status Tabs */}
+            <div className="tabs tabs-boxed bg-base-100 p-2">
+              <a
+                className={`tab ${statusFilter === "all" ? "tab-active" : ""}`}
+                onClick={() => setStatusFilter("all")}
+              >
+                All
+              </a>
+              <a
+                className={`tab ${
+                  statusFilter === "pending" ? "tab-active" : ""
+                }`}
+                onClick={() => setStatusFilter("pending")}
+              >
+                Pending
+              </a>
+              <a
+                className={`tab ${
+                  statusFilter === "approved" ? "tab-active" : ""
+                }`}
+                onClick={() => setStatusFilter("approved")}
+              >
+                Approved
+              </a>
+              <a
+                className={`tab ${
+                  statusFilter === "rejected" ? "tab-active" : ""
+                }`}
+                onClick={() => setStatusFilter("rejected")}
+              >
+                Rejected
+              </a>
+            </div>
 
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Overtime
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {currentSessions.map((session) => (
-                      <tr
-                        key={session._id}
-                        className="hover:bg-blue-50 transition-colors duration-200"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {session.employee_id}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {new Date(session.time_in).toLocaleDateString(
+            {/* Table */}
+            <div className="overflow-x-auto bg-base-100 rounded-lg shadow">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th>
+                      <div className="flex items-center gap-2">
+                        <FiUser className="text-primary" />
+                        Employee ID
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <div className="flex items-center gap-2">
+                        <FiCalendar className="text-gray-400" />
+                        Date
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <div className="flex items-center gap-2">
+                        <FiClock className="text-gray-400" />
+                        Time In/Out
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Work Duration
+                    </th>
+
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Overtime
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentSessions.map((session) => (
+                    <tr key={session._id} className="hover">
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {session.employee_firstname}{" "}
+                          {session.employee_lastname}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {new Date(session.time_in).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <div className="text-sm text-gray-600 flex items-center gap-2">
+                            <span className="text-green-500">▲</span>
+                            {new Date(session.time_in).toLocaleTimeString(
                               "en-US",
                               {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
                               }
                             )}
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <div className="text-sm text-gray-600 flex items-center gap-2">
-                              <span className="text-green-500">▲</span>
-                              {new Date(session.time_in).toLocaleTimeString(
-                                "en-US",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-600 flex items-center gap-2">
-                              <span className="text-red-500">▼</span>
-                              {session.time_out
-                                ? new Date(session.time_out).toLocaleTimeString(
-                                    "en-US",
-                                    {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    }
-                                  )
-                                : "N/A"}
-                            </div>
+                          <div className="text-sm text-gray-600 flex items-center gap-2">
+                            <span className="text-red-500">▼</span>
+                            {session.time_out
+                              ? new Date(session.time_out).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )
+                              : "N/A"}
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-3 py-1 inline-flex items-center gap-1 text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            <FiClock className="text-green-600" />
-                            {session.total_hours
-                              ? formatDuration(session.total_hours)
-                              : "-"}
-                          </span>
-                        </td>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-3 py-1 inline-flex items-center gap-1 text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          <FiClock className="text-green-600" />
+                          {session.total_hours
+                            ? formatDuration(session.total_hours)
+                            : "-"}
+                        </span>
+                      </td>
 
-                        <td className="px-6 py-4">
-                          <span className="px-3 py-1 inline-flex items-center gap-1 text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                            {session.overtime_duration != null &&
-                            session.overtime_duration !== undefined
-                              ? `${Math.floor(
-                                  session.overtime_duration / 3600
-                                )}h ${Math.floor(
-                                  (session.overtime_duration % 3600) / 60
-                                )}m`
-                              : `${Math.floor(
-                                  (session.overtime_hours * 3600) / 3600
-                                )}h ${Math.floor(
-                                  ((session.overtime_hours * 3600) % 3600) / 60
-                                )}m`}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`px-3 py-1 inline-flex items-center gap-1 text-sm leading-5 font-semibold rounded-full ${
-                              !session.time_out
-                                ? "bg-blue-100 text-blue-800"
-                                : session.status === "approved"
-                                ? "bg-green-100 text-green-800"
-                                : session.status === "rejected"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {!session.time_out ? (
-                              <>
-                                <FiClock className="text-blue-600" />
-                                Active
-                              </>
-                            ) : session.status === "approved" ? (
-                              <>
-                                <FiCheckCircle />
-                                Approved
-                              </>
-                            ) : session.status === "rejected" ? (
-                              <>
-                                <FiAlertCircle />
-                                Rejected
-                              </>
-                            ) : (
-                              <>
-                                <FiAlertCircle />
-                                Pending
-                              </>
-                            )}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {session.status === "pending" && (
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => approveSession(session._id)}
-                                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors duration-200"
-                              >
-                                <FiCheckCircle className="inline mr-1" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => rejectSession(session._id)}
-                                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors duration-200"
-                              >
-                                <FiAlertCircle className="inline mr-1" />
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                          {session.status === "approved" && (
-                            <span className="text-green-500">
-                              <FiCheckCircle className="inline mr-1" />
+                      <td className="px-6 py-4">
+                        <span className="px-3 py-1 inline-flex items-center gap-1 text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                          {session.overtime_duration != null &&
+                          session.overtime_duration !== undefined
+                            ? `${Math.floor(
+                                session.overtime_duration / 3600
+                              )}h ${Math.floor(
+                                (session.overtime_duration % 3600) / 60
+                              )}m`
+                            : `${Math.floor(
+                                (session.overtime_hours * 3600) / 3600
+                              )}h ${Math.floor(
+                                ((session.overtime_hours * 3600) % 3600) / 60
+                              )}m`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 inline-flex items-center gap-1 text-sm leading-5 font-semibold rounded-full ${
+                            !session.time_out
+                              ? "bg-blue-100 text-blue-800"
+                              : session.status === "approved"
+                              ? "bg-green-100 text-green-800"
+                              : session.status === "rejected"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {!session.time_out ? (
+                            <>
+                              <FiClock className="text-blue-600" />
+                              Active
+                            </>
+                          ) : session.status === "approved" ? (
+                            <>
+                              <FiCheckCircle />
                               Approved
-                            </span>
-                          )}
-                          {session.status === "rejected" && (
-                            <span className="text-red-500">
-                              <FiAlertCircle className="inline mr-1" />
+                            </>
+                          ) : session.status === "rejected" ? (
+                            <>
+                              <FiAlertCircle />
                               Rejected
-                            </span>
+                            </>
+                          ) : (
+                            <>
+                              <FiAlertCircle />
+                              Pending
+                            </>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {session.status === "pending" && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => approveSession(session._id)}
+                              className="btn btn-success btn-sm"
+                            >
+                              <FiCheckCircle />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => rejectSession(session._id)}
+                              className="btn btn-error btn-sm"
+                            >
+                              <FiAlertCircle />
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                        {session.status === "approved" && (
+                          <span className="text-green-500">
+                            <FiCheckCircle className="inline mr-1" />
+                            Approved
+                          </span>
+                        )}
+                        {session.status === "rejected" && (
+                          <span className="text-red-500">
+                            <FiAlertCircle className="inline mr-1" />
+                            Rejected
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
+              {/* Pagination */}
+              <div className="px-6 py-4 border-t">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-700">
-                    Showing {indexOfFirstItem + 1} to{" "}
-                    {Math.min(
-                      indexOfLastItem,
-                      filteredTimeTrackingSessions.length
-                    )}{" "}
-                    of {filteredTimeTrackingSessions.length} entries
+                  <span className="text-sm">
+                    Showing {startIndex + 1} to{" "}
+                    {Math.min(endIndex, filteredTimeTrackingSessions.length)} of{" "}
+                    {filteredTimeTrackingSessions.length} entries
                   </span>
-                  <div className="flex space-x-2">
+                  <div className="join">
                     {Array.from(
                       {
                         length: Math.ceil(
@@ -410,11 +477,9 @@ const AttendanceTime = () => {
                         <button
                           key={i + 1}
                           onClick={() => paginate(i + 1)}
-                          className={`px-3 py-1 rounded-md ${
-                            currentPage === i + 1
-                              ? "bg-blue-500 text-white"
-                              : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-                          } transition-colors duration-200`}
+                          className={`join-item btn btn-sm ${
+                            currentPage === i + 1 ? "btn-active" : ""
+                          }`}
                         >
                           {i + 1}
                         </button>

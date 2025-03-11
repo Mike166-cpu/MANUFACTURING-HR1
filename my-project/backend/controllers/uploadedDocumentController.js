@@ -132,3 +132,14 @@ exports.getApprovedDocumentRequests = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
+exports.allDocuments = async (req, res) => {
+  try {
+    const documents = await UploadedDocument.find({});
+    
+    res.status(200).json(documents);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}

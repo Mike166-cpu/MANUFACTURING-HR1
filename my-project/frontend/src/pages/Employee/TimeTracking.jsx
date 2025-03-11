@@ -6,7 +6,9 @@ import Swal from "sweetalert2";
 import Breadcrumb from "../../Components/BreadCrumb";
 import Calendar from "react-calendar";
 import axios from "axios";
-import { formatDuration, calculateDuration } from '../../utils/timeUtils';
+import { formatDuration, calculateDuration } from "../../utils/timeUtils";
+import Breadcrumbs from "../../Components/BreadCrumb";
+import { FaPlus } from "react-icons/fa6";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -31,6 +33,10 @@ const TimeTracking = () => {
   const [timeTracking, setTimeTracking] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
   const [timeTrackingHistory, setTimeTrackingHistory] = useState([]);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
+  const [filterDateRange, setFilterDateRange] = useState("3 Months");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,7 +45,7 @@ const TimeTracking = () => {
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
-    const employeeUsername = localStorage.getItem("employeeUsername");
+    const employeeId = localStorage.getItem("employeeId");
 
     if (!authToken) {
       Swal.fire({
@@ -77,11 +83,16 @@ const TimeTracking = () => {
     };
   }, []);
 
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:7685";
+
   // Fetch Active Session
   const fetchActiveSession = async () => {
     try {
       const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.get(`http://localhost:7685/api/timetrack/active-session/${employeeId}`);
+      const response = await axios.get(
+        `${APIBASED_URL}/api/timetrack/active-session/${employeeId}`
+      );
       setActiveSession(response.data);
     } catch (error) {
       console.error("Error fetching active session:", error);
@@ -100,7 +111,9 @@ const TimeTracking = () => {
     const fetchTimeTrackingHistory = async () => {
       try {
         const employeeId = localStorage.getItem("employeeId");
-        const response = await axios.get(`http://localhost:7685/api/timetrack/history/${employeeId}`);
+        const response = await axios.get(
+          `${APIBASED_URL}/api/timetrack/history/${employeeId}`
+        );
         setTimeTrackingHistory(response.data);
       } catch (error) {
         console.error("Error fetching time tracking history:", error);
@@ -110,20 +123,88 @@ const TimeTracking = () => {
     fetchTimeTrackingHistory();
   }, [activeSession]); // Refresh when active session changes
 
+  // Calculate the date 3 months ago from today
+  const calculateDateRange = (range) => {
+    const date = new Date();
+    switch (range) {
+      case "1 Month":
+        date.setMonth(date.getMonth() - 1);
+        break;
+      case "3 Months":
+        date.setMonth(date.getMonth() - 3);
+        break;
+      case "6 Months":
+        date.setMonth(date.getMonth() - 6);
+        break;
+      default:
+        date.setMonth(date.getMonth() - 3);
+    }
+    return date;
+  };
+
+  const filteredRecords = timeTrackingHistory.filter((record) => {
+    const recordDate = new Date(record.time_in);
+    const dateRange = calculateDateRange(filterDateRange);
+    if (filterStatus === "All") return recordDate >= dateRange;
+    return (
+      record.status.toLowerCase() === filterStatus.toLowerCase() &&
+      recordDate >= dateRange
+    );
+  });
+
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = filteredRecords.slice(
+    indexOfFirstRecord,
+    indexOfLastRecord
+  );
+
+  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   // Time In Function
   const timeIn = async () => {
     try {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      if (currentHour < 8 || (currentHour === 17 && currentMinute > 0) || currentHour > 17) {
+        Swal.fire({
+          title: "Invalid Time",
+          text: "Time-in is only allowed between 8:00 AM and 5:00 PM",
+          icon: "info",
+        });
+        return;
+      }
+
       const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.post("http://localhost:7685/api/timetrack/time-in", {
-        employee_id: employeeId,
-        entry_type: "System Entry"  // Add this line
-      });
+      const firstName = localStorage.getItem("employeeFirstName");
+      const lastName = localStorage.getItem("employeeLastName");
+      const position = localStorage.getItem("employeePosition");
+
+      const response = await axios.post(
+        `${APIBASED_URL}/api/timetrack/time-in`,
+        {
+          employee_id: employeeId,
+          employee_firstname: employeeFirstName,
+          employee_lastname: employeeLastName,
+          position: position,
+        }
+      );
 
       setActiveSession(response.data.session);
-      Swal.fire("Success!", "Time In recorded successfully!", "success");
+      Swal.fire("Success!", response.data.message, "success");
     } catch (error) {
       console.error("Error recording Time In:", error);
-      Swal.fire("Error!", error.response?.data?.message || "Failed to record Time In.", "error");
+      Swal.fire(
+        "Error!",
+        error.response?.data?.message || "Failed to record Time In.",
+        "error"
+      );
     }
   };
 
@@ -131,16 +212,36 @@ const TimeTracking = () => {
   const timeOut = async () => {
     try {
       const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.put("http://localhost:7685/api/timetrack/time-out", {
-        employee_id: employeeId,
-      });
+      const response = await axios.put(
+        `${APIBASED_URL}/api/timetrack/time-out`,
+        {
+          employee_id: employeeId,
+        }
+      );
 
       setActiveSession(null);
       Swal.fire("Success!", "Time Out recorded successfully!", "success");
     } catch (error) {
       console.error("Error recording Time Out:", error);
-      Swal.fire("Error!", error.response?.data?.message || "Failed to record Time Out.", "error");
+      Swal.fire(
+        "Error!",
+        error.response?.data?.message || "Failed to record Time Out.",
+        "error"
+      );
     }
+  };
+
+  const formatMinuteDuration = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const [selectedRows, setSelectedRows] = useState([]);
+  const toggleRowSelection = (id) => {
+    setSelectedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+    );
   };
 
   return (
@@ -165,50 +266,43 @@ const TimeTracking = () => {
           ></div>
         )}
 
-        {/* MAIN CONTENT */}
-        <div className="transition-all duration-300 ease-in-out flex-grow p-5">
-          {/* Welcome Card */}
-          <div className="card bg-base-100 shadow-xl mb-6">
-            <div className="card-body">
-              <h2 className="card-title text-2xl">
-                Welcome, {employeeFirstName} {employeeLastName}
-              </h2>
-              <p className="text-gray-600">
-                Department: <span className="badge badge-primary">{employeeDepartment}</span>
-              </p>
-            </div>
-          </div>
+        <div className="p-5 font-bold text-md">
+          <Breadcrumbs />
 
+          <h1 className="px-3">Start Your Time Tracking</h1>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <div className="transition-all bg-gray-100 duration-300 ease-in-out flex-grow p-5">
           {/* Time Tracking Controls */}
-          <div className="card bg-base-100 shadow-xl mb-6">
-            <div className="card-body">
-              <h2 className="card-title mb-4">Time Tracking Controls</h2>
-              <div className="flex gap-4">
-                <button
-                  onClick={timeIn}
-                  disabled={activeSession !== null}
-                  className={`btn ${
-                    activeSession ? 'btn-disabled' : 'btn-success'
-                  }`}
-                >
-                  <i className="fas fa-sign-in-alt mr-2"></i> Time In
-                </button>
-                <button
-                  onClick={timeOut}
-                  disabled={activeSession === null}
-                  className={`btn ${
-                    !activeSession ? 'btn-disabled' : 'btn-error'
-                  }`}
-                >
-                  <i className="fas fa-sign-out-alt mr-2"></i> Time Out
-                </button>
+          <div className="card bg-base-100 shadow-sm mb-6 border-2">
+            <div className="card-body flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="text-left">
+                <h2 className="text-lg font-semibold">Today:</h2>
+                <span className="text-xl font-bold">
+                  {new Date().toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
               </div>
+
+              <button
+                onClick={activeSession ? timeOut : timeIn}
+                className={`btn py-2 px-4 text-lg font-semibold ${
+                  activeSession ? "btn-error" : "btn-success"
+                } flex items-center space-x-2`}
+              >
+                <FaPlus />
+                <span>{activeSession ? "Time Out" : "Time In"}</span>
+              </button>
             </div>
           </div>
 
           {/* Active Session Card */}
           {activeSession && (
-            <div className="card bg-base-100 shadow-xl mb-6">
+            <div className="card bg-base-100 shadow-sm mb-6">
               <div className="card-body">
                 <h2 className="card-title text-success">
                   <i className="fas fa-clock mr-2"></i> Active Session
@@ -229,63 +323,142 @@ const TimeTracking = () => {
           )}
 
           {/* Time Tracking History Table */}
-          <div className="card bg-base-100 shadow-xl">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex space-x-4">
+              <select
+                className="select select-bordered"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+              <select
+                className="select select-bordered"
+                value={filterDateRange}
+                onChange={(e) => setFilterDateRange(e.target.value)}
+              >
+                <option value="1 Month">Last 1 Month</option>
+                <option value="3 Months">Last 3 Months</option>
+                <option value="6 Months">Last 6 Months</option>
+              </select>
+            </div>
+            <div>
+              <button
+                className="bg-blue-300 p-4 rounded-md font-bold hover:bg-blue-400 transition-all duration-300 ease-in-out text-sm"
+                onClick={() => navigate("/request-form")}
+              >
+                Manual Time Entries
+              </button>
+            </div>
+          </div>
+
+          {/* TABLE */}
+          <div className="card bg-base-100 shadow-sm">
             <div className="card-body">
-              <h2 className="card-title mb-4">Time Tracking History</h2>
               <div className="overflow-x-auto">
-                <table className="table table-zebra w-full">
+                <table className="table w-full">
                   <thead>
-                    <tr>
+                    <tr className="text-sm border-b-2 border-gray-100">
+                      <th>{""}</th>
                       <th>Date</th>
                       <th>Time In</th>
                       <th>Time Out</th>
                       <th>Duration</th>
-                      <th>Overtime</th>
+                      <th>Overtime Duration</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {timeTrackingHistory.map((record) => (
-                      <tr key={record._id}>
-                        <td>{new Date(record.time_in).toLocaleDateString()}</td>
-                        <td>{new Date(record.time_in).toLocaleTimeString()}</td>
+                    {currentRecords.map((record) => (
+                      <tr
+                        key={record._id}
+                        className={
+                          selectedRows.includes(record._id) ? "bg-gray-200" : ""
+                        }
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            onChange={() => toggleRowSelection(record._id)}
+                            checked={selectedRows.includes(record._id)}
+                          />
+                        </td>
+                        <td>
+                          {new Date(record.time_in).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
+                        </td>
+                        <td>
+                          {new Date(record.time_in).toLocaleTimeString()}
+                          {record.entry_status === "late" && (
+                            <span className="badge badge-warning ml-2">
+                              Late ({formatMinuteDuration(record.minutes_late)})
+                            </span>
+                          )}
+                        </td>
+
                         <td>
                           {record.time_out
                             ? new Date(record.time_out).toLocaleTimeString()
                             : "-"}
                         </td>
                         <td>
-                          {record.total_hours
+                          {record.time_out
                             ? formatDuration(record.total_hours)
-                            : "-"}
+                            : "Active"}
                         </td>
                         <td>
-                          {record.overtime_hours > 0 ? (
-                            <span className="text-orange-500 font-semibold">
-                              {formatDuration(record.overtime_hours)}
-                            </span>
-                          ) : (
-                            "-"
-                          )}
+                          {record.overtime_hours > 0
+                            ? formatDuration(record.overtime_hours)
+                            : "No Overtime"}
                         </td>
                         <td>
                           <span
-                            className={`badge ${
+                            className={`badge capitalize ${
                               record.status === "active"
                                 ? "badge-success"
-                                : record.overtime_hours > 0
+                                : record.status === "pending"
                                 ? "badge-warning"
-                                : "badge-neutral"
+                                : record.status === "approved"
+                                ? "badge-info"
+                                : "badge-error"
                             }`}
                           >
                             {record.status}
-                            {record.overtime_hours > 0 && " (OT)"}
                           </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <div>
+                  Showing entries {indexOfFirstRecord + 1} -{" "}
+                  {Math.min(indexOfLastRecord, filteredRecords.length)} of{" "}
+                  {filteredRecords.length}
+                </div>
+                <div className="join">
+                  {Array.from({ length: totalPages }, (_, index) => (
+                    <button
+                      key={index + 1}
+                      className={`join-item btn ${
+                        currentPage === index + 1 ? "btn-active" : ""
+                      }`}
+                      onClick={() => handlePageChange(index + 1)}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

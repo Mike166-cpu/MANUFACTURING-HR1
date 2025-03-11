@@ -92,10 +92,17 @@ const EmployeeInfo = () => {
   };
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const Local = "http://localhost:7685";
 
+  // FETCH EMPLOYEE
   const fetchEmployees = async () => {
+    const gatewayToken = localStorage.getItem("gatewayToken");
     try {
-      const response = await axios.get(`${APIBase_URL}/api/employee`);
+      const response = await axios.get(`${APIBase_URL}/api/hr/employee-data`, {
+        headers: { Authorization: `Bearer ${gatewayToken}` },
+      });
+
+      console.log("Fetched employees:", response.data);
       setEmployees(response.data);
     } catch (error) {
       console.error("Error fetching employee data:", error);
@@ -130,78 +137,21 @@ const EmployeeInfo = () => {
     setUpdatedEmployee((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleUpdate = async () => {
-    try {
-      const response = await axios.put(
-        `${APIBase_URL}/api/employee/${selectedEmployee._id}`,
-        updatedEmployee
-      );
-      toast.success("Employee updated successfully!", {
-        position: "top-right",
-      });
-      fetchEmployees();
-      handleBackToList();
-    } catch (error) {
-      console.error("Error updating employee:", error);
-      alert("Failed to update employee.");
-    }
-  };
-
-  const handleDelete = async (id) => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "Do you really want to delete this employee?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await axios.delete(
-            `${APIBase_URL}/api/employee/${id}`
-          );
-          toast.success("Employee deleted successfully!", {
-            position: "top-right",
-          });
-          fetchEmployees();
-          handleBackToList();
-        } catch (error) {
-          console.error("Error deleting employee:", error);
-          Swal.fire("Error", "Failed to delete employee.", "error");
-        }
-      }
-    });
-  };
-
   const filteredEmployees = employees.filter((employee) => {
     const matchesSearch =
-      (employee.employee_firstname || "")
+      (employee.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.position || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (employee.employee_lastname || "")
+      (employee.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.address || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (employee.employee_username || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (employee.employee_email || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (employee.employee_phone || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (employee.employee_department || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (employee.employee_id || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      (employee.role || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.gender || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = filterDepartment
-      ? employee.employee_department === filterDepartment
-      : true;
+    const matchesFilter =
+      filterDepartment === "" || employee.position === filterDepartment;
 
     return matchesSearch && matchesFilter;
   });
@@ -225,8 +175,11 @@ const EmployeeInfo = () => {
 
   const handleExport = async () => {
     setIsExporting(true);
+    const gatewayToken = localStorage.getItem("gatewayToken");
     try {
-      const response = await axios.get(`${APIBase_URL}/api/employee`);
+      const response = await axios.get(`${APIBase_URL}/api/hr/employee-data`, {
+        headers: { Authorization: `Bearer ${gatewayToken}` },
+      });
 
       if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -239,12 +192,12 @@ const EmployeeInfo = () => {
       }
 
       const data = allEmployees.map((employee) => ({
-        EmployeeID: employee.employee_id,
-        FirstName: employee.employee_firstname,
-        LastName: employee.employee_lastname,
-        Username: employee.employee_username,
-        Email: employee.employee_email,
-        Department: employee.employee_department,
+        Name: employee.name,
+        Email: employee.email,
+        Position: employee.position,
+        Address: employee.address,
+        Phone: employee.mobile,
+        Gender: employee.gender,
       }));
 
       const doc = new jsPDF();
@@ -255,24 +208,24 @@ const EmployeeInfo = () => {
       doc.setFontSize(12);
 
       const headers = [
-        "Employee ID",
-        "First Name",
-        "Last Name",
-        "Username",
+        "Employee Name",
         "Email",
-        "Department",
+        "Position",
+        "Address",
+        "Phone",
+        "Gender",
       ];
 
       doc.autoTable({
         startY: 30,
         head: [headers],
         body: data.map((employee) => [
-          employee.EmployeeID,
-          employee.FirstName,
-          employee.LastName,
-          employee.Username,
+          employee.Name,
           employee.Email,
-          employee.Department,
+          employee.Position,
+          employee.Address,
+          employee.Phone,
+          employee.Gender,
         ]),
         theme: "striped",
         didDrawPage: (data) => {
@@ -344,7 +297,7 @@ const EmployeeInfo = () => {
               {/* Search Input */}
               <input
                 type="text"
-                placeholder="Search employees, department, id"
+                placeholder="Search employees"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="text-sm p-3 border border-gray-300 rounded-lg w-full sm:w-64 md:w-80 placeholder-black"
@@ -357,9 +310,9 @@ const EmployeeInfo = () => {
                   onChange={(e) => setFilterDepartment(e.target.value)}
                   className="no-arrow pl-3 pr-8 p-3 border border-gray-300 rounded-lg w-full sm:w-40 text-sm"
                 >
-                  <option value="">Filter</option>
-                  <option value="Human Resources">Human Resources</option>
-                  <option value="Logistics">Logistics</option>
+                  <option value="">All Positions</option>
+                  <option value="Secretary">Secretary</option>
+                  <option value="Reseller">Reseller</option>
                   <option value="Finance">Finance</option>
                   <option value="Administrative">Administrative</option>
                 </select>
@@ -383,14 +336,6 @@ const EmployeeInfo = () => {
                 onClose={() => setIsModalOpen(false)}
                 onConfirm={handleExport}
               />
-
-              {/* Add Employee Button */}
-              <Link
-                to="/addemployee"
-                className="text-sm flex pt-2 bg-blue-700 text-white rounded-lg transition duration-200 ease-in-out text-md h-10 px-4 w-full sm:w-auto"
-              >
-                Add Employee
-              </Link>
             </div>
           </div>
 
@@ -417,13 +362,6 @@ const EmployeeInfo = () => {
                       <FaEdit className="mr-2" />
                       Edit
                     </button>
-
-                    <button
-                      className="flex items-center text-blue-800 hover:underline"
-                      onClick={() => handleDelete(selectedEmployee._id)} // Pass the ID correctly
-                    >
-                      <FaTrash className="mr-2" /> Delete
-                    </button>
                   </div>
                 </div>
 
@@ -432,261 +370,112 @@ const EmployeeInfo = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      Employee ID
+                      Name
                     </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="employee_id"
-                        value={updatedEmployee.employee_id}
-                        onChange={handleChange}
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_id}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
-                  </div>
-                  {/*FIRST NAME*/}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      First Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="employee_firstname"
-                        value={updatedEmployee.employee_firstname}
-                        onChange={handleChange}
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_firstname}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
-                  </div>
-                  {/*LAST NAME*/}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      Last Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="employee_lastname"
-                        value={updatedEmployee.employee_lastname}
-                        onChange={handleChange}
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_lastname}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={selectedEmployee.name}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
                   </div>
 
-                  {/*SUFFIX*/}
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      Suffix
+                      Email
                     </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="employee_suffix"
-                        value={updatedEmployee.employee_suffix}
-                        onChange={handleChange}
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_suffix}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={selectedEmployee.email}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
                   </div>
 
-                  {/*USERNAME*/}
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      Username
+                      Mobile
                     </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="employee_username"
-                        value={updatedEmployee.username}
-                        onChange={handleChange}
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_username}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={selectedEmployee.mobile}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
                   </div>
 
-                  {/*PHONE NUMBER*/}
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      Contact Number
+                      Position
                     </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="employee_phone"
-                        value={updatedEmployee.phone}
-                        onChange={handleChange}
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_phone}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={selectedEmployee.position}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
                   </div>
 
-                  {/*ADDRESS*/}
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      Address
+                      Status
                     </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="employee_address"
-                        value={updatedEmployee.address}
-                        onChange={handleChange}
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_address}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={selectedEmployee.employeeStatus}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
                   </div>
 
-                  {/*GENDER*/}
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
                       Gender
                     </label>
-                    {isEditing ? (
-                      <div className="form-control mt-4">
-                        <select
-                          name="employee_gender"
-                          value={updatedEmployee.employee_gender}
-                          onChange={handleChange}
-                          className="select select-bordered"
-                          required
-                        >
-                          <option value="" disabled>
-                            Select gender
-                          </option>
-                          {["Male", "Female", "Other"].map((gender, idx) => (
-                            <option key={idx} value={gender}>
-                              {gender}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_gender}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={selectedEmployee.gender}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
                   </div>
 
-                  {/*DEPARTMENT*/}
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">
-                      Department
+                      Address
                     </label>
-                    {isEditing ? (
-                      <div className="form-control mt-4">
-                        <select
-                          name="employee_department"
-                          value={updatedEmployee.employee_department}
-                          onChange={handleChange}
-                          className="select select-bordered"
-                          required
-                        >
-                          <option value="" disabled>
-                            Select department
-                          </option>
-                          {["HR", "Sales", "Engineering", "Marketing"].map(
-                            (dept, idx) => (
-                              <option key={idx} value={dept}>
-                                {dept}
-                              </option>
-                            )
-                          )}
-                        </select>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={selectedEmployee.employee_department}
-                        readOnly
-                        className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={selectedEmployee.address}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">
+                      Joining Date
+                    </label>
+                    <input
+                      type="text"
+                      value={new Date(
+                        selectedEmployee.joiningDate
+                      ).toLocaleDateString()}
+                      readOnly
+                      className="p-3 border border-gray-300 rounded-lg w-full bg-gray-100 text-gray-800"
+                    />
                   </div>
                 </div>
-
-                {isEditing ? (
-                  <div className="mt-4">
-                    <button
-                      className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 ease-in-out"
-                      onClick={handleUpdate}
-                    >
-                      Update Employee
-                    </button>
-                    <button
-                      className="ml-2 p-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200 ease-in-out"
-                      onClick={handleBackToList}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div></div>
-                )}
               </div>
             ) : (
               <div className="overflow-auto rounded-lg bg-white pb-10">
                 <table className="table-auto w-full pb-5 text-sm">
-                  <thead className="bg-green-600 text-white">
+                  <thead className="bg-white text-gray-500 border-b">
                     <tr>
-                      <th className="p-3 text-left">Employee ID</th>
-                      <th className="p-3 text-left">Full Name</th>
+                      <th className="p-3 text-left">Name</th>
                       <th className="p-3 text-left">Email</th>
-                      <th className="p-3 text-left">Department</th>
+                      <th className="p-3 text-left">Position</th>
+                      <th className="p-3 text-left">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -696,16 +485,30 @@ const EmployeeInfo = () => {
                         className="hover:bg-gray-100 transition-colors cursor-pointer"
                         onClick={() => handleRowClick(employee)}
                       >
-                        <td className="p-3 border-b">{employee.employee_id}</td>
                         <td className="p-3 border-b capitalize">
-                          {employee.employee_firstname}{" "}
-                          {employee.employee_lastname}
+                          {employee.firstName} {employee.lastName}
                         </td>
+                        <td className="p-3 border-b">{employee.email}</td>
+                        <td className="p-3 border-b">{employee.role}</td>
                         <td className="p-3 border-b">
-                          {employee.employee_email}
-                        </td>
-                        <td className="p-3 border-b">
-                          {employee.employee_department}
+                          <span
+                            className={`px-2 py-1 text-xs font-semibold rounded 
+                              ${
+                                employee.status === "active"
+                                  ? "bg-green-100 text-green-700"
+                                  : ""
+                              }${
+                              employee.status === "terminated"
+                                ? "bg-red-100 text-red-700"
+                                : ""
+                            }${
+                              employee.status === "inactive"
+                                ? "bg-gray-100 text-gray-700"
+                                : ""
+                            }`}
+                          >
+                            {employee.status}
+                          </span>
                         </td>
                       </tr>
                     ))}

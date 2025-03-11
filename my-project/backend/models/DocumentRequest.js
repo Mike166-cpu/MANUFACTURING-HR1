@@ -10,7 +10,7 @@ const DocumentRequestSchema = new mongoose.Schema({
   },
   employee_id: {
     type: String,
-    ref: "Employee", // References the Employee model
+    ref: "EmployeeLogin", // Changed from "Employee" to "EmployeeLogin"
     required: true,
   },
   document_name: {

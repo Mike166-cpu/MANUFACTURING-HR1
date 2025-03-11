@@ -121,21 +121,6 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   const [profilePicture, setProfilePicture] = useState("");
 
-  useEffect(() => {
-    if (employeeId) {
-      fetch(`${LOCAL}/api/profile-picture?employeeId=${employeeId}`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.profilePicture) {
-            setProfilePicture(data.profilePicture);
-          }
-        })
-        .catch((error) =>
-          console.error("Error fetching profile picture:", error)
-        );
-    }
-  }, [employeeId]);
-
   const NavItem = ({ to, icon: Icon, label, badge }) => {
     const isActive = location.pathname === to;
     return (
@@ -144,7 +129,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
         className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200
           ${
             isActive
-              ? "bg-purple-100 text-purple-600"
+              ? "bg-white border"
               : "text-gray-600 hover:bg-gray-100"
           }`}
       >
@@ -160,8 +145,8 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   };
 
   const MenuSection = ({ title, children }) => (
-    <div className="px-3 py-2">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+    <div className="px-3">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
         {title}
       </h3>
       <div className="space-y-1">{children}</div>
@@ -170,7 +155,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-lg transform 
+      className={`fixed inset-y-0 left-0 w-72 bg-gray-100 dark:bg-gray-800 shadow-lg transform 
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         transition-transform duration-300 ease-in-out z-20 flex flex-col`}
     >
@@ -224,16 +209,14 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-2 space-y-2 hide-scrollbar">
-
         {/* HOME SECTION */}
-        <MenuSection title="Dashboard">
+        <MenuSection >
           <NavItem to="/employeedashboard" icon={IoHomeOutline} label="Home" />
           <NavItem to="/userProfile" icon={FaRegUser} label="Profile" />
         </MenuSection>
 
-
-          {/* HR COMPLIANCE SECTION */}
-        <MenuSection title="HR Compliance">
+        {/* HR COMPLIANCE SECTION */}
+        <MenuSection>
           <NavItem
             to="/companypolicy"
             icon={MdOutlinePolicy}
@@ -246,32 +229,28 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
           />
         </MenuSection>
 
-
-          {/* ATTENDANCE AND TIME TRACKING SECTION */}
-        <MenuSection title="Attendance">
-       
+        {/* ATTENDANCE AND TIME TRACKING SECTION */}
+        <MenuSection>
           <NavItem to="/timetracking" icon={CiCalendar} label="Time Tracking" />
           <NavItem to="/file-leave" icon={CiFileOn} label="File Leave" />
         </MenuSection>
 
-
-          {/* ONBOARDING SECTION */}
-        <MenuSection title="Onboarding">
-        <NavItem
+        {/* ONBOARDING SECTION */}
+        <MenuSection>
+          <NavItem
             to="/work-schedule"
             icon={MdOutlinePolicy}
             label="Work Schedule"
           />
-           <NavItem
+          <NavItem
             to="/upload-requirements"
             icon={IoCloudUploadOutline}
             label="Submit Requirements"
-          /> 
+          />
         </MenuSection>
 
-
-          {/* OFFBOARDING SECTION */}
-        <MenuSection title="Offboarding">
+        {/* OFFBOARDING SECTION */}
+        <MenuSection>
           <NavItem
             to="/resignation-form"
             icon={VscFeedback}

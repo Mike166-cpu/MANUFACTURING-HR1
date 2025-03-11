@@ -6,7 +6,10 @@ import Swal from "sweetalert2";
 import Breadcrumb from "../../Components/BreadCrumb";
 import Calendar from "react-calendar";
 import axios from "axios";
-import { formatDuration, calculateDuration } from '../../utils/timeUtils';
+import { formatDuration, calculateDuration } from "../../utils/timeUtils";
+import { Tooltip } from "react-tooltip";
+import "react-calendar/dist/Calendar.css";
+import { TbCurrencyTaka } from "react-icons/tb";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -28,10 +31,31 @@ const EmployeeDashboard = () => {
   const [employeeFirstName, setEmployeeFirstName] = useState("");
   const [employeeLastName, setEmployeeLastName] = useState("");
   const [employeeDepartment, setEmployeeDepartment] = useState("");
-  const [timeTracking, setTimeTracking] = useState(null);
-  const [activeSession, setActiveSession] = useState(null);
-  const [timeTrackingHistory, setTimeTrackingHistory] = useState([]);
+  const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
+
+  const [date, setDate] = useState(new Date());
+  const [holidays, setHolidays] = useState({});
+
+  useEffect(() => {
+    // Fetch holidays from Nager API
+    const fetchHolidays = async () => {
+      try {
+        const response = await axios.get(
+          `https://date.nager.at/api/v3/PublicHolidays/${currentYear}/PH`
+        );
+        const holidayData = response.data.reduce((acc, holiday) => {
+          acc[holiday.date] = holiday.localName; 
+          return acc;
+        }, {});
+        setHolidays(holidayData);
+      } catch (error) {
+        console.error("Error fetching holidays:", error);
+      }
+    };
+
+    fetchHolidays();
+  }, [currentYear]);
 
   useEffect(() => {
     document.title = "Dashboard - Home";
@@ -39,7 +63,13 @@ const EmployeeDashboard = () => {
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
+    const position = localStorage.getItem("employeePosition");
     const employeeUsername = localStorage.getItem("employeeUsername");
+    const role = localStorage.getItem("employeeRole");
+    const employeeId = localStorage.getItem("employeeId");
+    console.log("Employee Id:", employeeId);
+    console.log("Position:", position);
+    console.log("Role:", role);
 
     if (!authToken) {
       Swal.fire({
@@ -77,72 +107,6 @@ const EmployeeDashboard = () => {
     };
   }, []);
 
-  // Fetch Active Session
-  const fetchActiveSession = async () => {
-    try {
-      const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.get(`http://localhost:7685/api/timetrack/active-session/${employeeId}`);
-      setActiveSession(response.data);
-    } catch (error) {
-      console.error("Error fetching active session:", error);
-    }
-  };
-
-  useEffect(() => {
-    const employeeId = localStorage.getItem("employeeId");
-    if (employeeId) {
-      fetchActiveSession();
-    }
-  }, []);
-
-  // Fetch Time Tracking History
-  useEffect(() => {
-    const fetchTimeTrackingHistory = async () => {
-      try {
-        const employeeId = localStorage.getItem("employeeId");
-        const response = await axios.get(`http://localhost:7685/api/timetrack/history/${employeeId}`);
-        setTimeTrackingHistory(response.data);
-      } catch (error) {
-        console.error("Error fetching time tracking history:", error);
-      }
-    };
-
-    fetchTimeTrackingHistory();
-  }, [activeSession]); // Refresh when active session changes
-
-  // Time In Function
-  const timeIn = async () => {
-    try {
-      const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.post("http://localhost:7685/api/timetrack/time-in", {
-        employee_id: employeeId,
-        entry_type: "System Entry"  // Add this line
-      });
-
-      setActiveSession(response.data.session);
-      Swal.fire("Success!", "Time In recorded successfully!", "success");
-    } catch (error) {
-      console.error("Error recording Time In:", error);
-      Swal.fire("Error!", error.response?.data?.message || "Failed to record Time In.", "error");
-    }
-  };
-
-  // Time Out Function
-  const timeOut = async () => {
-    try {
-      const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.put("http://localhost:7685/api/timetrack/time-out", {
-        employee_id: employeeId,
-      });
-
-      setActiveSession(null);
-      Swal.fire("Success!", "Time Out recorded successfully!", "success");
-    } catch (error) {
-      console.error("Error recording Time Out:", error);
-      Swal.fire("Error!", error.response?.data?.message || "Failed to record Time Out.", "error");
-    }
-  };
-
   return (
     <div className="flex">
       <EmployeeSidebar
@@ -166,128 +130,27 @@ const EmployeeDashboard = () => {
         )}
 
         {/* MAIN CONTENT */}
-        <div className="transition-all duration-300 ease-in-out flex-grow p-5">
-          {/* Welcome Card */}
-          <div className="card bg-base-100 shadow-xl mb-6">
-            <div className="card-body">
-              <h2 className="card-title text-2xl">
-                Welcome, {employeeFirstName} {employeeLastName}
-              </h2>
-              <p className="text-gray-600">
-                Department: <span className="badge badge-primary">{employeeDepartment}</span>
-              </p>
-            </div>
-          </div>
+        <div className="transition-all duration-300 bg-gray-100 ease-in-out flex-grow p-5 min-h-screen">
+          <div className="flex flex-col items-center p-5">
+          <h2 className="text-2xl font-bold mb-4">📅 {currentYear} Holiday Calendar</h2>
 
-          {/* Time Tracking Controls */}
-          <div className="card bg-base-100 shadow-xl mb-6">
-            <div className="card-body">
-              <h2 className="card-title mb-4">Time Tracking Controls</h2>
-              <div className="flex gap-4">
-                <button
-                  onClick={timeIn}
-                  disabled={activeSession !== null}
-                  className={`btn ${
-                    activeSession ? 'btn-disabled' : 'btn-success'
-                  }`}
-                >
-                  <i className="fas fa-sign-in-alt mr-2"></i> Time In
-                </button>
-                <button
-                  onClick={timeOut}
-                  disabled={activeSession === null}
-                  className={`btn ${
-                    !activeSession ? 'btn-disabled' : 'btn-error'
-                  }`}
-                >
-                  <i className="fas fa-sign-out-alt mr-2"></i> Time Out
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Active Session Card */}
-          {activeSession && (
-            <div className="card bg-base-100 shadow-xl mb-6">
-              <div className="card-body">
-                <h2 className="card-title text-success">
-                  <i className="fas fa-clock mr-2"></i> Active Session
-                </h2>
-                <div className="stats shadow">
-                  <div className="stat">
-                    <div className="stat-title">Time In</div>
-                    <div className="stat-value text-success">
-                      {new Date(activeSession.time_in).toLocaleTimeString()}
-                    </div>
-                    <div className="stat-desc">
-                      {new Date(activeSession.time_in).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Time Tracking History Table */}
-          <div className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title mb-4">Time Tracking History</h2>
-              <div className="overflow-x-auto">
-                <table className="table table-zebra w-full">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Time In</th>
-                      <th>Time Out</th>
-                      <th>Duration</th>
-                      <th>Overtime</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {timeTrackingHistory.map((record) => (
-                      <tr key={record._id}>
-                        <td>{new Date(record.time_in).toLocaleDateString()}</td>
-                        <td>{new Date(record.time_in).toLocaleTimeString()}</td>
-                        <td>
-                          {record.time_out
-                            ? new Date(record.time_out).toLocaleTimeString()
-                            : "-"}
-                        </td>
-                        <td>
-                          {record.total_hours
-                            ? formatDuration(record.total_hours)
-                            : "-"}
-                        </td>
-                        <td>
-                          {record.overtime_hours > 0 ? (
-                            <span className="text-orange-500 font-semibold">
-                              {formatDuration(record.overtime_hours)}
-                            </span>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              record.status === "active"
-                                ? "badge-success"
-                                : record.overtime_hours > 0
-                                ? "badge-warning"
-                                : "badge-neutral"
-                            }`}
-                          >
-                            {record.status}
-                            {record.overtime_hours > 0 && " (OT)"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <Calendar
+              onChange={setDate}
+              value={date}
+              tileContent={({ date }) => {
+                const dateStr = date.toISOString().split("T")[0];
+                return holidays[dateStr] ? (
+                  <span
+                    data-tooltip-id={`holiday-${dateStr}`}
+                    data-tooltip-content={holidays[dateStr]}
+                    className="text-red-500"
+                  >
+                    🎉
+                    <Tooltip id={`holiday-${dateStr}`} />
+                  </span>
+                ) : null;
+              }}
+            />
           </div>
         </div>
       </div>

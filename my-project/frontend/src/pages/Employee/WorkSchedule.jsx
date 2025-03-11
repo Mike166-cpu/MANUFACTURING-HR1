@@ -34,7 +34,7 @@ const WorkSchedule = () => {
   const navigate = useNavigate();
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
-  const LOCAL = "http://localhost:5000";
+  const LOCAL = "http://localhost:7685";
 
   useEffect(() => {
     document.title = "Work Schedule";
@@ -44,28 +44,19 @@ const WorkSchedule = () => {
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
     const employeeId = localStorage.getItem("employeeId");
 
-    console.log("First Name:", firstName, "Employee Id:", employeeId);
-    if (!authToken) {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "You are not logged in. Redirecting to Login Page",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => {
-        navigate("/employeelogin");
-      });
-    } else {
-      setEmployeeFirstName(firstName);
-      setEmployeeLastName(lastName);
-      setEmployeeDepartment(department);
-    }
-
     const fetchSchedules = async () => {
       try {
-        const response = await axios.get(`${APIBase_URL}/api/schedule/employee/${employeeId}`);
-        setSchedules(response.data || []);
+        // Updated API endpoint
+        const response = await axios.get(`${APIBase_URL}/api/schedule/findByEmployeeId/${employeeId}`);
+        console.log("Schedule data received:", response.data);
+        setSchedules(Array.isArray(response.data) ? response.data : [response.data]);
       } catch (error) {
-        console.error("Error fetching schedules:", error);
+        console.error("Error fetching schedules:", error.response?.data || error.message);
+        Swal.fire({
+          title: "Error",
+          text: "Failed to fetch schedule information",
+          icon: "error"
+        });
       }
     };
 
@@ -73,6 +64,8 @@ const WorkSchedule = () => {
       fetchSchedules();
     }
   }, [navigate]);
+
+
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);

@@ -37,6 +37,7 @@ const UploadRequirements = () => {
   const navigate = useNavigate();
 
   const LOCAL = "http://localhost:7685";
+  const APIBASED_URl = "https://backend-hr1.jjm-manufacturing.com";
 
   useEffect(() => {
     document.title = "Upload Requirements - Employee";
@@ -115,11 +116,11 @@ const UploadRequirements = () => {
 
   //Upload file to Cloudinary
   const handleUpload = async () => {
-    if (!file) {
+    if (!file || !selectedRequestId) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Please select a file first.",
+        text: "Please select both a file and a request.",
       });
       return;
     }
@@ -133,28 +134,27 @@ const UploadRequirements = () => {
       },
     });
 
-    if (!selectedRequestId) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Please select a request first.",
-      });
-      setUploading(false);
-      return;
-    }
-
     const data = new FormData();
     data.append("file", file);
     data.append("upload_preset", "HR1_UPLOADS");
     data.append("cloud_name", "da7oknctx");
 
-    const fileType = file.type.split("/")[0];
-    if (fileType !== "image") {
+    // Handle different file types
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    const documentTypes = ['pdf', 'doc', 'docx', 'txt', 'rtf'];
+    
+    // If file is a document type, set resource_type to 'raw'
+    if (documentTypes.includes(fileExtension)) {
+      data.append("resource_type", "raw");
+    } else if (file.type.startsWith('image/')) {
+      data.append("resource_type", "image");
+    } else {
       data.append("resource_type", "raw");
     }
 
     try {
-      const res = await fetch("https://api.cloudinary.com/v1_1/da7oknctx/upload", {
+      // Use auto upload endpoint for automatic type detection
+      const res = await fetch("https://api.cloudinary.com/v1_1/da7oknctx/auto/upload", {
         method: "POST",
         body: data,
         onUploadProgress: (progressEvent) => {
@@ -163,40 +163,57 @@ const UploadRequirements = () => {
         },
       });
 
+      if (!res.ok) {
+        throw new Error(`Upload failed with status: ${res.status}`);
+      }
+
       const uploadFile = await res.json();
-      setUploadedUrl(uploadFile.secure_url);
+      
+      if (!uploadFile.secure_url) {
+        throw new Error('No secure URL received from Cloudinary');
+      }
 
       const employeeId = localStorage.getItem("employeeId");
+      const currentRequest = documentRequests.find(req => req.request_id === selectedRequestId);
 
-      // Find existing document for this request
-      const existingDoc = uploadedDocuments.find(doc => doc.request_id === selectedRequestId);
-
-      if (existingDoc) {
-        // Update existing document
-        await axios.put(`${LOCAL}/api/uploaded-documents/${existingDoc._id}`, {
-          document_url: uploadFile.secure_url,
-          request_id: selectedRequestId
-        });
+      // Handle upload based on request status
+      if (currentRequest.status === "Rejected") {
+        // Update existing document for rejected requests
+        const existingDoc = uploadedDocuments.find(doc => doc.request_id === selectedRequestId);
+        if (existingDoc) {
+          await axios.put(`${APIBASED_URl}/api/uploaded-documents/${existingDoc._id}`, {
+            document_url: uploadFile.secure_url,
+            request_id: selectedRequestId,
+          });
+        } else {
+          // Create new document if somehow none exists
+          await axios.post(`${APIBASED_URl}/api/document-request/uploaded-documents`, {
+            employee_id: employeeId,
+            document_url: uploadFile.secure_url,
+            request_id: selectedRequestId,
+          });
+        }
       } else {
-        // Create new document
-        await axios.post(`${LOCAL}/api/document-request/uploaded-documents`, {
+        // Create new document record for non-rejected requests
+        await axios.post(`${APIBASED_URl}/api/document-request/uploaded-documents`, {
           employee_id: employeeId,
           document_url: uploadFile.secure_url,
           request_id: selectedRequestId,
         });
       }
 
-      // Update document request status
-      await axios.put(`${LOCAL}/api/document-request/${selectedRequestId}`, {
+      // Update request status to "Submitted for Approval"
+      await axios.put(`${APIBASED_URl}/api/document-request/${selectedRequestId}`, {
         status: "Submitted for Approval",
       });
 
-      // Refresh document requests
-      const updatedRequests = await axios.get(`${LOCAL}/api/document-request/${employeeId}`);
+      // Refresh data
+      const [updatedRequests, updatedUploads] = await Promise.all([
+        axios.get(`${APIBASED_URl}/api/document-request/${employeeId}`),
+        axios.get(`${APIBASED_URl}/api/uploaded-documents/employee/${employeeId}`)
+      ]);
+
       setDocumentRequests(updatedRequests.data);
-      
-      // Refresh uploaded documents
-      const updatedUploads = await axios.get(`${LOCAL}/api/uploaded-documents/employee/${employeeId}`);
       setUploadedDocuments(updatedUploads.data);
 
       setIsModalOpen(false);
@@ -212,9 +229,8 @@ const UploadRequirements = () => {
       Swal.fire({
         icon: "error",
         title: "Upload failed! ❌",
-        text: error.message,
-        showConfirmButton: false,
-        timer: 3000,
+        text: error.message || "Failed to upload file",
+        showConfirmButton: true,
       });
     } finally {
       setUploading(false);
@@ -235,10 +251,10 @@ const UploadRequirements = () => {
 
       try {
         const response = await axios.get(
-          `${LOCAL}/api/document-request/${employeeId}`
+          `${APIBASED_URl}/api/document-request/${employeeId}`
         );
         setDocumentRequests(response.data);
-        console.log("Document Requests:", response.data);
+        console.log("UPLOAD DITO:", response.data);
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching document requests:", error);
@@ -261,10 +277,9 @@ const UploadRequirements = () => {
 
       try {
         const response = await axios.get(
-          `${LOCAL}/api/uploaded-documents/employee/${employeeId}`
+          `${APIBASED_URl}/api/uploaded-documents/employee/${employeeId}`
         );
         setUploadedDocuments(response.data);
-        console.log("Uploaded Documents:", response.data);
       } catch (error) {
         console.error("Error fetching uploaded documents:", error);
       }
@@ -289,11 +304,11 @@ const UploadRequirements = () => {
   const getUploadButtonStatus = (status) => {
     switch (status) {
       case "Approved":
-        return { show: false, text: "", disabled: true }; // Removed redundant "Approved" text
+        return { show: false, text: "", disabled: true };
       case "Rejected":
-        return { show: true, text: "Upload Again", disabled: false };
-      case "Submitted for Approval":
-        return { show: false, text: "Under Review", disabled: true };
+      case "Submitted for Approval": // Allow upload even when under review
+      case "Pending":
+        return { show: true, text: "Upload", disabled: false };
       default:
         return { show: true, text: "Upload", disabled: false };
     }

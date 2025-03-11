@@ -4,6 +4,7 @@ import axios from "axios";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 import Swal from "sweetalert2";
+import Breadcrumbs from "../../Components/BreadCrumb";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -29,9 +30,11 @@ const RequestForm = () => {
   const [employeeUsername, setEmployeeUsername] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const navigate = useNavigate();
+
   const authToken = localStorage.getItem("employeeToken");
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
   const LOCAL = "http://localhost:7685";
+
   useEffect(() => {
     document.title = "Request Form";
     const authToken = localStorage.getItem("employeeToken");
@@ -40,8 +43,7 @@ const RequestForm = () => {
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
     const username = localStorage.getItem("employeeUsername") || "";
     const employeeId = localStorage.getItem("employeeId") || "";
-
-   
+    const position = localStorage.getItem("employeePosition") || "";
 
     if (!authToken) {
       Swal.fire({
@@ -61,8 +63,10 @@ const RequestForm = () => {
     // Pre-fill form data with user information
     setFormData((prevData) => ({
       ...prevData,
-      employee_username: username,
       employee_id: employeeId,
+      employee_firstname: firstName,
+      employee_lastname: lastName,
+      position: position,
     }));
   }, [navigate]);
 
@@ -71,7 +75,9 @@ const RequestForm = () => {
   };
 
   const [formData, setFormData] = useState({
-    employee_username: "",
+    position: "",
+    empoyee_firstname: "",
+    employee_lastname: "",
     employee_id: "",
     date: new Date().toISOString().split("T")[0],
     morning_time_in: "08:00", // Default morning start time
@@ -96,11 +102,7 @@ const RequestForm = () => {
     const selectedDate = new Date(dateString);
     const today = new Date();
     today.setHours(23, 59, 59, 999); // End of today
-    const pastWeek = new Date();
-    pastWeek.setDate(today.getDate() - 7);
-    pastWeek.setHours(0, 0, 0, 0); // Start of the day 7 days ago
-
-    return selectedDate >= pastWeek && selectedDate <= today;
+    return selectedDate <= today; // Allows past and present dates only
   };
 
   const getMinDate = () => {
@@ -123,6 +125,7 @@ const RequestForm = () => {
     e.preventDefault();
 
     const authToken = localStorage.getItem("employeeToken");
+    const employee_id = localStorage.getItem("employeeId");
 
     if (!authToken) {
       Swal.fire({
@@ -149,29 +152,41 @@ const RequestForm = () => {
     let overtimeHours = 0;
 
     if (formData.morning_time_in && formData.morning_time_out) {
-      const morningStart = new Date(`${formData.date}T${formData.morning_time_in}`);
-      const morningEnd = new Date(`${formData.date}T${formData.morning_time_out}`);
+      const morningStart = new Date(
+        `${formData.date}T${formData.morning_time_in}`
+      );
+      const morningEnd = new Date(
+        `${formData.date}T${formData.morning_time_out}`
+      );
       workDuration += (morningEnd - morningStart) / (1000 * 60 * 60); // Convert to hours
     }
 
     if (formData.afternoon_time_in && formData.afternoon_time_out) {
-      const afternoonStart = new Date(`${formData.date}T${formData.afternoon_time_in}`);
-      const afternoonEnd = new Date(`${formData.date}T${formData.afternoon_time_out}`);
+      const afternoonStart = new Date(
+        `${formData.date}T${formData.afternoon_time_in}`
+      );
+      const afternoonEnd = new Date(
+        `${formData.date}T${formData.afternoon_time_out}`
+      );
       workDuration += (afternoonEnd - afternoonStart) / (1000 * 60 * 60);
     }
 
     if (formData.overtime_start && formData.overtime_end) {
-      const overtimeStart = new Date(`${formData.date}T${formData.overtime_start}`);
+      const overtimeStart = new Date(
+        `${formData.date}T${formData.overtime_start}`
+      );
       const overtimeEnd = new Date(`${formData.date}T${formData.overtime_end}`);
       overtimeHours = (overtimeEnd - overtimeStart) / (1000 * 60 * 60);
     }
 
     try {
       const response = await axios.post(
-        `${LOCAL}/api/timetrack/manual-entry`,  // Changed endpoint
+        `${APIBASED_URL}/api/timetrack/manual-entry`, // Changed endpoint
         {
           employee_id: formData.employee_id,
-          employee_username: formData.employee_username,
+          position: formData.position,
+          employee_firstname: formData.employee_firstname,
+          employee_lastname: formData.employee_lastname,
           time_in: new Date(`${formData.date}T${formData.morning_time_in}`),
           time_out: new Date(`${formData.date}T${formData.afternoon_time_out}`),
           total_hours: workDuration,
@@ -179,7 +194,7 @@ const RequestForm = () => {
           status: "pending",
           remarks: formData.remarks,
           purpose: formData.purpose,
-          entry_type: "Manual Entry"
+          entry_type: "Manual Entry",
         },
         {
           headers: {
@@ -192,10 +207,12 @@ const RequestForm = () => {
       if (response.status === 201) {
         Swal.fire({
           title: "Success",
-          text: "Manual time entry submitted successfully",
+          text: response.data.is_holiday
+            ? "Manual time entry submitted successfully. Note: This was recorded on a holiday."
+            : "Manual time entry submitted successfully.",
           icon: "success",
         }).then(() => {
-          navigate("/employeedashboard");  // Changed navigation
+          navigate("/request-form");
         });
       }
     } catch (error) {
@@ -219,10 +236,12 @@ const RequestForm = () => {
       }
     }
   };
+
+  //FETCH DATA
   const fetchManualEntries = async () => {
     try {
       const response = await axios.get(
-        `${LOCAL}/api/ob/requests/${employeeId}`
+        `${APIBASED_URL}/api/ob/requests/${employeeId}`
       );
       console.log("Manual Entries:", response.data);
     } catch (error) {
@@ -230,13 +249,6 @@ const RequestForm = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("Employee ID:", employeeId); // Debugging
-    if (employeeId) {
-      fetchManualEntries();
-    }
-  }, [employeeId]);
-  
   return (
     <div className="flex">
       <EmployeeSidebar
@@ -272,7 +284,7 @@ const RequestForm = () => {
               <input
                 type="text"
                 name="employee_username"
-                value={formData.employee_username}
+                value={`${formData.employee_firstname} ${formData.employee_lastname}`}
                 className="input input-bordered w-full bg-gray-100"
                 readOnly
               />
@@ -299,7 +311,6 @@ const RequestForm = () => {
                 value={formData.date}
                 onChange={handleChange}
                 className="input input-bordered w-full"
-                min={getMinDate()}
                 max={getMaxDate()}
                 required
               />

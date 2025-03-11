@@ -65,23 +65,113 @@ const LeaveManagement = () => {
   });
   const [leaveBalance, setLeaveBalance] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [leaveStatusMap, setLeaveStatusMap] = useState({});
 
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
   const Local = "http://localhost:7685";
 
-  // FETCH ALL EMPLOYEES
+  // Add this new state for dashboard stats
+  const [dashboardStats, setDashboardStats] = useState({
+    onLeaveCount: 0,
+    pendingCount: 0,
+    approvedCount: 0,
+    totalEmployees: 0,
+  });
+
+  // Add this new function to fetch dashboard stats
+  const fetchDashboardStats = async () => {
+    try {
+      const [employeesRes, leavesRes] = await Promise.all([
+        axios.get(`${APIBASED_URL}/api/hr/employee-data`),
+        axios.get(`${APIBASED_URL}/api/leave/get-employees-leave`),
+      ]);
+
+      const today = new Date();
+      const leaves = leavesRes.data;
+
+      const stats = {
+        onLeaveCount: leaves.filter(
+          (leave) =>
+            leave.status === "Approved" &&
+            new Date(leave.start_date) <= today &&
+            new Date(leave.end_date) >= today
+        ).length,
+        pendingCount: leaves.filter((leave) => leave.status === "Pending")
+          .length,
+        approvedCount: leaves.filter((leave) => leave.status === "Approved")
+          .length,
+        totalEmployees: employeesRes.data.length,
+      };
+
+      setDashboardStats(stats);
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+    }
+  };
+
+  // // FETCH ALL EMPLOYEES
+  // useEffect(() => {
+  //   const fetchEmployees = async () => {
+  //     try {
+  //       const response = await axios.get(`${Local}/api/hr/employee-data`);
+  //       setEmployees(response.data);
+  //       setLoading(false);
+  //     } catch (error) {
+  //       console.error("Error fetching employees:", error);
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchEmployees();
+  // }, []);
+
+  const [employeeData, setEmployeeData] = useState([]);
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const employeeList = async () => {
       try {
-        const response = await axios.get(`${APIBASED_URL}/api/employee`);
-        setEmployees(response.data);
-        setLoading(false); // Set loading to false when data is fetched
+        const response = await axios.get(`${APIBASED_URL}/api/hr/employee-data`);
+        // Transform data to match EmployeeLoginModel schema
+        const transformedData = response.data.map((emp) => ({
+          _id: emp._id,
+          firstName: emp.employee_firstname || emp.firstName,
+          lastName: emp.employee_lastname || emp.lastName,
+          email: emp.employee_email || emp.email,
+          role: emp.employee_role || emp.role,
+          position: emp.employee_position || emp.position,
+          Hr: emp.Hr || 0,
+        }));
+        setEmployeeData(transformedData);
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching employees:", error);
         setLoading(false);
       }
     };
-    fetchEmployees();
+    employeeList();
+  }, []);
+
+  const fetchLeaveStatus = async () => {
+    try {
+      const response = await axios.get(
+        `${APIBASED_URL}/api/leave/employee-leave-status`
+      );
+      setLeaveStatusMap(response.data.leaveStatusMap);
+    } catch (error) {
+      console.error("Error fetching leave status:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await fetchDashboardStats();
+        await fetchLeaveStatus();
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -110,24 +200,18 @@ const LeaveManagement = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  // Pagination logic
-  const startIndex = (page - 1) * itemsPerPage;
-  const paginatedEmployees = employees.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
-
   const [selectedEmployeeLeaveData, setSelectedEmployeeLeaveData] =
     useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleRowClick = async (employee) => {
     setSelectedEmployee(employee); // Store the selected employee
-    await getEmployeeLeaveData(employee.employee_id);
-    await fetchLeaveBalance(employee.employee_id); // Optional: fetch leave balance
+    await getEmployeeLeaveData(employee._id); // Changed from employee.employee_id to employee._id
+    await fetchLeaveBalance(employee._id); // Changed from employee.employee_id to employee._id
     setIsViewingLeaveRecords(true);
   };
 
+  // FETCH EMPLOYEES LEAVE
   const getEmployeeLeaveData = async (id) => {
     try {
       const response = await axios.get(
@@ -210,18 +294,18 @@ const LeaveManagement = () => {
   };
 
   // Add function to handle leave type creation
-  const handleLeaveTypeSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${APIBASED_URL}/api/leave/leave-types`, newLeaveType);
-      setIsLeaveTypeModalOpen(false);
-      // Refresh leave types
-      const response = await axios.get(`${APIBASED_URL}/api/leave/leave-types`);
-      setLeaveTypes(response.data);
-    } catch (error) {
-      console.error("Error creating leave type:", error);
-    }
-  };
+  // const handleLeaveTypeSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     await axios.post(`${Local}/api/leave/leave-types`, newLeaveType);
+  //     setIsLeaveTypeModalOpen(false);
+  //     // Refresh leave types
+  //     const response = await axios.get(`${Local}/api/leave/leave-types`);
+  //     setLeaveTypes(response.data);
+  //   } catch (error) {
+  //     console.error("Error creating leave type:", error);
+  //   }
+  // };
 
   // Update the handleStatusUpdate function
   const handleStatusUpdate = async (leaveId, newStatus) => {
@@ -258,51 +342,51 @@ const LeaveManagement = () => {
   // Add this JSX before the main table in the leave records view
 
   // Update the table row in the leave records view to include action buttons
-  const updatedTableRow = (leave) => (
-    <tr key={leave._id} className="hover:bg-gray-50">
-      {/* ...existing columns... */}
-      <td className="border px-4 py-2">
-        {leave.status === "Pending" ? (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleStatusUpdate(leave._id, "Approved")}
-              className="px-2 py-1 bg-green-500 text-white rounded text-sm"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => handleStatusUpdate(leave._id, "Rejected")}
-              className="px-2 py-1 bg-red-500 text-white rounded text-sm"
-            >
-              Reject
-            </button>
-          </div>
-        ) : (
-          <span
-            className={`px-2 py-1 rounded-full text-sm ${
-              leave.status === "Approved"
-                ? "bg-green-100 text-green-800"
-                : leave.status === "Pending"
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-red-100 text-red-800"
-            }`}
-          >
-            {leave.status}
-          </span>
-        )}
-      </td>
-    </tr>
-  );
+  // const updatedTableRow = (leave) => (
+  //   <tr key={leave._id} className="hover:bg-gray-50">
+  //     {/* ...existing columns... */}
+  //     <td className="border px-4 py-2">
+  //       {leave.status === "Pending" ? (
+  //         <div className="flex gap-2">
+  //           <button
+  //             onClick={() => handleStatusUpdate(leave._id, "Approved")}
+  //             className="px-2 py-1 bg-green-500 text-white rounded text-sm"
+  //           >
+  //             Approve
+  //           </button>
+  //           <button
+  //             onClick={() => handleStatusUpdate(leave._id, "Rejected")}
+  //             className="px-2 py-1 bg-red-500 text-white rounded text-sm"
+  //           >
+  //             Reject
+  //           </button>
+  //         </div>
+  //       ) : (
+  //         <span
+  //           className={`px-2 py-1 rounded-full text-sm ${
+  //             leave.status === "Approved"
+  //               ? "bg-green-100 text-green-800"
+  //               : leave.status === "Pending"
+  //               ? "bg-yellow-100 text-yellow-800"
+  //               : "bg-red-100 text-red-800"
+  //           }`}
+  //         >
+  //           {leave.status}
+  //         </span>
+  //       )}
+  //     </td>
+  //   </tr>
+  // );
 
   // Add the "Configure Leave Types" button above the table
-  const configureButton = (
-    <button
-      onClick={() => setIsLeaveTypeModalOpen(true)}
-      className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-    >
-      Configure Leave Types
-    </button>
-  );
+  // const configureButton = (
+  //   <button
+  //     onClick={() => setIsLeaveTypeModalOpen(true)}
+  //     className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+  //   >
+  //     Configure Leave Types
+  //   </button>
+  // );
 
   const [isLeaveBalanceModalOpen, setIsLeaveBalanceModalOpen] = useState(false);
   const [leaveBalanceForm, setLeaveBalanceForm] = useState({
@@ -324,7 +408,7 @@ const LeaveManagement = () => {
 
     try {
       await axios.post(`${APIBASED_URL}/api/leave-balance/set-leave-balance`, {
-        employee_id: selectedEmployee.employee_id,
+        employee_id: selectedEmployee._id, // Changed from employee.employee_id to employee._id
         vacation_leave: parseInt(leaveBalanceForm.vacation_leave, 10),
         sick_leave: parseInt(leaveBalanceForm.sick_leave, 10),
       });
@@ -337,30 +421,28 @@ const LeaveManagement = () => {
       });
 
       // Refresh leave balance data
-      await fetchLeaveBalance(selectedEmployee.employee_id);
+      await fetchLeaveBalance(selectedEmployee._id); // Changed from employee.employee_id to employee._id
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Leave balance already exists for this employee",
-        });
-      } else {
-        console.error("Error setting leave balance:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: error.message || "Failed to set leave balance",
-        });
-      }
+      console.error("Error details:", error.response?.data);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.response?.data?.message || "Failed to set leave balance",
+      });
     }
   };
 
-  const handleUpdateLeaveBalance = async (employeeId, updatedLeaveBalance) => {
+  const handleUpdateLeaveBalance = async (employee_id, updatedLeaveBalance) => {
     try {
+      if (!selectedEmployee?._id) {
+        throw new Error("No employee selected");
+      }
       const response = await axios.put(
-        `${APIBASED_URL}/api/leave-balance/update-leave-balance/${employeeId}`,
-        updatedLeaveBalance
+        `${APIBASED_URL}/api/leave-balance/update-leave-balance/${employee_id}`,
+        {
+          vacation_leave: parseInt(updatedLeaveBalance.vacation_leave, 10),
+          sick_leave: parseInt(updatedLeaveBalance.sick_leave, 10),
+        }
       );
 
       if (response.status === 200) {
@@ -369,24 +451,22 @@ const LeaveManagement = () => {
           title: "Success!",
           text: "Leave balance updated successfully",
         });
-
-        // Update UI if necessary
-        // For example, you might want to refresh the leave balance data
+        await fetchLeaveBalance(selectedEmployee._id); // Changed from employee.employee_id to employee._id
       }
     } catch (error) {
       console.error("Error updating leave balance:", error);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Failed to update leave balance",
+        text: error.response?.data?.message || "Failed to update leave balance",
       });
     }
   };
 
-  const handleDeleteLeaveBalance = async (employeeId) => {
+  const handleDeleteLeaveBalance = async (employee_id) => {
     try {
       const response = await axios.delete(
-        `${APIBASED_URL}/api/leave-balance/delete-leave-balance/${employeeId}`
+        `${APIBASED_URL}/api/leave-balance/delete-leave-balance/${employee_id}`
       );
 
       if (response.status === 200) {
@@ -424,7 +504,7 @@ const LeaveManagement = () => {
       return;
     }
 
-    handleUpdateLeaveBalance(selectedEmployee.employee_id, leaveBalanceForm);
+    handleUpdateLeaveBalance(selectedEmployee._id, leaveBalanceForm);
   };
 
   const handleDeleteClick = () => {
@@ -447,24 +527,26 @@ const LeaveManagement = () => {
       confirmButtonText: "Yes, delete it!",
     }).then((result) => {
       if (result.isConfirmed) {
-        handleDeleteLeaveBalance(selectedEmployee.employee_id);
+        handleDeleteLeaveBalance(selectedEmployee._id);
       }
     });
   };
 
   // Add this function
-  const fetchLeaveBalance = async (id) => {
+  const fetchLeaveBalance = async (employee_id) => {
     try {
       const response = await axios.get(
-        `${APIBASED_URL}/api/leave-balance/get-leave-balance/${id}`
+        `${APIBASED_URL}/api/leave-balance/get-leave-balance/${employee_id}`
       );
       if (response.data && response.data.leaveBalance) {
-        setLeaveBalance(response.data.leaveBalance);
+        const leaveBalanceData = Array.isArray(response.data.leaveBalance)
+          ? response.data.leaveBalance[0]
+          : response.data.leaveBalance;
 
-        // Update form with current values
+        setLeaveBalance(leaveBalanceData);
         setLeaveBalanceForm({
-          vacation_leave: response.data.leaveBalance.vacation_leave || 0,
-          sick_leave: response.data.leaveBalance.sick_leave || 0,
+          vacation_leave: leaveBalanceData.vacation_leave || 0,
+          sick_leave: leaveBalanceData.sick_leave || 0,
         });
       }
     } catch (error) {
@@ -476,6 +558,123 @@ const LeaveManagement = () => {
       });
     }
   };
+
+  // Add these new state variables
+  const [leaveStats, setLeaveStats] = useState({
+    totalEmployees: 0,
+    activeLeaves: 0,
+    pendingRequests: 0,
+    totalLeaveRequests: 0,
+    sickLeaveCount: 0,
+    vacationLeaveCount: 0,
+  });
+
+  // Add this new useEffect to calculate statistics
+  useEffect(() => {
+    if (employees.length > 0) {
+      const stats = {
+        totalEmployees: employees.length,
+        onLeave: Object.values(leaveStatusMap).filter(
+          (status) => status.onLeave
+        ).length,
+        pendingRequests: 0,
+        approvedLeaves: 0,
+      };
+
+      // Calculate pending and approved leaves
+      employees.forEach((employee) => {
+        if (selectedEmployeeLeaveData) {
+          stats.pendingRequests += selectedEmployeeLeaveData.filter(
+            (leave) => leave.status === "Pending"
+          ).length;
+          stats.approvedLeaves += selectedEmployeeLeaveData.filter(
+            (leave) => leave.status === "Approved"
+          ).length;
+        }
+      });
+
+      setLeaveStats(stats);
+    }
+  }, [employees, leaveStatusMap, selectedEmployeeLeaveData]);
+
+  // Add new function to fetch leave statistics
+  const fetchLeaveStatistics = async () => {
+    try {
+      const [employeesResponse, leavesResponse] = await Promise.all([
+        axios.get(`${APIBASED_URL}/api/employee`),
+        axios.get(`${APIBASED_URL}/api/leave/get-employees-leave`),
+      ]);
+
+      const today = new Date();
+      const leaves = leavesResponse.data;
+
+      const stats = {
+        totalEmployees: employeesResponse.data.length,
+        activeLeaves: leaves.filter(
+          (leave) =>
+            leave.status === "Approved" &&
+            new Date(leave.end_date) >= today &&
+            new Date(leave.start_date) <= today
+        ).length,
+        pendingRequests: leaves.filter((leave) => leave.status === "Pending")
+          .length,
+        totalLeaveRequests: leaves.length,
+        sickLeaveCount: leaves.filter(
+          (leave) =>
+            leave.leave_type === "Sick Leave" && leave.status === "Approved"
+        ).length,
+        vacationLeaveCount: leaves.filter(
+          (leave) =>
+            leave.leave_type === "Vacation Leave" && leave.status === "Approved"
+        ).length,
+      };
+
+      setLeaveStats(stats);
+    } catch (error) {
+      console.error("Error fetching leave statistics:", error);
+    }
+  };
+
+  // Update useEffect to include statistics fetch
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await fetchLeaveStatistics();
+        await fetchLeaveStatus();
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departments, setDepartments] = useState([]);
+
+  useEffect(() => {
+    const uniqueDepartments = [
+      ...new Set(employees.map((emp) => emp.employee_department)),
+    ];
+    setDepartments(uniqueDepartments);
+  }, [employees]);
+
+  const filteredEmployees = employeeData.filter((employee) => {
+    const matchesSearch =
+      employee.firstName.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+      employee.lastName.toLowerCase().includes(employeeSearch.toLowerCase());
+    const matchesDepartment =
+      departmentFilter === "all" || employee.position === departmentFilter;
+    return matchesSearch && matchesDepartment;
+  });
+
+  const startIndex = (page - 1) * itemsPerPage;
+  const paginatedEmployees = filteredEmployees.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -493,15 +692,89 @@ const LeaveManagement = () => {
           ></div>
         )}
 
-
         {/* BREADCRUMBS */}
         <div className="bg-white pb-4 px-5">
           <BreadCrumbs />
-          <span className="px-4 font-bold text-2xl"> Manage Employee Leave</span>
+          <span className="px-4 font-bold text-2xl">
+            {" "}
+            Manage Employee Leave
+          </span>
         </div>
 
-        {/* Main Content */}
+        {/* Add Dashboard Stats Cards */}
         <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* Total Employees Card */}
+            <div className="bg-white rounded-lg p-6 border-l-4 border-blue-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Total Employees</p>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {dashboardStats.totalEmployees}
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <FaUsers className="text-blue-500 text-xl" />
+                </div>
+              </div>
+            </div>
+
+            {/* Currently on Leave Card */}
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">
+                    Currently on Leave
+                  </p>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {dashboardStats.onLeaveCount}
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-1">
+                    Active leaves today
+                  </p>
+                </div>
+                <div className="p-3 bg-yellow-100 rounded-full">
+                  <FaClock className="text-yellow-500 text-xl" />
+                </div>
+              </div>
+            </div>
+
+            {/* Pending Requests Card */}
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Pending Requests</p>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {dashboardStats.pendingCount}
+                  </p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Awaiting approval
+                  </p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-full">
+                  <FaExclamationTriangle className="text-orange-500 text-xl" />
+                </div>
+              </div>
+            </div>
+
+            {/* Approved Leaves Card */}
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Approved Leaves</p>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {dashboardStats.approvedCount}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">Total approved</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-full">
+                  <FaArrowRight className="text-green-500 text-xl" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Rest of your existing component code */}
           {isViewingLeaveRecords ? (
             <div>
               <button
@@ -530,7 +803,7 @@ const LeaveManagement = () => {
                     onClick={() => setIsLeaveBalanceModalOpen(false)}
                   ></div>
                   <div className="fixed inset-0 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full mx-4">
+                    <div className="bg-white p-6 rounded-xl max-w-md w-full mx-4">
                       <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold text-gray-800">
                           Manage Leave Balance
@@ -641,7 +914,7 @@ const LeaveManagement = () => {
                       <tr className="bg-gray-100">
                         <th
                           onClick={() => handleSort("leave_type")}
-                          className="border px-4 py-2 cursor-pointer hover:bg-gray-200"
+                          className="border py-1 cursor-pointer hover:bg-gray-200"
                         >
                           Leave Type{" "}
                           {sortConfig.key === "leave_type" &&
@@ -649,7 +922,7 @@ const LeaveManagement = () => {
                         </th>
                         <th
                           onClick={() => handleSort("start_date")}
-                          className="border px-4 py-2 cursor-pointer hover:bg-gray-200"
+                          className="border py-2 cursor-pointer hover:bg-gray-200"
                         >
                           Start Date{" "}
                           {sortConfig.key === "start_date" &&
@@ -657,7 +930,7 @@ const LeaveManagement = () => {
                         </th>
                         <th
                           onClick={() => handleSort("end_date")}
-                          className="border px-4 py-2 cursor-pointer hover:bg-gray-200"
+                          className="border py-2 cursor-pointer hover:bg-gray-200"
                         >
                           End Date{" "}
                           {sortConfig.key === "end_date" &&
@@ -666,7 +939,7 @@ const LeaveManagement = () => {
                         <th className="border px-4 py-2">Reason</th>
                         <th
                           onClick={() => handleSort("status")}
-                          className="border px-4 py-2 cursor-pointer hover:bg-gray-200"
+                          className="border py-2 cursor-pointer hover:bg-gray-200"
                         >
                           Status{" "}
                           {sortConfig.key === "status" &&
@@ -680,17 +953,15 @@ const LeaveManagement = () => {
                         sortConfig.key
                       ).map((leave) => (
                         <tr key={leave.leave_id} className="hover:bg-gray-50">
-                          <td className="border px-4 py-2">
-                            {leave.leave_type}
-                          </td>
-                          <td className="border px-4 py-2">
+                          <td className="border px-4">{leave.leave_type}</td>
+                          <td className="border px-4">
                             {new Date(leave.start_date).toLocaleDateString()}
                           </td>
-                          <td className="border px-4 py-2">
+                          <td className="border px-4">
                             {new Date(leave.end_date).toLocaleDateString()}
                           </td>
-                          <td className="border px-4 py-2">{leave.reason}</td>
-                          <td className="border px-4 py-2">
+                          <td className="border px-4 ">{leave.reason}</td>
+                          <td className="border px-4 ">
                             <span
                               className={`px-2 py-1 rounded-full text-sm ${
                                 leave.status === "Approved"
@@ -762,7 +1033,35 @@ const LeaveManagement = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full table-auto bg-white shadow-md rounded-lg">
+                  {/* Add this filter section above the table */}
+                  <div className="w-full mb-4 flex items-center gap-4">
+                    <div className="form-control flex-grow">
+                      <input
+                        type="text"
+                        placeholder="Search employee..."
+                        className="input input-bordered w-full"
+                        value={employeeSearch}
+                        onChange={(e) => setEmployeeSearch(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-control w-1/4 min-w-[200px]">
+                      <select
+                        className="select select-bordered w-full"
+                        value={departmentFilter}
+                        onChange={(e) => setDepartmentFilter(e.target.value)}
+                      >
+                        <option value="all">All Departments</option>
+                        {departments.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <table className="min-w-full table-auto bg-white rounded-lg">
                     <thead>
                       <tr className="bg-gray-200">
                         <th className="p-4 text-left">Name</th>
@@ -775,52 +1074,80 @@ const LeaveManagement = () => {
                       {paginatedEmployees.map((employee) => (
                         <tr
                           key={employee._id}
-                          className="border-b hover:bg-gray-100 text-sm"
+                          className={`border-b hover:bg-gray-100 text-sm ${
+                            leaveStatusMap[employee._id]?.onLeave
+                              ? "bg-yellow-50"
+                              : ""
+                          }`}
                         >
-                          <td className="p-4 capitalize">
-                            {employee.employee_firstname}{" "}
-                            {employee.employee_lastname}
+                          <td className="px-2 py-3 capitalize">
+                            <div className="flex flex-col">
+                              <span>
+                                {employee.firstName} {employee.lastName}
+                              </span>
+                              {leaveStatusMap[employee._id]?.onLeave && (
+                                <span className="text-xs font-medium py-1 rounded-full bg-yellow-100 text-yellow-800 inline-flex items-center mt-1">
+                                  On {leaveStatusMap[employee._id].leaveType}
+                                  <span className="ml-1 text-xs text-yellow-600">
+                                    (Until{" "}
+                                    {new Date(
+                                      leaveStatusMap[employee._id].endDate
+                                    ).toLocaleDateString()}
+                                    )
+                                  </span>
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="p-4">{employee.employee_email}</td>
-                          <td className="p-4">
-                            {employee.employee_department}
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              className="text-blue-500 hover:underline"
-                              onClick={() => handleRowClick(employee)}
-                            >
-                              View
-                            </button>
+                          <td className="py-3">{employee.email}</td>
+                          <td className="py-3">{employee.position}</td>
+                          <td className="text-center py-3">
+                            <div className="flex flex-row items-center gap-2">
+                              <button
+                                className="text-blue-500 hover:underline"
+                                onClick={() => handleRowClick(employee)}
+                              >
+                                View
+                              </button>
+                              <span
+                                className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                  leaveStatusMap[employee._id]?.onLeave
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-green-100 text-green-800"
+                                }`}
+                              >
+                                {leaveStatusMap[employee._id]?.onLeave
+                                  ? "On Leave"
+                                  : "Available"}
+                              </span>
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
 
-                  <div className="mt-4 flex justify-between items-center">
-                    <div className="text-sm text-gray-600">
+                  <div className="flex bg-white justify-between items-center px-6 py-4 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center text-sm">
                       Showing {startIndex + 1} to{" "}
                       {Math.min(startIndex + itemsPerPage, employees.length)} of{" "}
                       {employees.length} entries
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handlePageChange(page - 1)}
-                        disabled={page === 1}
-                        className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 disabled:opacity-50"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => handlePageChange(page + 1)}
-                        disabled={
-                          page === Math.ceil(employees.length / itemsPerPage)
-                        }
-                        className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 disabled:opacity-50"
-                      >
-                        Next
-                      </button>
+                    <div className="join">
+                      {Array.from(
+                        { length: Math.ceil(employees.length / itemsPerPage) },
+                        (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handlePageChange(i + 1)}
+                            className={`join-item text-sm btn ${
+                              page === i + 1 ? "btn-active" : ""
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>

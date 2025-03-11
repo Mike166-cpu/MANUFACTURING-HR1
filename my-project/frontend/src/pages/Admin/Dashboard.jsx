@@ -21,6 +21,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import { GiConsoleController } from "react-icons/gi";
 
 ChartJS.register(
   CategoryScale,
@@ -61,11 +62,16 @@ const Dashboard = () => {
     newEmployees: 0,
   });
   const [lastLogins, setLastLogins] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
 
-  const [count, setCount] = useState(0);
+  const firstName = localStorage.getItem('firstName');
+  console.log(firstName);
+
+
+  localStorage.getItem("gatewayToken");
+
 
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const Local = "http://localhost:7685";
 
   const colors = [
     "text-red-500",
@@ -191,46 +197,32 @@ const Dashboard = () => {
     return `${APIBASED_URL}${profilePath}`;
   };
 
-  //FETCH DATA ADMIN
-  // useEffect(() => {
-  //   const token = localStorage.getItem("adminToken");
-  //   if (!token) {
-  //     console.error("No token found in localStorage");
-  //     return;
-  //   }
-  //   axios
-  //     .get("http://localhost:7685/api/employee/protected", {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     })
-  //     .then((response) => {
-  //       // Log the real fetched data
-  //       console.log("Protected Data:", response.data);
-  //     })
-  //     .catch((error) => {
-  //       console.error("Error fetching protected data:", error);
-  //     });
-  // }, []);
-
-  //ALL APPROVED DATA TIME ENTRIES
-  const [approvedData, setApprovedData] = useState([]);
-
-  // useEffect(() => {
-  //   axios
-  //     .get("http://localhost:7685/api/time-tracking/get-all/approved") // Fetch only approved entries
-  //     .then((response) => {
-  //       console.log("Approved Time Tracking Data:", response.data); // Log in frontend console
-  //       setApprovedData(response.data); // Store in state
-  //     })
-  //     .catch((error) =>
-  //       console.error("Error fetching approved time tracking data:", error)
-  //     );
-  // }, []);
+  // FETCH DATA ADMIN
+  useEffect(() => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      console.error("No token found in localStorage");
+      return;
+    }
+    axios
+      .get(`${APIBASED_URL}/api/employee/protected`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: true,
+      })
+      .then((response) => {
+        // // Log the real fetched data
+        // console.log("Protected Data:", response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching protected data:", error);
+      });
+  }, []);
 
   // FETCH ALL APPROVED DOCUMENTS
   const fetchApprovedRequests = async () => {
     try {
       const response = await fetch(
-        "http://localhost:7685/api/uploaded-documents/approved"
+        `${APIBASED_URL}/api/uploaded-documents/approved`
       );
       const data = await response.json();
       // console.log("Approved Documents in Frontend:", data);
@@ -243,24 +235,6 @@ const Dashboard = () => {
     fetchApprovedRequests();
   }, []);
 
-  // FETCH ALL TIME RECORDS
-  const [approveRecods, setApproveRecords] = useState([]);
-  useEffect(() => {
-    const fetchAllTimeSessions = async () => {
-      try {
-        const response = await fetch(
-          "http://localhost:7685/api/timetrack/approveSessions"
-        );
-        const data = await response.json();
-        console.log("Approve Time Session:", data);
-        setApproveRecords(data);
-      } catch (error) {
-        console.error("Error fetching all time tracking data:", error);
-      }
-    };
-
-    fetchAllTimeSessions(); 
-  }, []);
 
   return (
     <div className="flex min-h-screen">

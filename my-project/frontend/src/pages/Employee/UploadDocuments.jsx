@@ -189,7 +189,7 @@ const UploadDocuments = () => {
         }
 
         const response = await axios.get(
-          `${APIBase_URL}/api/documents?employeeId=${employeeId}`
+          `${APIBase_URL}/api/s?employeeId=${employeeId}`
         );
         setUploadedFiles(response.data);
       } catch (error) {

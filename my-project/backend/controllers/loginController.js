@@ -1,4 +1,4 @@
-
+//##ADMIN SIDE
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -38,3 +38,5 @@ const loginUser = async (req, res) => {
 module.exports = {
   loginUser
 };
+
+//ADMIN CHECHAUTH

@@ -49,7 +49,7 @@ const EmployeeSchedule = () => {
     const fetchEmployees = async () => {
       try {
         const token = localStorage.getItem("adminToken");
-        const response = await fetch(`${APIBASE_URL}/api/employee`, {
+        const response = await fetch(`${APIBASE_URL}/api/hr/employee-data`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -263,14 +263,15 @@ const EmployeeSchedule = () => {
       const scheduleData = {
         ...newSchedule,
         employeeId: selectedEmployee._id,
-        employee_id: selectedEmployee.employee_id,
-        first_name: selectedEmployee.employee_firstname,
-        last_name: selectedEmployee.employee_lastname,
+        firstName: selectedEmployee.firstName,
+        lastName: selectedEmployee.lastName,
+        email: selectedEmployee.email,
+        position: selectedEmployee.position
       };
 
       const url = editingSchedule
         ? `${APIBASE_URL}/api/schedule/${editingSchedule._id}`
-        : `${APIBASE_URL}/api/schedule`;
+        : `${APIBASE_URL}/api/schedule/assign`; // Changed to use /assign endpoint
 
       const method = editingSchedule ? "PUT" : "POST";
 
@@ -282,24 +283,22 @@ const EmployeeSchedule = () => {
         body: JSON.stringify(scheduleData),
       });
 
-      if (response.ok) {
-        fetchSchedules(selectedEmployee._id);
-        setNewSchedule({ days: [], startTime: "08:00", endTime: "17:00" });
-        setEditingSchedule(null);
-        setIsModalOpen(false);
-        Swal.fire({
-          title: "Success",
-          text: `Schedule ${
-            editingSchedule ? "updated" : "created"
-          } successfully`,
-          icon: "success",
-          confirmButtonText: "OK",
-        });
-      } else {
-        throw new Error(
-          `Failed to ${editingSchedule ? "update" : "create"} schedule`
-        );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create schedule");
       }
+
+      const data = await response.json();
+      fetchSchedules(selectedEmployee._id);
+      setNewSchedule({ days: [], startTime: "08:00", endTime: "17:00" });
+      setEditingSchedule(null);
+      setIsModalOpen(false);
+      Swal.fire({
+        title: "Success",
+        text: data.message,
+        icon: "success",
+        confirmButtonText: "OK",
+      });
     } catch (error) {
       console.error(
         `Error ${editingSchedule ? "updating" : "creating"} schedule:`,
@@ -327,7 +326,7 @@ const EmployeeSchedule = () => {
       });
 
       if (result.isConfirmed) {
-        const response = await fetch(`${Local}/api/schedule/${scheduleId}`, {
+        const response = await fetch(`${APIBASE_URL}/api/schedule/${scheduleId}`, {
           method: "DELETE",
         });
 
@@ -495,7 +494,7 @@ const EmployeeSchedule = () => {
                   <h2 className="text-2xl font-bold text-gray-900">
                     Schedule for{" "}
                     <span className="text-blue-600 capitalize">
-                      {selectedEmployee.employee_firstname}
+                      {selectedEmployee.firstName}
                     </span>
                   </h2>
                   <button
@@ -704,8 +703,8 @@ const EmployeeSchedule = () => {
                       onChange={(e) => setSelectedDepartment(e.target.value)}
                     >
                       <option value="all">All Departments</option>
-                      {departments.map((dept) => (
-                        <option key={dept} value={dept}>
+                      {departments.map((dept, index) => (
+                        <option key={`dept-${index}-${dept}`} value={dept}>
                           {dept}
                         </option>
                       ))}
@@ -737,25 +736,25 @@ const EmployeeSchedule = () => {
                             className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                             onClick={() => sortData("employee_id")}
                           >
-                            ID <SortIndicator column="employee_id" />
+                            Name <SortIndicator column="employee_id" />
                           </th>
                           <th
                             className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                             onClick={() => sortData("employee_firstname")}
                           >
-                            Name <SortIndicator column="employee_firstname" />
+                            Email <SortIndicator column="employee_firstname" />
                           </th>
                           <th
                             className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                             onClick={() => sortData("employee_email")}
                           >
-                            Email <SortIndicator column="employee_email" />
+                            Role <SortIndicator column="employee_email" />
                           </th>
                           <th
                             className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                             onClick={() => sortData("employee_department")}
                           >
-                            Department{" "}
+                            Position{" "}
                             <SortIndicator column="employee_department" />
                           </th>
                         </tr>
@@ -782,22 +781,22 @@ const EmployeeSchedule = () => {
                         ) : (
                           getSortedData().map((employee, index) => (
                             <tr
-                              key={employee.employee_id || `employee-${index}`}
+                              key={employee._id || `employee-${index}`}
                               className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
                               onClick={() => handleRowClick(employee)}
                             >
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {employee.employee_id || "N/A"}
+                                {employee.firstName || "N/A"}{" "}{employee.lastName || "N/A"}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                                {employee.employee_firstname || "N/A"}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 ">
+                                {employee.email || "N/A"}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {employee.employee_email || "N/A"}
+                                {employee.role || "N/A"}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  {employee.employee_department || "N/A"}
+                                  {employee.position || "N/A"}
                                 </span>
                               </td>
                             </tr>

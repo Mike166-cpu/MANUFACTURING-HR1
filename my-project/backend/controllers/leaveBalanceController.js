@@ -34,7 +34,7 @@ exports.updateLeaveBalance = async (req, res) => {
     const { employee_id } = req.params;
     const { vacation_leave, sick_leave } = req.body;
 
-    const leaveBalance = await LeaveBalance.findOne({ employee_id });
+    const leaveBalance = await LeaveBalance.findOne({ employee_id});
 
     if (!leaveBalance) {
       return res.status(404).json({ message: "Leave balance not found" });
@@ -53,11 +53,13 @@ exports.updateLeaveBalance = async (req, res) => {
     res.status(500).json({ message: "Error updating leave balance", error: error.message });
   }
 };
+
+
 // Get leave balance for a specific employee
 exports.getLeaveBalance = async (req, res) => {
   try {
-    const { id } = req.params;
-    const leaveBalance = await LeaveBalance.find({ employee_id: id });
+    const { employee_id } = req.params;
+    const leaveBalance = await LeaveBalance.findOne({ employee_id: employee_id });
 
     if (!leaveBalance) {
       return res.status(404).json({ message: "Leave balance not found" });
@@ -73,7 +75,7 @@ exports.getLeaveBalance = async (req, res) => {
 exports.deleteLeaveBalance = async (req, res) => {
   try {
     const { employee_id } = req.params;
-    const result = await LeaveBalance.findOneAndDelete({ employee_id });
+    const result = await LeaveBalance.findOneAndDelete({ employee_id: employee_id });
 
     if (!result) {
       return res.status(404).json({ message: "Leave balance not found" });

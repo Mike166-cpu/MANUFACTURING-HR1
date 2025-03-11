@@ -63,12 +63,11 @@ const RequestDocuments = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${LOCAL}/api/employee`);
-        setEmployees(
-          Array.isArray(response.data)
-            ? response.data
-            : response.data.employees || []
-        );
+        const response = await axios.get(`${APIBASED_URL}/api/hr/employee-data`);
+        const employeeData = Array.isArray(response.data)
+          ? response.data
+          : response.data.employees || [];
+        setEmployees(employeeData);
       } catch (error) {
         console.error("Error fetching employees:", error);
       }
@@ -76,7 +75,7 @@ const RequestDocuments = () => {
 
     const fetchDocumentRequests = async () => {
       try {
-        const response = await axios.get(`${LOCAL}/api/document-request`);
+        const response = await axios.get(`${APIBASED_URL}/api/document-request`);
         setDocumentRequests(response.data);
       } catch (error) {
         console.error("Error fetching document requests:", error);
@@ -96,34 +95,40 @@ const RequestDocuments = () => {
     }
 
     try {
-      await axios.post(`${LOCAL}/api/document-request`, {
+      const payload = {
         employee_id: selectedEmployee,
-        document_name: documentName,
-      });
+        document_name: documentName
+      };
+      console.log("Sending request:", payload); // Debug log
+
+      const response = await axios.post(`${APIBASED_URL}/api/document-request`, payload);
+      console.log("Response:", response.data); // Debug log
 
       toast.success("Request submitted successfully!");
       setDocumentName("");
       setSelectedEmployee("");
-      setIsModalOpen(false); // Close modal after submitting
+      setIsModalOpen(false);
 
-      const response = await axios.get(`${LOCAL}/api/document-request`);
-      setDocumentRequests(response.data);
+      // Refresh the document requests
+      const refreshResponse = await axios.get(`${APIBASED_URL}/api/document-request`);
+      console.log("Refreshed requests:", refreshResponse.data); // Debug log
+      setDocumentRequests(refreshResponse.data);
     } catch (error) {
       console.error("Error submitting request:", error);
-      toast.error("Failed to submit request.");
+      toast.error(error.response?.data?.message || "Failed to submit request.");
     }
   };
 
   const handleStatusUpdate = async (requestId, newStatus) => {
     try {
-      await axios.put(`${LOCAL}/api/document-request/${requestId}`, {
+      await axios.put(`${APIBASED_URL}/api/document-request/${requestId}`, {
         status: newStatus,
       });
 
       toast.success(`Request ${newStatus.toLowerCase()} successfully!`);
 
       // Refresh the document requests
-      const response = await axios.get(`${LOCAL}/api/document-request`);
+      const response = await axios.get(`${APIBASED_URL}/api/document-request`);
       setDocumentRequests(response.data);
     } catch (error) {
       console.error("Error updating request status:", error);
@@ -133,11 +138,11 @@ const RequestDocuments = () => {
 
   const handleDeleteRequest = async (requestId) => {
     try {
-      await axios.delete(`${LOCAL}/api/document-request/${requestId}`);
+      await axios.delete(`${APIBASED_URL}/api/document-request/${requestId}`);
       toast.success("Request deleted successfully!");
 
       // Refresh the document requests
-      const response = await axios.get(`${LOCAL}/api/document-request`);
+      const response = await axios.get(`${APIBASED_URL}/api/document-request`);
       setDocumentRequests(response.data);
     } catch (error) {
       console.error("Error deleting request:", error);
@@ -200,7 +205,7 @@ const RequestDocuments = () => {
   const fetchUploadedDocuments = async (requestId) => {
     try {
       const response = await axios.get(
-        `${LOCAL}/api/uploaded-documents/request/${requestId}`
+        `${APIBASED_URL}/api/uploaded-documents/request/${requestId}`
       );
       if (response.data && response.data.documents) {
         setSelectedDocuments(response.data.documents);
@@ -308,7 +313,7 @@ const RequestDocuments = () => {
                             </td>
                             <td className="font-medium capitalize">
                               {employee
-                                ? `${employee.employee_firstname} ${employee.employee_lastname}`
+                                ? `${employee.firstName} ${employee.lastName}`
                                 : "Unknown"}
                             </td>
                             <td className="hidden md:table-cell">
@@ -426,12 +431,16 @@ const RequestDocuments = () => {
                       className="select select-bordered w-full"
                     >
                       <option value="">Select Employee</option>
-                      {employees.map((employee) => (
-                        <option key={employee._id} value={employee.employee_id}>
-                          {employee.employee_firstname}{" "}
-                          {employee.employee_lastname}
-                        </option>
-                      ))}
+                      {employees && employees.length > 0 ? (
+                        employees.map((employee) => (
+                          <option key={employee._id} value={employee._id}>
+                            {employee.firstName}{" "}
+                            {employee.lastName}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>Loading employees...</option>
+                      )}
                     </select>
                   </div>
 

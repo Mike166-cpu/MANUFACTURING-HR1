@@ -4,10 +4,10 @@ const jwt = require("jsonwebtoken");
 
 exports.loginEmployee = async (req, res) => {
   console.log("Login request received");
-  const { employee_username, employee_password } = req.body;
+  const { employee_email, employee_password } = req.body;
 
   try {
-    const employee = await Employee.findOne({ employee_username });
+    const employee = await Employee.findOne({ employee_email });
     console.log("Fetched employee data:", employee);
 
     if (!employee) {
@@ -28,9 +28,9 @@ exports.loginEmployee = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: employee._id, username: employee.employee_username },
+      { id: employee._id, email: employee.employee_email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" } // Token expires in 1 hour
+      { expiresIn: "1h" }
     );
 
     // Update online status and timestamps
@@ -62,3 +62,43 @@ exports.logoutEmployee = async (req, res) => {
   res.clearCookie("employeeToken");
   res.json({ message: "Employee logged out" });
 };
+
+exports.checkAuth = async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ 
+      isAuthenticated: false,
+      message: "No token provided" 
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const employee = await Employee.findById(decoded.id);
+
+    if (!employee) {
+      return res.status(404).json({ 
+        isAuthenticated: false,
+        message: "Employee not found" 
+      });
+    }
+
+    return res.json({
+      isAuthenticated: true,
+      employee: {
+        id: employee._id,
+        email: employee.employee_email,
+        firstName: employee.employee_firstname,
+        lastName: employee.employee_lastname
+      }
+    });
+  } catch (error) {
+    return res.status(401).json({ 
+      isAuthenticated: false,
+      message: "Invalid token" 
+    });
+  }
+};
+
+

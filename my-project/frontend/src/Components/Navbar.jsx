@@ -200,7 +200,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
         {/* User Info */}
         <div>
           <span className="text-xs font-medium">
-            {firstName} <br />
+            {firstName} {lastName} <br />
             <span className="block text-gray-400 capitalize">{userRole}</span>
           </span>
         </div>

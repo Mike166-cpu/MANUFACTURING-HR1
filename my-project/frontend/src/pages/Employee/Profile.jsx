@@ -237,7 +237,7 @@ const Profile = () => {
 
     try {
       // Changed from LOCAL to APIBase_URL
-      const response = await fetch(`${LOCAl}/api/user/change-password`, {
+      const response = await fetch(`${APIBase_URL}/api/user/change-password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

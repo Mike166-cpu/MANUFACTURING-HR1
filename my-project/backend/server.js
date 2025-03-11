@@ -25,6 +25,9 @@ const logoutRoutes = require("./routes/auth/logout");
 const documentRequest = require("./routes/documentRoutes");
 const uploadedDocument = require ("./routes/uploadedDocumentRoutes");
 const timeTracking = require("./routes/timeTrackingRoutes");
+const integrationRoutes = require("./routes/integrationRoutes");
+const resignationRoutes = require("./routes/resignationRoutes"); 
+
 
 const app = express();
 app.use(express.json());
@@ -90,6 +93,9 @@ app.use("/api/auth", logoutRoutes);
 app.use("/api/document-request", documentRequest);
 app.use("/api/uploaded-documents", uploadedDocument)
 app.use("/api/timetrack", timeTracking);
+app.use("/api/resignation", resignationRoutes);
+
+app.use("/api/hr", integrationRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

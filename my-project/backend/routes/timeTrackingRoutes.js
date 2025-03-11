@@ -3,42 +3,82 @@ const TimeTracking = require("../models/TimeTracking");
 const router = express.Router();
 const Schedule = require("../models/Schedule"); // Import the Schedule model
 const timeTrackingController = require("../controllers/timeTrackingController");
+const { generateServiceToken } = require("../middleware/gatewayTokenGenerator");
 const { formatDuration } = require("../utils/formatDuration");
+const jwt = require("jsonwebtoken");
+const axios = require("axios");
+const { isHoliday } = require("../utils/holiday");
 
 // Time In
 router.post("/time-in", async (req, res) => {
   try {
-    const { employee_id } = req.body;
+    const {
+      employee_id,
+      employee_firstname,
+      employee_lastname,
+      position,
+    } = req.body;
+    
 
-    // Get current date and time
+    if (!employee_id) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: employee_id is required",
+      });
+    }
     const now = new Date();
-    const currentDay = now.toLocaleDateString("en-US", { weekday: "long" });
-    const currentHour = now.getHours();
+    // Convert to local time
+    const localTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const currentHour = localTime.getHours();
+    const currentMinute = localTime.getMinutes();
+    const currentDay = localTime.toLocaleDateString("en-US", { weekday: "long" });
+
+    // Format date for holiday check (YYYY-MM-DD)
+    const formattedDate = localTime.toISOString().split('T')[0];
+
+    const holiday = isHoliday(formattedDate);
+    const is_holiday = holiday ? true : false;
+    const holiday_name = holiday ? holiday.name : null;
+
+    if (is_holiday) {
+      return res.status(400).json({
+        message: `Today is ${holiday_name}. Time-in is not allowed on holidays.`,
+        holiday_name,
+      });
+    }
+
+    if (currentHour < 8 || (currentHour === 17 && currentMinute > 0) || currentHour > 17) {
+      return res.status(400).json({
+        message: "Time-in is only allowed between 8:00 AM and 5:00 PM",
+        currentTime: `${currentHour}:${currentMinute.toString().padStart(2, '0')}`
+      });
+    }
 
     // Fetch employee schedule
-    const schedule = await Schedule.findOne({ employee_id });
+    const schedule = await Schedule.findOne({ employeeId: employee_id });
+
+    // Debug schedule
+    console.log("Schedule found:", schedule);
+    console.log("Current day:", currentDay);
 
     if (!schedule) {
-      return res
-        .status(404)
-        .json({ message: "No schedule found for this employee" });
+      return res.status(404).json({ 
+        message: "No schedule found for this employee. Please contact your administrator." 
+      });
     }
+
+    // Debug working days
+    console.log("Working days:", schedule.days);
+    console.log("Is working day:", schedule.days.includes(currentDay));
 
     // Check if the current day is a working day
     if (!schedule.days.includes(currentDay)) {
-      return res
-        .status(400)
-        .json({ message: "You are not scheduled to work today" });
+      return res.status(400).json({ 
+        message: `You are not scheduled to work on ${currentDay}` 
+      });
     }
 
-    // Check if the current time is within the allowed time-in window (8 AM to 5 PM)
-    if (currentHour < 8 || currentHour >= 17) {
-      return res
-        .status(400)
-        .json({ message: "You can only time in between 8 AM and 5 PM" });
-    }
-
-    // Check if there's already an active session
+    // Check for existing active session
     const activeSession = await TimeTracking.findOne({
       employee_id,
       status: "active",
@@ -50,19 +90,47 @@ router.post("/time-in", async (req, res) => {
       });
     }
 
+    // Calculate minutes past 8:15 AM for late status
+    const scheduleStart = new Date(localTime);
+    scheduleStart.setHours(8, 15, 0, 0); // 8:15 AM cutoff
+
+    const isLate = localTime > scheduleStart;
+    const minutesLate = isLate ? Math.floor((localTime - scheduleStart) / 60000) : 0;
+
+    // Create new entry with timezone-aware calculations
     const newEntry = new TimeTracking({
       employee_id,
-      time_in: new Date(),
+      employee_firstname,
+      employee_lastname,
+      position,
+      time_in: localTime,
       status: "active",
+      entry_type: "System Entry",
+      entry_status: isLate ? "late" : "on_time",
+      minutes_late: minutesLate,
+      schedule_start: "08:00",
+      schedule_end: "17:00",
+      is_holiday,
+      holiday_name,
+      timezone: "Asia/Manila" // Store timezone information
     });
+
     await newEntry.save();
 
     res.status(201).json({
-      message: "Time In recorded successfully!",
+      message: isLate 
+        ? `Time In recorded successfully! Note: You are late by ${minutesLate} minutes`
+        : "Time In recorded successfully!",
       session: newEntry,
+      serverTime: localTime.toLocaleString('en-US', { timeZone: 'Asia/Manila' })
     });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Time-in error:", error);
+    res.status(500).json({
+      message: "Failed to record time in",
+      error: error.message,
+    });
   }
 });
 
@@ -82,29 +150,58 @@ router.put("/time-out", async (req, res) => {
       });
     }
 
-    activeSession.time_out = new Date();
+    const timeOut = new Date();
+    activeSession.time_out = timeOut;
 
-    // Calculate total hours
-    let totalHours =
-      (activeSession.time_out - activeSession.time_in) / (1000 * 60 * 60);
+    // Calculate total duration in hours
+    const totalDurationHours =
+      (timeOut - activeSession.time_in) / (1000 * 60 * 60);
 
-    // Check if time out is after 5 PM
-    const timeOutHour = activeSession.time_out.getHours();
-    if (timeOutHour >= 17) {
-      const overtime =
-        timeOutHour - 17 + activeSession.time_out.getMinutes() / 60;
-      activeSession.overtime_hours = Math.max(0, overtime);
-      totalHours -= 1;
-      activeSession.break_duration = 3600; // 1 hour in seconds
+    // Calculate overtime (hours worked after 5 PM)
+    let overtimeHours = 0;
+    let regularHours = totalDurationHours;
+
+    // Create 5 PM datetime for comparison
+    const fivePM = new Date(timeOut);
+    fivePM.setHours(17, 0, 0, 0);
+
+    // If time out is after 5 PM
+    if (timeOut > fivePM) {
+      // Calculate overtime only for the portion after 5 PM
+      overtimeHours = (timeOut - fivePM) / (1000 * 60 * 60);
+
+      // Adjust regular hours by subtracting overtime
+      regularHours = (fivePM - activeSession.time_in) / (1000 * 60 * 60);
+
+      console.log("Debug - Overtime calculation:", {
+        timeOut: timeOut.toLocaleTimeString(),
+        fivePM: fivePM.toLocaleTimeString(),
+        overtimeHours,
+        regularHours,
+      });
     }
 
-    activeSession.total_hours = totalHours;
-    activeSession.status = "pending"; // Changed from 'completed' to 'pending'
+    // Only deduct break hour if total duration is more than 5 hours
+    if (totalDurationHours > 5) {
+      regularHours = Math.max(0, regularHours - 1); // Deduct 1 hour break
+      activeSession.break_duration = 3600; // 1 hour in seconds
+    } else {
+      activeSession.break_duration = 0;
+    }
+
+    // Update session with calculated hours (rounded to 2 decimal places)
+    activeSession.total_hours = Math.round(regularHours * 100) / 100;
+    activeSession.overtime_hours = Math.round(overtimeHours * 100) / 100;
+    activeSession.status = "pending";
+
     await activeSession.save();
 
     res.status(200).json({
       message: "Time Out recorded successfully! Waiting for approval.",
       session: activeSession,
+      regularHours: activeSession.total_hours,
+      overtimeHours: activeSession.overtime_hours,
+      breakDuration: activeSession.break_duration ? "1 hour" : "No break",
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -213,11 +310,27 @@ router.put("/admin/update-status/:sessionId", async (req, res) => {
   }
 });
 
-router.get("/approveSessions", async (req, res) => {
+const verifyToken = (req, res, next) => {
+  const bearerHeader = req.header("Authorization");
+  if (!bearerHeader) {
+    return res.status(401).json({ message: "No token, authorization denied" });
+  }
+
+  const token = bearerHeader.replace("Bearer ", "");
+
+  try {
+    const decoded = jwt.verify(token, process.env.GATEWAY_SERVICE_TOKEN);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+router.get("/approveSessions", verifyToken, async (req, res) => {
   try {
     const sessions = await TimeTracking.find({ status: "approved" });
 
-    // Format the total_hours for each session
     const formattedSessions = sessions.map((session) => ({
       ...session._doc,
       total_hours: formatDuration(session.total_hours),
@@ -231,7 +344,9 @@ router.get("/approveSessions", async (req, res) => {
   }
 });
 
-// Add route for manual entry
+
+
 router.post("/manual-entry", timeTrackingController.createManualEntry);
+
 
 module.exports = router;

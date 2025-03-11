@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 // ADMIN IMPORTS
 import LoginForm from "./Components/LoginForm";
 import SignUpForm from "./Components/SignUpForm";
@@ -41,6 +43,8 @@ import ResignationForm from "./pages/Employee/ResignationForm.jsx";
 import UploadRequiremens from "./pages/Employee/UploadRequirements.jsx";
 import TimeTracking from "./pages/Employee/TimeTracking.jsx";
 
+//HR LOGIN
+import HumanResources from "./pages/HumanResources.jsx";
 
 
 //Template
@@ -118,7 +122,10 @@ function App() {
           <Route path="/request-documents" element={<ProtectedRoute><RequestDocuments /></ProtectedRoute>} />
           <Route path="/admin-template" element={<ProtectedRoute><AdminTemplate /></ProtectedRoute>} />
           <Route path="/resignation-request" element={<ProtectedRoute><ResignationRequest /></ProtectedRoute>} />
+          <Route path="/admin-template" element={<ProtectedRoute><AdminTemplate /></ProtectedRoute>} />
           
+          {/* HR LOGIN */}
+          <Route path="/hr-login" element={<HumanResources />} />
        
           
 

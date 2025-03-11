@@ -23,9 +23,6 @@ const useMediaQuery = (query) => {
 const ResignationForm = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isMobileView = useMediaQuery("(max-width: 768px)");
-  const [employeeFirstName, setEmployeeFirstName] = useState("");
-  const [employeeLastName, setEmployeeLastName] = useState("");
-  const [employeeDepartment, setEmployeeDepartment] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {

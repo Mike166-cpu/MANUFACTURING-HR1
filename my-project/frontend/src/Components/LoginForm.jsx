@@ -5,7 +5,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../src/assets/logo-2.png";
 import Swal from "sweetalert2";
 import ReCAPTCHA from "react-google-recaptcha";
-import { loginUser } from "../store/authStore";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -17,10 +16,12 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+
   useEffect(() => {
     document.title = "Login - HR1";
   }, []);
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,8 +36,65 @@ const LoginForm = () => {
       return;
     }
 
-    const success = await loginUser(email, password, navigate, location);
-    if (!success) {
+    try {
+      const response = await fetch(`${APIBASED_URL}/api/hr/admin-login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        Swal.fire({
+          title: "Login Failed",
+          text: data.message || "Incorrect username or password.",
+          icon: "error",
+          confirmButtonText: "Try Again",
+        });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        return;
+      }
+
+      // Store token and user details in localStorage
+      localStorage.setItem("gatewayToken", data.refreshToken);
+      localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("firstName", data.user.firstName);
+      localStorage.setItem("lastName", data.user.lastName);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("role", data.user.role);
+
+      if (data.user.accessLevel === "Super Admin") {
+        localStorage.setItem("accessLevel", "Super Admin");
+      }
+
+      if (data.user.department === "HR1") {
+        window.location.href = "https://hr1.jjm-manufacturing.com/";
+        return;
+      }
+
+      Swal.fire({
+        title: "Login Successful",
+        text: "Welcome back!",
+        icon: "success",
+        confirmButtonText: "Proceed",
+      }).then(() => {
+        const redirectTo = location.state?.from?.pathname || "/dashboard";
+        navigate(redirectTo, { replace: true });
+      });
+
+      console.log(data);
+    } catch (error) {
+      console.error("Login error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Something went wrong. Please try again later.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }
@@ -125,14 +183,6 @@ const LoginForm = () => {
               </button>
             </div>
           </div>
-
-          {/* reCAPTCHA v2 Field
-          <div className="mb-6">
-            <ReCAPTCHA
-              sitekey="6LdA22gqAAAAAH57gImSaofpR0dY3ppke4-7Jjks" // Your reCAPTCHA site key
-              onChange={handleCaptchaChange} // Capture the reCAPTCHA response
-            />
-          </div> */}
 
           <button className="btn btn-primary w-full bg-green-600 text-white hover:bg-green-700 py-3 rounded transition duration-200">
             Login
