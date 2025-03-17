@@ -1,13 +1,15 @@
 const express = require("express");
 const TimeTracking = require("../models/TimeTracking");
 const router = express.Router();
-const Schedule = require("../models/Schedule"); // Import the Schedule model
+const Schedule = require("../models/Schedule"); 
 const timeTrackingController = require("../controllers/timeTrackingController");
 const { generateServiceToken } = require("../middleware/gatewayTokenGenerator");
 const { formatDuration } = require("../utils/formatDuration");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { isHoliday } = require("../utils/holiday");
+const { authenticateUser, authorizeRoles } = require("../middleware/authMiddleware");
+const {deleteOBRequest} = require("../controllers/timeTrackingController");
 
 // Time In
 router.post("/time-in", async (req, res) => {
@@ -27,14 +29,28 @@ router.post("/time-in", async (req, res) => {
       });
     }
     const now = new Date();
-    // Convert to local time
+
     const localTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
     const currentHour = localTime.getHours();
     const currentMinute = localTime.getMinutes();
     const currentDay = localTime.toLocaleDateString("en-US", { weekday: "long" });
 
-    // Format date for holiday check (YYYY-MM-DD)
+
     const formattedDate = localTime.toISOString().split('T')[0];
+
+    const existingEntry = await TimeTracking.findOne({
+      employee_id,
+      time_in: {
+        $gte: new Date(`${formattedDate}T00:00:00.000Z`), // Start of the day
+        $lt: new Date(`${formattedDate}T23:59:59.999Z`),  // End of the day
+      },
+    });
+
+    if (existingEntry) {
+      return res.status(400).json({
+        message: "You already recorded a time in for today.",
+      });
+    }
 
     const holiday = isHoliday(formattedDate);
     const is_holiday = holiday ? true : false;
@@ -112,14 +128,22 @@ router.post("/time-in", async (req, res) => {
       schedule_end: "17:00",
       is_holiday,
       holiday_name,
-      timezone: "Asia/Manila" // Store timezone information
+      timezone: "Asia/Manila" 
     });
 
     await newEntry.save();
 
+    function formatMinutesLate(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return hours > 0 
+        ? `${hours} hour(s) ${mins} minute(s)`
+        : `${mins} minute(s)`;
+    }
+
     res.status(201).json({
       message: isLate 
-        ? `Time In recorded successfully! Note: You are late by ${minutesLate} minutes`
+        ? `Time In recorded successfully! Note: You are late by ${formatMinutesLate(minutesLate)}`
         : "Time In recorded successfully!",
       session: newEntry,
       serverTime: localTime.toLocaleString('en-US', { timeZone: 'Asia/Manila' })
@@ -344,9 +368,43 @@ router.get("/approveSessions", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/check-timein", async (req, res) => {
+    try {
+      const { employee_id, date } = req.query;
+  
+      const formattedDate = new Date(date).setHours(0, 0, 0, 0); // Normalize to midnight
+  
+      const existingRequest = await TimeTracking.findOne({
+        employee_id,
+        time_in: {
+          $gte: new Date(formattedDate),
+          $lt: new Date(formattedDate + 86400000),
+        },
+      });
+  
+      res.json({ duplicate: !!existingRequest });
+    } catch (error) {
+      console.error("Error checking duplicate entry:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to check for duplicate entry",
+        error: error.message,
+      });
+    }
+  });
 
+
+// MANUAL ENTRY ROUTES
 
 router.post("/manual-entry", timeTrackingController.createManualEntry);
+
+router.get("/get-request", timeTrackingController.getOBRequests);
+
+router.post("/request-review", timeTrackingController.reviewOBRequest);
+
+router.get("/check-duplicate", timeTrackingController.checkDuplicateEntry);
+
+router.delete("/ob-request/:requestId", authenticateUser, authorizeRoles("admin", "superadmin"), deleteOBRequest);
 
 
 module.exports = router;

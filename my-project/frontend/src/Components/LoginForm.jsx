@@ -21,7 +21,23 @@ const LoginForm = () => {
 
   useEffect(() => {
     document.title = "Login - HR1";
+    checkAuthStatus();
   }, []);
+
+   const checkAuthStatus = () => {
+      const token = localStorage.getItem("adminToken");
+      if (token) {
+        Swal.fire({
+          icon: "info",
+          title: "Already Logged In",
+          text: "Redirecting to dashboard...",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+  
+        navigate("/dashboard", { replace: true }); // Redirect user away
+      }
+    };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -106,11 +122,11 @@ const LoginForm = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-500 bg-green-100 bg-opacity-25">
-      <div className="absolute top-0 left-0 w-32 h-32 bg-green-300 rounded-full opacity-50 -z-10"></div>
+      {/* <div className="absolute top-0 left-0 w-32 h-32 bg-green-300 rounded-full opacity-50 -z-10"></div>
       <div className="absolute bottom-10 right-10 w-24 h-24 bg-green-500 opacity-50 -z-10"></div>
       <div className="absolute top-20 right-0 w-40 h-40 bg-yellow-400 rounded-full opacity-30 -z-10"></div>
       <div className="absolute bottom-20 left-12 w-32 h-32 border-2 border-dashed border-gray-400 -z-10"></div>
-      <div className="absolute top-10 right-10 w-24 h-24 border-2 border-dashed border-gray-500 -z-10"></div>
+      <div className="absolute top-10 right-10 w-24 h-24 border-2 border-dashed border-gray-500 -z-10"></div> */}
       <div
         className={`bg-white rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.25)] p-10 w-full max-w-sm${
           shake ? " shake" : ""

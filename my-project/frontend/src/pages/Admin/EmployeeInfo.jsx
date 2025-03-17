@@ -265,6 +265,24 @@ const EmployeeInfo = () => {
     };
   }, []);
 
+  const SkeletonRow = () => (
+    <tr className="animate-pulse">
+      <td className="p-3 border-b">
+        <div className="h-4 bg-gray-300 rounded w-24"></div>
+      </td>
+      <td className="p-3 border-b">
+        <div className="h-4 bg-gray-300 rounded w-40"></div>
+      </td>
+      <td className="p-3 border-b">
+        <div className="h-4 bg-gray-300 rounded w-32"></div>
+      </td>
+      <td className="p-3 border-b">
+        <div className="h-4 bg-gray-300 rounded w-20"></div>
+      </td>
+    </tr>
+  );
+  
+
   return (
     <div className=" flex overflow-auto">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -341,9 +359,23 @@ const EmployeeInfo = () => {
 
           <div className="h-full bg-base-500 px-5">
             {loading ? (
-              <p className="text-center text-lg text-gray-600">
-                Loading employees...
-              </p>
+              <div className="overflow-auto rounded-lg bg-white pb-10">
+                <table className="table-auto w-full pb-5 text-sm">
+                  <thead className="bg-white text-gray-500 border-b">
+                    <tr>
+                      <th className="p-3 text-left">Name</th>
+                      <th className="p-3 text-left">Email</th>
+                      <th className="p-3 text-left">Position</th>
+                      <th className="p-3 text-left">Employee Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...Array(10)].map((_, index) => (
+                      <SkeletonRow key={index} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : showDetails ? (
               <div className="mt-6 p-8 border border-gray-200 rounded-lg shadow-xl bg-white">
                 <div className="flex justify-between items-center mb-4 pl-5 pt-5">

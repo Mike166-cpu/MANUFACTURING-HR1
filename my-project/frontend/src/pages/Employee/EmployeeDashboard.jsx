@@ -10,6 +10,7 @@ import { formatDuration, calculateDuration } from "../../utils/timeUtils";
 import { Tooltip } from "react-tooltip";
 import "react-calendar/dist/Calendar.css";
 import { TbCurrencyTaka } from "react-icons/tb";
+import SkeletonLoader from "../../Components/SkeletonLoader";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -26,6 +27,7 @@ const useMediaQuery = (query) => {
 };
 
 const EmployeeDashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isMobileView = useMediaQuery("(max-width: 768px)");
   const [employeeFirstName, setEmployeeFirstName] = useState("");
@@ -33,29 +35,6 @@ const EmployeeDashboard = () => {
   const [employeeDepartment, setEmployeeDepartment] = useState("");
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
-
-  const [date, setDate] = useState(new Date());
-  const [holidays, setHolidays] = useState({});
-
-  useEffect(() => {
-    // Fetch holidays from Nager API
-    const fetchHolidays = async () => {
-      try {
-        const response = await axios.get(
-          `https://date.nager.at/api/v3/PublicHolidays/${currentYear}/PH`
-        );
-        const holidayData = response.data.reduce((acc, holiday) => {
-          acc[holiday.date] = holiday.localName; 
-          return acc;
-        }, {});
-        setHolidays(holidayData);
-      } catch (error) {
-        console.error("Error fetching holidays:", error);
-      }
-    };
-
-    fetchHolidays();
-  }, [currentYear]);
 
   useEffect(() => {
     document.title = "Dashboard - Home";
@@ -85,6 +64,8 @@ const EmployeeDashboard = () => {
       setEmployeeLastName(lastName);
       setEmployeeDepartment(department);
     }
+
+    setTimeout(() => setLoading(false), 2000);
   }, [navigate]);
 
   const handleSidebarToggle = () => {
@@ -106,6 +87,8 @@ const EmployeeDashboard = () => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+
+  // MAIN FUNCTIONS HERE
 
   return (
     <div className="flex">
@@ -129,29 +112,15 @@ const EmployeeDashboard = () => {
           ></div>
         )}
 
-        {/* MAIN CONTENT */}
-        <div className="transition-all duration-300 bg-gray-100 ease-in-out flex-grow p-5 min-h-screen">
-          <div className="flex flex-col items-center p-5">
-          <h2 className="text-2xl font-bold mb-4">📅 {currentYear} Holiday Calendar</h2>
+        <div className="p-5">
+          <Breadcrumb />
+          <h1 className="font-bold text-2xl px-5">Dashboard</h1>
+        </div>
 
-            <Calendar
-              onChange={setDate}
-              value={date}
-              tileContent={({ date }) => {
-                const dateStr = date.toISOString().split("T")[0];
-                return holidays[dateStr] ? (
-                  <span
-                    data-tooltip-id={`holiday-${dateStr}`}
-                    data-tooltip-content={holidays[dateStr]}
-                    className="text-red-500"
-                  >
-                    🎉
-                    <Tooltip id={`holiday-${dateStr}`} />
-                  </span>
-                ) : null;
-              }}
-            />
-          </div>
+        <div className="transition-all duration-300 bg-gray-100 ease-in-out flex-grow p-5 min-h-screen">
+          <div className="flex flex-col items-center p-5"></div>
+
+          <div></div>
         </div>
       </div>
     </div>

@@ -51,6 +51,8 @@ const EmployeeNav = ({ onSidebarToggle }) => {
     };
   }, [employeeId]);
 
+
+  
   useEffect(() => {
     const updateTime = () => {
       setCurrentTime(

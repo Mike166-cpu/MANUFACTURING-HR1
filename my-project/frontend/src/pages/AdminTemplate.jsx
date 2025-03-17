@@ -30,9 +30,6 @@ const Dashboard = () => {
   const adminToken = localStorage.getItem("adminToken");
   const gatewayToken = localStorage.getItem("gatewayToken");
 
-  // console.log("Admin Token:", adminToken);
-  // console.log("Gateway Token:", gatewayToken);
-
   const handleResize = () => {
     if (window.innerWidth >= 768) {
       setIsSidebarOpen(true);
@@ -55,22 +52,36 @@ const Dashboard = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  //FETCH OB REQUEST
+  const [obRequests, setObRequests] = useState([]);
 
-
-  // DISPLAY DATA ON TABLE
-  const [employeeData, setEmployeeData] = useState([]);
   useEffect(() => {
     axios
-      .get("http://localhost:7685/api/hr/all-employee") // Replace with your actual backend URL
-      .then((response) => {
-        console.log("Fetched employees:", response.data); // ✅ Log response
-        setEmployeeData(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching employees:", error);
-      });
+      .get("http://localhost:7685/api/timetrack/get-request?status=pending")
+      .then((res) => setObRequests(res.data))
+      .catch((err) => console.error("Error fetching OB requests:", err));
   }, []);
 
+  const handleReview = async (id, status) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:7685/api/timetrack/request-review",
+        {
+          requestId: id,
+          status,
+        }
+      );
+
+      if (response.status === 200) {
+        setObRequests(obRequests.filter((req) => req._id !== id));
+        alert(`OB request ${status}`);
+      } else {
+        alert("Failed to update request");
+      }
+    } catch (error) {
+      console.error("Error updating request:", error);
+    }
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -89,50 +100,38 @@ const Dashboard = () => {
         )}
 
         <div className="p-6 bg-gray-50 min-h-screen">
-          {/* EMPLOYEE TABLE */}
-          <table className="min-w-full border border-gray-300">
+          <h2>Pending OB Requests</h2>
+          <table border="1">
             <thead>
-              <tr className="bg-gray-200">
-                <th className="border px-4 py-2">Name</th>
-                <th className="border px-4 py-2">Email</th>
-                <th className="border px-4 py-2">Mobile</th>
-                <th className="border px-4 py-2">Address</th>
-                <th className="border px-4 py-2">Position</th>
-                <th className="border px-4 py-2">Role</th>
-                <th className="border px-4 py-2">Status</th>
-                <th className="border px-4 py-2">Gender</th>
-                <th className="border px-4 py-2">Joining Date</th>
+              <tr>
+                <th>Employee</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Purpose</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {employeeData.length > 0 ? (
-                employeeData.map((employee, index) => (
-                  <tr key={index} className="hover:bg-gray-100">
-                    <td className="border px-4 py-2">{employee.employee_id}</td>
-                    <td className="border px-4 py-2">{employee.email}</td>
-                    <td className="border px-4 py-2">{employee.mobile}</td>
-                    <td className="border px-4 py-2">{employee.address}</td>
-                    <td className="border px-4 py-2">{employee.position}</td>
-                    <td className="border px-4 py-2">{employee.role}</td>
-                    <td className="border px-4 py-2">
-                      {employee.employeeStatus}
-                    </td>
-                    <td className="border px-4 py-2">{employee.gender}</td>
-                    <td className="border px-4 py-2">
-                      {new Date(employee.joiningDate).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="9" className="text-center border px-4 py-2">
-                    No employees found
+              {obRequests.map((req) => (
+                <tr key={req._id}>
+                  <td>
+                    {req.employee_firstname} {req.employee_lastname}
+                  </td>
+                  <td>{new Date(req.time_in).toLocaleString()}</td>
+                  <td>{new Date(req.time_out).toLocaleString()}</td>
+                  <td>{req.purpose}</td>
+                  <td>
+                    <button onClick={() => handleReview(req._id, "approved")}>
+                      Approve
+                    </button>
+                    <button onClick={() => handleReview(req._id, "rejected")}>
+                      Reject
+                    </button>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
-          {/* END OF THE TABLE */}
         </div>
       </div>
     </div>

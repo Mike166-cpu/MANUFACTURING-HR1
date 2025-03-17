@@ -30,6 +30,10 @@ const AttendanceTime = () => {
   const [monthFilter, setMonthFilter] = useState("1"); // Default to last 3 months
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  const userRole = localStorage.getItem("role") || ""; // Fallback to empty string if not found
+  console.log(userRole);
 
   const navigate = useNavigate();
   const LOCAL = "http://localhost:7685";
@@ -189,6 +193,36 @@ const AttendanceTime = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  const LoadingSkeleton = () => (
+    <tr className="animate-pulse">
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-20"></div>
+        <div className="h-3 bg-gray-200 rounded w-16 mt-2"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-32"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex flex-col gap-2">
+          <div className="h-4 bg-gray-200 rounded w-24"></div>
+          <div className="h-4 bg-gray-200 rounded w-24"></div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-6 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-6 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-6 bg-gray-200 rounded w-20"></div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-8 bg-gray-200 rounded w-28"></div>
+      </td>
+    </tr>
+  );
+
   return (
     <div className="flex">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -282,22 +316,13 @@ const AttendanceTime = () => {
                 <thead>
                   <tr>
                     <th>
-                      <div className="flex items-center gap-2">
-                        <FiUser className="text-primary" />
-                        Employee ID
-                      </div>
+                      <div className="flex items-center gap-2">Employee ID</div>
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <FiCalendar className="text-gray-400" />
-                        Date
-                      </div>
+                      <div className="flex items-center gap-2">Date</div>
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <FiClock className="text-gray-400" />
-                        Time In/Out
-                      </div>
+                      <div className="flex items-center gap-2">Time In/Out</div>
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Work Duration
@@ -318,9 +343,12 @@ const AttendanceTime = () => {
                   {currentSessions.map((session) => (
                     <tr key={session._id} className="hover">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 text-center">
                           {session.employee_firstname}{" "}
                           {session.employee_lastname}
+                        </div>
+                        <div className="text-xs badge-info rounded-lg text-center text-white">
+                          {session.entry_type}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -431,21 +459,27 @@ const AttendanceTime = () => {
                               <FiCheckCircle />
                               Approve
                             </button>
-                            <button
-                              onClick={() => rejectSession(session._id)}
-                              className="btn btn-error btn-sm"
-                            >
-                              <FiAlertCircle />
-                              Reject
-                            </button>
+
+                            {/* Only Super Admin can reject */}
+                            {userRole === "Superadmin" && (
+                              <button
+                                onClick={() => rejectSession(session._id)}
+                                className="btn btn-error btn-sm"
+                              >
+                                <FiAlertCircle />
+                                Reject
+                              </button>
+                            )}
                           </div>
                         )}
+
                         {session.status === "approved" && (
                           <span className="text-green-500">
                             <FiCheckCircle className="inline mr-1" />
                             Approved
                           </span>
                         )}
+
                         {session.status === "rejected" && (
                           <span className="text-red-500">
                             <FiAlertCircle className="inline mr-1" />

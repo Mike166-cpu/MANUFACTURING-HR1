@@ -4,6 +4,7 @@ import axios from "axios";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 import Swal from "sweetalert2";
+import Breadcrumbs from "../../Components/BreadCrumb";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -99,16 +100,19 @@ const FileLeave = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${APIBASED_URL}/api/leave/file-leave`, {
-        employee_id: employeeId,
-        employee_firstname: employeeFirstName,
-        employee_lastname: employeeLastName,
-        employee_department: employeeDepartment,
-        leave_type: formData.leaveType,
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        reason: formData.reason,
-      });
+      const response = await axios.post(
+        `${APIBASED_URL}/api/leave/file-leave`,
+        {
+          employee_id: employeeId,
+          employee_firstname: employeeFirstName,
+          employee_lastname: employeeLastName,
+          employee_department: employeeDepartment,
+          leave_type: formData.leaveType,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          reason: formData.reason,
+        }
+      );
 
       Swal.fire("Success", "Leave request submitted!", "success");
       setIsModalOpen(false);
@@ -136,9 +140,9 @@ const FileLeave = () => {
         `${APIBASED_URL}/api/leave-balance/get-leave-balance/${employee_id}`
       );
       console.log("Full API Response:", response.data);
-      
-      const balanceData = Array.isArray(response.data.leaveBalance) 
-        ? response.data.leaveBalance[0] 
+
+      const balanceData = Array.isArray(response.data.leaveBalance)
+        ? response.data.leaveBalance[0]
         : response.data.leaveBalance;
 
       console.log("Processed Leave Balance Data:", balanceData);
@@ -148,7 +152,7 @@ const FileLeave = () => {
       setLeaveBalance({
         sick_leave: 0,
         vacation_leave: 0,
-        total_remaining_leaves: 0
+        total_remaining_leaves: 0,
       });
     }
   };
@@ -156,7 +160,7 @@ const FileLeave = () => {
   const checkActiveLeaves = async () => {
     try {
       if (!employeeId) return;
-      
+
       const response = await axios.get(
         `${APIBASED_URL}/api/leave/check-active-leaves/${employeeId}`
       );
@@ -210,21 +214,40 @@ const FileLeave = () => {
             onClick={() => setIsSidebarOpen(false)}
           ></div>
         )}
-        <div className="p-6 transition-all duration-300 ease-in-out">
+
+        <div className="p-5 font-bold text-2xl">
+          <Breadcrumbs />
+
+          <h1 className="px-3">Start Your Time Tracking</h1>
+        </div>
+
+        <div className="p-6 transition-all duration-300 ease-in-out bg-gray-200 min-h-screen">
           {/* Leave Balance Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {/* Sick Leave Card */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Sick Leave Balance</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Sick Leave Balance
+                  </p>
                   <h3 className="text-2xl font-bold text-gray-800 mt-1">
                     {leaveBalance?.sick_leave ?? 0} days
                   </h3>
                 </div>
                 <div className="p-3 bg-green-100 rounded-full">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <svg
+                    className="w-6 h-6 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                 </div>
               </div>
@@ -234,14 +257,26 @@ const FileLeave = () => {
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Vacation Leave Balance</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Vacation Leave Balance
+                  </p>
                   <h3 className="text-2xl font-bold text-gray-800 mt-1">
                     {leaveBalance?.vacation_leave ?? 0} days
                   </h3>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-full">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  <svg
+                    className="w-6 h-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                    />
                   </svg>
                 </div>
               </div>
@@ -251,14 +286,26 @@ const FileLeave = () => {
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Leave Balance</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Leave Balance
+                  </p>
                   <h3 className="text-2xl font-bold text-gray-800 mt-1">
                     {leaveBalance?.total_remaining_leaves ?? 0} days
                   </h3>
                 </div>
                 <div className="p-3 bg-purple-100 rounded-full">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <svg
+                    className="w-6 h-6 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
                   </svg>
                 </div>
               </div>
@@ -325,7 +372,7 @@ const FileLeave = () => {
                       <tr
                         key={index}
                         className={`hover:bg-gray-50 transition-colors duration-200 ${
-                          leave.isActive ? 'bg-blue-50' : ''
+                          leave.isActive ? "bg-blue-50" : ""
                         }`}
                       >
                         <td className="px-6 py-4 text-sm text-gray-800">
@@ -351,9 +398,11 @@ const FileLeave = () => {
                             }
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-800">{leave.reason}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
+                        <td className="px-6 py-4 text-sm text-gray-800">
+                          {leave.reason}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex flex-col gap-1 items-center">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                               ${
@@ -372,7 +421,8 @@ const FileLeave = () => {
                                   Active
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  {getRemainingDays(leave.end_date)} days remaining
+                                  {getRemainingDays(leave.end_date)} days
+                                  remaining
                                 </span>
                               </>
                             )}
@@ -382,7 +432,10 @@ const FileLeave = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                      <td
+                        colSpan="5"
+                        className="px-6 py-8 text-center text-gray-500"
+                      >
                         No leave records found.
                       </td>
                     </tr>

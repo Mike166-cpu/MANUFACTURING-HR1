@@ -129,8 +129,8 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
         className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200
           ${
             isActive
-              ? "bg-white border"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "bg-blue-500 border text-white"
+              : "text-slate-600 hover:bg-gray-100"
           }`}
       >
         <Icon className="w-5 h-5" />
@@ -155,7 +155,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 w-72 bg-gray-100 dark:bg-gray-800 shadow-lg transform 
+      className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-lg transform 
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         transition-transform duration-300 ease-in-out z-20 flex flex-col`}
     >
@@ -210,10 +210,16 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-2 space-y-2 hide-scrollbar">
         {/* HOME SECTION */}
-        <MenuSection >
+        <MenuSection>
           <NavItem to="/employeedashboard" icon={IoHomeOutline} label="Home" />
           <NavItem to="/userProfile" icon={FaRegUser} label="Profile" />
         </MenuSection>
+
+        <div className="py-3">
+          <span className="text-xs bg-text-gray-500 font-bold opacity-50 px-5">
+            PAGES
+          </span>
+        </div>
 
         {/* HR COMPLIANCE SECTION */}
         <MenuSection>
@@ -264,7 +270,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300
-            hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+            hover:bg-gray-100 dark:hover:bg-red-700 rounded-lg transition-colors duration-200"
         >
           <FiLogOut className="w-5 h-5" />
           <span>Logout</span>

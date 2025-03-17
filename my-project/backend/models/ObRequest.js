@@ -12,6 +12,8 @@ const OBRequestSchema = new mongoose.Schema({
   purpose: { type: String, required: true },
   remarks: { type: String },
   status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+  file_url: { type: String },
+  file_public_id: { type: String },
   created_at: { type: Date, default: Date.now }
 });
 

@@ -1,0 +1,44 @@
+const employeeRoutes = require("./employee");
+const incidentRoutes = require("./incidentReport");
+const policyRoutes = require("./policyRoutes");
+const userProfileRoutes = require("./userProfile");
+const signupRoutes = require("./auth/signup");
+const loginRoutes = require("./auth/login");
+const uploadRoutes = require("./uploadRoutes");
+const profilePictureRoutes = require("./profilePicture");
+const createSuperadminRoutes = require("./auth/createaccount");
+const timeTrackingRoutes = require("./totalTime");
+const scheduleRoutes = require("./createSchedule");
+const leaveRoutes = require("./leaveRoutes");
+const obRoutes = require("./obRoutes");
+const leaveBalanceRoutes = require("./leaveBalanceRoutes");
+const logoutRoutes = require("./auth/logout");
+const documentRequestRoutes = require("./documentRoutes");
+const uploadedDocumentRoutes = require("./uploadedDocumentRoutes");
+const timeTrackingRoutesAlt = require("./timeTrackingRoutes");
+const integrationRoutes = require("./integrationRoutes");
+const resignationRoutes = require("./resignationRoutes");
+
+module.exports = (app, io) => {
+  app.use("/api/employee", employeeRoutes);
+  app.use("/api/incidentreport", incidentRoutes(io)); // Pass io only if needed
+  app.use("/api/policies", policyRoutes);
+  app.use("/api/user", userProfileRoutes);
+  app.use("/signup", signupRoutes);
+  app.use("/login", loginRoutes);
+  app.use("/api", uploadRoutes);
+  app.use("/api", profilePictureRoutes);
+  app.use("/api/create-account", createSuperadminRoutes);
+  app.use("/api", timeTrackingRoutes);
+  app.use("/api/schedule", scheduleRoutes);
+  app.use("/api/time-tracking", timeTrackingRoutesAlt);
+  app.use("/api/leave", leaveRoutes);
+  app.use("/api/ob", obRoutes);
+  app.use("/api/leave-balance", leaveBalanceRoutes);
+  app.use("/api/auth", logoutRoutes);
+  app.use("/api/document-request", documentRequestRoutes);
+  app.use("/api/uploaded-documents", uploadedDocumentRoutes);
+  app.use("/api/timetrack", timeTrackingRoutesAlt);
+  app.use("/api/resignation", resignationRoutes);
+  app.use("/api/hr", integrationRoutes);
+};

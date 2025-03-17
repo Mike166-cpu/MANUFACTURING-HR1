@@ -7,6 +7,7 @@ import { GiHamburgerMenu } from "react-icons/gi";
 
 const socket = io("http://localhost:7685");
 
+
 const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
   const [initials, setInitials] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
@@ -66,6 +67,14 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
     };
   }, []);
 
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleLogout = () => {
     sessionStorage.removeItem("adminToken");
     localStorage.removeItem("firstName");
@@ -93,6 +102,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
     localStorage.setItem("notifications", JSON.stringify([]));
     setShowNotifications(false);
   };
+
 
   return (
     <div

@@ -86,7 +86,6 @@ const TimeTracking = () => {
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
   const LOCAL = "http://localhost:7685";
 
-  // Fetch Active Session
   const fetchActiveSession = async () => {
     try {
       const employeeId = localStorage.getItem("employeeId");
@@ -106,7 +105,6 @@ const TimeTracking = () => {
     }
   }, []);
 
-  // Fetch Time Tracking History
   useEffect(() => {
     const fetchTimeTrackingHistory = async () => {
       try {
@@ -121,9 +119,8 @@ const TimeTracking = () => {
     };
 
     fetchTimeTrackingHistory();
-  }, [activeSession]); // Refresh when active session changes
+  }, [activeSession]);
 
-  // Calculate the date 3 months ago from today
   const calculateDateRange = (range) => {
     const date = new Date();
     switch (range) {
@@ -167,12 +164,17 @@ const TimeTracking = () => {
 
   // Time In Function
   const timeIn = async () => {
+    
     try {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
 
-      if (currentHour < 8 || (currentHour === 17 && currentMinute > 0) || currentHour > 17) {
+      if (
+        currentHour < 8 ||
+        (currentHour === 17 && currentMinute > 0) ||
+        currentHour > 17
+      ) {
         Swal.fire({
           title: "Invalid Time",
           text: "Time-in is only allowed between 8:00 AM and 5:00 PM",
@@ -187,7 +189,7 @@ const TimeTracking = () => {
       const position = localStorage.getItem("employeePosition");
 
       const response = await axios.post(
-        `${APIBASED_URL}/api/timetrack/time-in`,
+        `${LOCAL}/api/timetrack/time-in`,
         {
           employee_id: employeeId,
           employee_firstname: employeeFirstName,
@@ -200,11 +202,22 @@ const TimeTracking = () => {
       Swal.fire("Success!", response.data.message, "success");
     } catch (error) {
       console.error("Error recording Time In:", error);
-      Swal.fire(
-        "Error!",
-        error.response?.data?.message || "Failed to record Time In.",
-        "error"
-      );
+    
+      if (error.response && error.response.status === 400) {
+        // Use "warning" for validation issues (e.g., duplicate entry, time restrictions)
+        Swal.fire({
+          title: "Warning",
+          text: error.response.data.message || "Time In validation failed.",
+          icon: "warning", // ⬅ Changed from "error" to "warning"
+        });
+      } else {
+        // Keep "error" for actual system failures (e.g., server errors)
+        Swal.fire({
+          title: "Error!",
+          text: "Failed to record Time In. Please try again.",
+          icon: "error",
+        });
+      }
     }
   };
 
@@ -266,7 +279,7 @@ const TimeTracking = () => {
           ></div>
         )}
 
-        <div className="p-5 font-bold text-md">
+        <div className="p-5 font-bold text-2xl">
           <Breadcrumbs />
 
           <h1 className="px-3">Start Your Time Tracking</h1>
@@ -288,15 +301,24 @@ const TimeTracking = () => {
                 </span>
               </div>
 
-              <button
-                onClick={activeSession ? timeOut : timeIn}
-                className={`btn py-2 px-4 text-lg font-semibold ${
-                  activeSession ? "btn-error" : "btn-success"
-                } flex items-center space-x-2`}
-              >
-                <FaPlus />
-                <span>{activeSession ? "Time Out" : "Time In"}</span>
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={activeSession ? timeOut : timeIn}
+                  className={`btn py-2 px-4 text-lg font-semibold ${
+                    activeSession ? "btn-error" : "btn-success"
+                  } flex items-center space-x-2`}
+                >
+                  <FaPlus />
+                  <span>{activeSession ? "Time Out" : "Time In"}</span>
+                </button>
+
+                <button
+                  className="bg-blue-300 py-2 px-4 rounded-md font-semibold hover:bg-blue-400 transition-all duration-300 ease-in-out text-lg"
+                  onClick={() => navigate("/request-form")}
+                >
+                  Manual Time Entries
+                </button>
+              </div>
             </div>
           </div>
 
@@ -345,14 +367,7 @@ const TimeTracking = () => {
                 <option value="6 Months">Last 6 Months</option>
               </select>
             </div>
-            <div>
-              <button
-                className="bg-blue-300 p-4 rounded-md font-bold hover:bg-blue-400 transition-all duration-300 ease-in-out text-sm"
-                onClick={() => navigate("/request-form")}
-              >
-                Manual Time Entries
-              </button>
-            </div>
+            <div></div>
           </div>
 
           {/* TABLE */}

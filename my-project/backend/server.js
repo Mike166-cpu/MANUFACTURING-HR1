@@ -18,16 +18,15 @@ const createSuperadminRoutes = require("./routes/auth/createaccount");
 const timeTrackingRoutes = require("./routes/totalTime");
 const scheduleRoutes = require("./routes/createSchedule");
 const leaveRoutes = require("./routes/leaveRoutes");
-const obRoutes = require('./routes/obRoutes');
+const obRoutes = require("./routes/obRoutes");
 const path = require("path");
 const leaveBalanceRoutes = require("./routes/leaveBalanceRoutes");
 const logoutRoutes = require("./routes/auth/logout");
 const documentRequest = require("./routes/documentRoutes");
-const uploadedDocument = require ("./routes/uploadedDocumentRoutes");
+const uploadedDocument = require("./routes/uploadedDocumentRoutes");
 const timeTracking = require("./routes/timeTrackingRoutes");
 const integrationRoutes = require("./routes/integrationRoutes");
-const resignationRoutes = require("./routes/resignationRoutes"); 
-
+const resignationRoutes = require("./routes/resignationRoutes");
 
 const app = express();
 app.use(express.json());
@@ -63,7 +62,10 @@ app.use(
 const server = http.createServer(app);
 
 const io = socketIo(server, {
-  cors: { origin: allowedOrigins, methods: ["GET", "POST", "PUT", "DELETE"], credentials: true },
+  cors: {
+    origin: "*", // Allow all origins (Adjust in production)
+    methods: ["GET", "POST"],
+  },
 });
 
 io.on("connection", (socket) => {
@@ -85,13 +87,13 @@ app.use("/api", profilePictureRoutes);
 app.use("/api/create-account", createSuperadminRoutes);
 app.use("/api", timeTrackingRoutes); //totalTime.js
 app.use("/api/schedule", scheduleRoutes);
-app.use('/api/time-tracking', require('./routes/totalTimeRoutes'));
-app.use('/api/leave', leaveRoutes);
-app.use('/api/ob', obRoutes);
+app.use("/api/time-tracking", require("./routes/totalTimeRoutes"));
+app.use("/api/leave", leaveRoutes);
+app.use("/api/ob", obRoutes);
 app.use("/api/leave-balance", leaveBalanceRoutes);
 app.use("/api/auth", logoutRoutes);
 app.use("/api/document-request", documentRequest);
-app.use("/api/uploaded-documents", uploadedDocument)
+app.use("/api/uploaded-documents", uploadedDocument);
 app.use("/api/timetrack", timeTracking);
 app.use("/api/resignation", resignationRoutes);
 

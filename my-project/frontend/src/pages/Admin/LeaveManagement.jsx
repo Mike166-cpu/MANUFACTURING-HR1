@@ -678,7 +678,7 @@ const LeaveManagement = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} loading={loading} />
       <div
         className={`flex-grow transition-all duration-300 ease-in-out ${
           isSidebarOpen ? "ml-0 md:ml-72" : "ml-0"
@@ -703,76 +703,93 @@ const LeaveManagement = () => {
 
         {/* Add Dashboard Stats Cards */}
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Total Employees Card */}
-            <div className="bg-white rounded-lg p-6 border-l-4 border-blue-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Total Employees</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardStats.totalEmployees}
-                  </p>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="skeleton bg-gray-200 rounded-lg p-6 h-32">
+                  <div className="flex justify-between">
+                    <div className="space-y-3">
+                      <div className="skeleton h-4 w-28 bg-gray-300"></div>
+                      <div className="skeleton h-8 w-16 bg-gray-300"></div>
+                      <div className="skeleton h-3 w-20 bg-gray-300"></div>
+                    </div>
+                    <div className="skeleton w-12 h-12 rounded-full bg-gray-300"></div>
+                  </div>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <FaUsers className="text-blue-500 text-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Total Employees Card */}
+              <div className="bg-white rounded-lg p-6 border-l-4 border-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Total Employees</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {dashboardStats.totalEmployees}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <FaUsers className="text-blue-500 text-xl" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Currently on Leave Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">
-                    Currently on Leave
-                  </p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardStats.onLeaveCount}
-                  </p>
-                  <p className="text-xs text-yellow-600 mt-1">
-                    Active leaves today
-                  </p>
-                </div>
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <FaClock className="text-yellow-500 text-xl" />
+              {/* Currently on Leave Card */}
+              <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">
+                      Currently on Leave
+                    </p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {dashboardStats.onLeaveCount}
+                    </p>
+                    <p className="text-xs text-yellow-600 mt-1">
+                      Active leaves today
+                    </p>
+                  </div>
+                  <div className="p-3 bg-yellow-100 rounded-full">
+                    <FaClock className="text-yellow-500 text-xl" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Pending Requests Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Pending Requests</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardStats.pendingCount}
-                  </p>
-                  <p className="text-xs text-orange-600 mt-1">
-                    Awaiting approval
-                  </p>
-                </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <FaExclamationTriangle className="text-orange-500 text-xl" />
+              {/* Pending Requests Card */}
+              <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Pending Requests</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {dashboardStats.pendingCount}
+                    </p>
+                    <p className="text-xs text-orange-600 mt-1">
+                      Awaiting approval
+                    </p>
+                  </div>
+                  <div className="p-3 bg-orange-100 rounded-full">
+                    <FaExclamationTriangle className="text-orange-500 text-xl" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Approved Leaves Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Approved Leaves</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardStats.approvedCount}
-                  </p>
-                  <p className="text-xs text-green-600 mt-1">Total approved</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <FaArrowRight className="text-green-500 text-xl" />
+              {/* Approved Leaves Card */}
+              <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Approved Leaves</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {dashboardStats.approvedCount}
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">Total approved</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <FaArrowRight className="text-green-500 text-xl" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Rest of your existing component code */}
           {isViewingLeaveRecords ? (
@@ -1028,8 +1045,19 @@ const LeaveManagement = () => {
           ) : (
             <div>
               {loading ? (
-                <div className="flex justify-center items-center">
-                  <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-blue-500"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="skeleton bg-gray-200 rounded-lg p-6 h-32">
+                      <div className="flex justify-between">
+                        <div className="space-y-3">
+                          <div className="skeleton h-4 w-28 bg-gray-300"></div>
+                          <div className="skeleton h-8 w-16 bg-gray-300"></div>
+                          <div className="skeleton h-3 w-20 bg-gray-300"></div>
+                        </div>
+                        <div className="skeleton w-12 h-12 rounded-full bg-gray-300"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="overflow-x-auto">

@@ -23,10 +23,19 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
   const [activePage, setActivePage] = React.useState(location.pathname);
   const [initials, setInitials] = useState("");
+  const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
     setActivePage(location.pathname);
   }, [location.pathname]);
+
+  React.useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleNavigation = (path) => {
     setActivePage(path);
@@ -116,11 +125,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <div className="mt-2 ml-4 space-y-1">
                 <div
                   className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
-                    activePage === "/employeeInfo"
+                    activePage === "/employee-info"
                       ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
                       : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
                   }`}
-                  onClick={() => handleNavigation("/employeeInfo")}
+                  onClick={() => handleNavigation("/employee-info")}
                 >
                   <FaUsers className="w-4 h-4" />
                   <span className="text-sm font-medium ml-3">
@@ -181,6 +190,19 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             >
               <TbReport className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">Leave Management</span>
+            </div>
+
+              {/*  */}
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 ${
+                activePage === "/ob-request"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/ob-request")}
+            >
+              <TbReport className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">OB Request</span>
             </div>
           </div>
 
