@@ -52,14 +52,22 @@ const LeaveNavigationHeader = ({
             Rejected
           </button>
         </div>
-        <div className="w-full sm:w-64">
-          <input
-            type="text"
-            placeholder="Search leaves..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+        <div className="flex space-x-4 items-center">
+          <div className="w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search leaves..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <button
+            onClick={() => setIsLeaveBalanceModalOpen(true)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
+          >
+            Set Leave Balance
+          </button>
         </div>
       </nav>
     </div>

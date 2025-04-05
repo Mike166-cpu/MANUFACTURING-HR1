@@ -87,9 +87,25 @@ router.post("/reset-password/:token", async (req, res) => {
 // Employee registration route
 router.post("/add", async (req, res) => {
   try {
-    const employeeData = req.body;
+    const { employee_password, ...employeeData } = req.body;
 
-    const newEmployee = new Employee(employeeData); // No need to hash again
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(employee_password, salt);
+
+    // Generate unique employee ID
+    const lastEmployee = await Employee.findOne().sort({ employee_id: -1 });
+    const newId = lastEmployee
+      ? parseInt(lastEmployee.employee_id.slice(1)) + 1
+      : 1;
+    const employee_id = `E${newId.toString().padStart(3, "0")}`;
+
+    const newEmployee = new Employee({
+      ...employeeData,
+      employee_password: hashedPassword, // Save the hashed password
+      employee_id,
+    });
+
     await newEmployee.save();
 
     res.status(201).json({
@@ -109,17 +125,6 @@ router.post("/login-employee", loginEmployee);
 
 // Get all employees route
 router.get("/", async (req, res) => {
-  try {
-    const employees = await Employee.find();
-    res.status(200).json(employees);
-  } catch (error) {
-    console.error("Error fetching employees:", error);
-    res.status(500).json({ message: "Error fetching employees" });
-  }
-});
-
-// Fetch all employees route
-router.get("/employee-data", async (req, res) => {
   try {
     const employees = await Employee.find();
     res.status(200).json(employees);
@@ -314,6 +319,8 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+// =======================================================================
+
 // Protected Route
 router.get("/protected", verifyToken, async (req, res) => {
   try {
@@ -339,6 +346,41 @@ router.get("/protected", verifyToken, async (req, res) => {
   }
 });
 
+// Fetch all employees route
+router.get("/employee-data", verifyToken, async (req, res) => {
+  try {
+    // Generate the service token for API authentication
+    const serviceToken = generateServiceToken();
+
+    // Make the API call to fetch real data from the API Gateway
+    const response = await axios.get(
+      `${process.env.API_GATEWAY_URL}/admin/get-accounts`,
+      {
+        headers: { Authorization: `Bearer ${serviceToken}` },
+      }
+    );
+
+    // Log the fetched data to the server console
+    console.log("Fetched data:", response.data);
+
+    // Ensure response.data contains an array of user accounts
+    if (!Array.isArray(response.data)) {
+      return res.status(500).json({ message: "Invalid data format received" });
+    }
+
+    // Filter only employees (assuming role field exists)
+    const employees = response.data.filter(user => user.role === "Employee");
+
+    // Return the filtered employee data
+    res.status(200).json(employees);
+  } catch (err) {
+    console.error("Error fetching data:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------
+
 //LOGIN ADMIN FETCHED DATA
 router.post("/testLog", async (req, res) => {
   try {
@@ -361,12 +403,66 @@ router.post("/testLog", async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
+    if (user.role !== "Admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
     // Generate a JWT token
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(200).json({ token, user });
+  } catch (err) {
+    console.error("Error during login:", err.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// EMPLOYEE LOGIN ROUTE FROM ADMIN DATA
+router.post("/employeeTestLog", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const serviceToken = generateServiceToken();
+
+    // Fetch all user accounts from the API gateway
+    const response = await axios.get(
+      `${process.env.API_GATEWAY_URL}/admin/get-accounts`,
+      {
+        headers: { Authorization: `Bearer ${serviceToken}` },
+      }
+    );
+
+    const users = response.data;
+
+    // Find the user by email
+    const user = users.find((u) => u.email === email);
+
+    // Check if user exists and has role "Employee"
+    if (!user || user.role !== "Employee") {
+      return res
+        .status(400)
+        .json({ message: "Invalid email, password, or role" });
+    }
+
+    // Compare hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ message: "Invalid email, password, or role" });
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,

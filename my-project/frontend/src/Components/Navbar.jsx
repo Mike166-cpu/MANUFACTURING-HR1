@@ -1,26 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaRegUserCircle } from "react-icons/fa";
-import { FiSettings } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import { IoNotificationsOutline } from "react-icons/io5";
-import useIdleLogout from "../hooks/useIdleLogout";
 import { io } from "socket.io-client";
 import { GiHamburgerMenu } from "react-icons/gi";
 
-const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
+const socket = io("http://localhost:7685");
+
+
+const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
   const [initials, setInitials] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
-  const [incidentReports, setIncidentReports] = useState([]);
-  const [hasNewNotifications, setHasNewNotifications] = useState(
-    JSON.parse(localStorage.getItem("hasNewNotifications")) || false // Retrieve initial value from localStorage
-  );
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const firstName = localStorage.getItem("firstName");
   const lastName = localStorage.getItem("lastName");
   const userRole = localStorage.getItem("role");
 
-  //useIdleLogout(1800000);
+  const [notifications, setNotifications] = useState(() => {
+    const savedNotifications = localStorage.getItem("notifications");
+    if (savedNotifications) {
+      // Filter to only show admin notifications
+      const parsedNotifications = JSON.parse(savedNotifications);
+      return parsedNotifications.filter(notif => notif.dashboard === 'admin');
+    }
+    return [];
+  });
+
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
   useEffect(() => {
     const firstName = localStorage.getItem("firstName");
@@ -35,37 +42,38 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
 
   const APIBased_URL = "https://backend-hr1.jjm-manufacturing.com";
 
-  // useEffect(() => {
-  //   const socket = io("https://backend-hr1.jjm-manufacturing.com");
+  useEffect(() => {
+    const handleAdminNotification = (notif) => {
+      // Only process notifications meant for admin dashboard
+      if (notif.dashboard === 'admin') {
+        console.log("New admin notification received:", notif);
+        setNotifications((prev) => {
+          const updatedNotifications = [notif, ...prev].filter(n => n.dashboard === 'admin');
+          localStorage.setItem(
+            "notifications",
+            JSON.stringify(updatedNotifications)
+          );
+          return updatedNotifications;
+        });
+      }
+    };
 
-  //   const fetchIncidentReports = async () => {
-  //     try {
-  //       const response = await fetch(`${APIBased_URL}/api/incidentreport`);
-  //       const data = await response.json();
-  //       setIncidentReports(data);
-  //     } catch (error) {
-  //       console.error("Error fetching incident reports:", error);
-  //     }
-  //   };
+    // Add event listener
+    socket.on("notification-admin", handleAdminNotification);
 
-  //   fetchIncidentReports();
+    // Remove event listener when component unmounts
+    return () => {
+      socket.off("notification-admin", handleAdminNotification);
+    };
+  }, []);
 
-  //   socket.on("newIncidentReport", (data) => {
-  //     setIncidentReports((prevReports) => [data.report, ...prevReports]);
-  //     setHasNewNotifications(true);
-  //     localStorage.setItem("hasNewNotifications", JSON.stringify(true));
-  //   });
-
-  //   return () => {
-  //     socket.off("newIncidentReport");
-  //   };
-  // }, []);
 
   const handleLogout = () => {
-    sessionStorage.removeItem("adminToken");
+    localStorage.removeItem("adminToken");
     localStorage.removeItem("firstName");
     localStorage.removeItem("lastName");
     localStorage.removeItem("hasNewNotifications");
+    localStorage.removeItem("notifications");
     navigate("/login", { replace: true });
   };
 
@@ -75,8 +83,19 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
     if (!showNotifications) {
       setHasNewNotifications(false);
       localStorage.setItem("hasNewNotifications", JSON.stringify(false));
+      // Mark all notifications as read
+      const updatedNotifications = notifications.map(notif => ({ ...notif, read: true }));
+      setNotifications(updatedNotifications);
+      localStorage.setItem("notifications", JSON.stringify(updatedNotifications));
     }
   };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+    localStorage.setItem("notifications", JSON.stringify([]));
+    setShowNotifications(false);
+  };
+
 
   return (
     <div
@@ -84,64 +103,78 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
         isSidebarOpen ? "md:ml-72" : "ml-0"
       }`}
     >
+      {/* Sidebar Toggle */}
       <div className="flex-none">
         <button className="btn btn-circle text-black" onClick={toggleSidebar}>
           <GiHamburgerMenu size={24} />
         </button>
       </div>
 
+      {/* Right Side Navigation */}
       <div className="flex-none ml-auto flex items-center gap-2">
-        <div className="dropdown dropdown-end">
-          <button
-            onClick={handleToggleNotifications}
-            className="btn btn-ghost btn-circle"
-          >
-            <div className="indicator">
-              <IoNotificationsOutline size={24} />
-              {hasNewNotifications && (
-                <span className="badge badge-sm indicator-item bg-red-600 rounded-full"></span>
-              )}
-            </div>
-          </button>
-          {showNotifications && (
-            <ul
-              className="menu dropdown-content bg-base-100 dark:bg-gray-800 rounded-lg shadow-lg z-[1] mt-3 w-64 p-2"
-              style={{ width: "300px" }}
+        {/* Notifications */}
+        <div className="relative">
+          <div className="relative">
+            <button
+              onClick={handleToggleNotifications}
+              className="relative btn btn-ghost btn-circle"
             >
-              <li className="p-3 font-medium text-xl text-gray-800 dark:text-white">
-                Incident Reports
-              </li>
-              <hr />
-              {incidentReports.length === 0 ? (
-                <li className="text-sm text-gray-500">No new reports</li>
-              ) : (
-                <div className="flex flex-col h-48 overflow-auto w-full">
-                  {incidentReports.slice(0, 5).map((report, index) => {
-                    const createdAt = new Date(report.date);
-                    return (
+              <IoNotificationsOutline size={24} />
+              {notifications.length > 0 && notifications.some(notif => !notif.read) && (
+                <span className="badge badge-error badge-xs absolute -top-1 -right-1">
+                  {notifications.filter(notif => !notif.read).length}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-base-100 shadow-lg rounded-lg border border-gray-200 z-50">
+                <div className="flex justify-between items-center px-4 py-3 border-b">
+                  <span className="font-semibold">Notifications</span>
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={clearNotifications}
+                      className="text-sm text-error hover:text-red-700"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+                <ul className="max-h-64 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif, index) => (
                       <li
                         key={index}
-                        className="flex items-start bg-white dark:bg-gray-700"
+                        className={`p-3 hover:bg-gray-100 transition-all border-b flex flex-col ${notif.read ? 'bg-gray-200' : ''}`}
                       >
-                        <div className="flex-1 hover:bg-transparent">
-                          <span className="text-md font-md text-gray-800 dark:text-white">
-                            {report.employeeUsername}: Filed a report
-                          </span>
-                        </div>
-                        <div className="flex-1 hover:bg-transparent">
-                          <span className="text-xs font-md text-gray-400 dark:text-white -mt-4">
-                            {report.reportType}
-                          </span>
-                        </div>
+                        <span>{notif.message}</span>
+                        <span className="text-sm text-gray-500">
+                          Employee: {notif.employee_id}
+                        </span>
+                        {notif.link && (
+                          <a
+                            href={notif.link}
+                            className="text-primary underline mt-1 text-sm"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View Request
+                          </a>
+                        )}
                       </li>
-                    );
-                  })}
-                </div>
-              )}
-            </ul>
-          )}
+                    ))
+                  ) : (
+                    <li className="p-4 text-center text-gray-500">
+                      No new notifications
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
+        {/* User Profile */}
         <div className="dropdown dropdown-end relative">
           <div
             tabIndex={0}
@@ -167,6 +200,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
           </ul>
         </div>
 
+        {/* User Info */}
         <div>
           <span className="text-xs font-medium">
             {firstName} <br />

@@ -1,46 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const SignUpForm = () => {
   const navigate = useNavigate();
-  useEffect(() => {
-    document.title = "Dashboard";
-
-    const token = sessionStorage.getItem("adminToken");
-    if (!token) {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "You are not logged in. Redirecting to login page...",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => {
-        navigate("/login");
-      });
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    document.title = "Signup - HR1";
-  }, []);
-
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    middleName: "",
-    suffix: "",
     email: "",
-    contactNumber: "",
-    username: "",
     password: "",
-    birthday: "",
-    address: "",
+    role: "employee",
   });
-
-  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+
+  const APIBASE_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:7685";
 
   const validatePassword = (password) => {
     const regex =
@@ -53,217 +30,137 @@ const SignUpForm = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const APIBASE_URL = "https://backend-hr1.jjm-manufacturing.com";
-  const LOCAL = "http://localhost:5000";
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { password } = formData;
+    setError("");
 
-    if (!validatePassword(password)) {
+    if (!validatePassword(formData.password)) {
       setError(
-        "Password must be at least 8 character long, contain at least one uppercase letter, one number, and one special character."
+        "Password must be at least 8 characters long, include one uppercase letter, one number, and one special character."
       );
       return;
     }
 
     try {
-      const response = await fetch(`${APIBASE_URL}/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await axios.post(
+        `${LOCAL}/api/admin/create-account`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
 
-      if (response.ok) {
-        console.log("User created successfully!");
-        alert("Sign-up successful! Welcome aboard.");
-        setError("");
-        setFormData({
-          firstName: "",
-          lastName: "",
-          middleName: "",
-          suffix: "",
-          email: "",
-          contactNumber: "",
-          username: "",
-          password: "",
-          birthday: "",
-          address: "",
-        });
-      } else {
-        const data = await response.json();
-        setError(data.message || "Error creating user.");
+      if (response.data) {
+        Swal.fire({
+          title: "Registration Successful!",
+          text: `Your account has been created. Your Employee ID is: ${response.data.employeeId}`,
+          icon: "success",
+          confirmButtonText: "Proceed to Login",
+        }).then(() => navigate("/login"));
       }
     } catch (error) {
-      console.error("Error:", error);
-      setError("An error occurred. Please try again.");
+      console.error("Registration error:", error);
+
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.details ||
+        "Failed to register. Please try again.";
+
+      Swal.fire({
+        title: "Registration Failed",
+        text: errorMessage,
+        icon: "error",
+        confirmButtonText: "Try Again",
+      });
+
+      setError(errorMessage);
     }
   };
 
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-500">
-      <div className="bg-white rounded-lg shadow-lg p-10 w-full max-w-4xl">
-        {" "}
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
           Sign Up
         </h2>
         {error && (
-          <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
+          <p className="text-red-500 text-sm text-center mb-4">{error}</p>
         )}
         <form onSubmit={handleSubmit}>
-          <div className="mb-4 flex space-x-4">
-            <div className="flex-1">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
-                First Name
-              </label>
-              <input
-                type="text"
-                name="firstName"
-                placeholder="John"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-                required
-              />
-            </div>
-
-            <div className="flex-1">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
-                Last Name
-              </label>
-              <input
-                type="text"
-                name="lastName"
-                placeholder="Doe"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-                required
-              />
-            </div>
-
-            <div className="flex-1">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
-                Middle Name
-              </label>
-              <input
-                type="text"
-                name="middleName"
-                placeholder="Middle"
-                value={formData.middleName}
-                onChange={handleChange}
-                className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-              />
-            </div>
-          </div>
-
-          <div className="mb-4 flex space-x-2">
-            {/* Suffix Field */}
-            <div className="flex-1 mb-4">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
-                Suffix (e.g., Jr., Sr.)
-              </label>
-              <input
-                type="text"
-                name="suffix"
-                placeholder="*Optional"
-                value={formData.suffix}
-                onChange={handleChange}
-                className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-              />
-            </div>
-
-            {/* EMAIL FIElD */}
-            <div className="flex-1 mb-4">
-              <label className="block text-gray-700 text-sm font-semibold mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                placeholder="example@gmail.com"
-                value={formData.email}
-                onChange={handleChange}
-                className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-              />
-            </div>
-          </div>
-
-          {/* Birthday Field */}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-semibold mb-2">
-              Birthday
-            </label>
-            <input
-              type="date"
-              name="birthday"
-              value={formData.birthday}
-              onChange={handleChange}
-              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-              required
-            />
-          </div>
-
-          {/* Address Field */}
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-semibold mb-2">
-              Address
+              First Name
             </label>
             <input
               type="text"
-              name="address"
-              placeholder="123 Main St"
-              value={formData.address}
+              name="firstName"
+              placeholder="Enter your email"
+              value={formData.firstName}
               onChange={handleChange}
-              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
-          {/* Contact Number Field */}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-semibold mb-2">
-              Contact Number
-            </label>
-            <input
-              type="tel"
-              name="contactNumber"
-              placeholder="123-456-7890"
-              value={formData.contactNumber}
-              onChange={handleChange}
-              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
-              required
-            />
-          </div>
-
-          {/* Username Field */}
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-semibold mb-2">
-              Username
+              Last Name
             </label>
             <input
               type="text"
-              name="username"
-              placeholder="username123"
-              value={formData.username}
+              name="lastName"
+              placeholder="Enter your last name"
+              value={formData.lastName}
               onChange={handleChange}
-              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
-          {/*Password Field*/}
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
+              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Role
+            </label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="employee">Employee</option>
+              <option value="admin">Admin</option>
+              <option value="superadmin">Superadmin</option>
+            </select>
+          </div>
+
           <div className="mb-6 relative">
             <label className="block text-gray-700 text-sm font-semibold mb-2">
               Password
             </label>
-            <div className="flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-green-500">
+            <div className="flex items-center border border-gray-300 rounded focus-within:ring-2 focus-within:ring-blue-500">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder=""
+                placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
                 className="input input-bordered w-full p-3 rounded focus:outline-none"
@@ -283,17 +180,16 @@ const SignUpForm = () => {
             </div>
           </div>
 
-          {/* Signup Button */}
           <button
             type="submit"
-            className="btn btn-primary w-full bg-green-600 text-white hover:bg-green-700 py-3 rounded transition duration-200"
+            className="btn btn-primary w-full bg-blue-600 text-white hover:bg-blue-700 py-3 rounded transition duration-200"
           >
             Sign Up
           </button>
         </form>
         <p className="mt-4 text-center text-gray-600">
           Already have an account?{" "}
-          <Link to="/login" className="text-green-600 hover:underline">
+          <Link to="/login" className="text-blue-600 hover:underline">
             Log in here
           </Link>
         </p>

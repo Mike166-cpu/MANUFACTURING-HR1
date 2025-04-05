@@ -1,179 +1,266 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
 import { GoSidebarCollapse } from "react-icons/go";
+import { FaBell } from "react-icons/fa";
+import { IoSearchOutline } from "react-icons/io5";
+import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:7685");
 
 const EmployeeNav = ({ onSidebarToggle }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const navigate = useNavigate();
-  const [timeoutId, setTimeoutId] = useState(null);
   const [currentTime, setCurrentTime] = useState("");
-  const [currentDay, setCurrentDay] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
+  const employeeId = localStorage.getItem("employeeId");
+  const navigate = useNavigate();
 
-  // Define routes to match the sidebar
-  const routes = [
-    { name: "Dashboard", path: "/employeedashboard" },
-    { name: "Company Policy", path: "/companypolicy" },
-    { name: "Time Tracking", path: "/test-timer" },
-    { name: "Feedback", path: "/feedback" },
-    { name: "User Profile", path: "/userProfile" },
-    { name: "Work Schedule", path: "/work-schedule" },
-    { name: "Upload Documents", path: "/upload-documents" },
+  // Navigation options for search
+  const navOptions = [
+    { path: "/employeedashboard", label: "Dashboard" },
+    { path: "/user-handbook", label: "Company Handbook" },
+    { path: "/timeTracking", label: "Time Tracking" },
+    { path: "/userProfile", label: "Profile" },
+    { path: "/work-schedule", label: "Work Schedule" },
+    { path: "/file-leave", label: "File Leave" },
+    { path: "/request-form", label: "Request Form" },
+    { path: "/resignation-form", label: "Resignation Form" },
+    { path: "/upload-requirements", label: "Upload Requirements" }
   ];
+
+  // Function to load notifications from localStorage
+  const loadNotifications = () => {
+    const storedNotifications = localStorage.getItem("notifications");
+    return storedNotifications ? JSON.parse(storedNotifications) : [];
+  };
+
+  useEffect(() => {
+    // Load stored notifications and filter for employee dashboard only
+    const storedNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+    const filteredNotifications = storedNotifications.filter(n => n.dashboard === 'employee');
+    setNotifications(filteredNotifications);
+
+    socket.on(`notification-${employeeId}`, (data) => {
+      if (data.dashboard === 'employee') {
+        setNotifications((prev) => {
+          const notificationExists = prev.some(
+            (n) => n.request_id === data.request_id
+          );
+
+          if (notificationExists) return prev;
+
+          // Get existing notifications from localStorage
+          const existingNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+          // Filter out employee notifications and add the new one
+          const otherNotifications = existingNotifications.filter(n => n.dashboard !== 'employee');
+          const updatedNotifications = [data, ...prev];
+          
+          // Save combined notifications
+          localStorage.setItem("notifications", JSON.stringify([...otherNotifications, ...updatedNotifications]));
+          return updatedNotifications;
+        });
+      }
+    });
+
+    return () => {
+      socket.removeAllListeners(`notification-${employeeId}`);
+    };
+  }, [employeeId]);
 
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      const options = {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit", // Added seconds
-        hour12: true,
-        weekday: "long",
-      };
-      setCurrentTime(now.toLocaleTimeString("en-US", options));
+      setCurrentTime(
+        new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
+      );
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 1000); // Update every second
-
+    const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleInputChange = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    setTimeoutId(
-      setTimeout(() => {
-        if (query.length > 0) {
-          const suggestions = routes.filter((route) =>
-            route.name.toLowerCase().includes(query.toLowerCase())
-          );
-          setFilteredSuggestions(suggestions);
-        } else {
-          setFilteredSuggestions([]);
-        }
-        setHighlightedIndex(-1);
-      }, 300)
-    );
-  };
-
-  const handleSuggestionClick = (path) => {
-    setSearchQuery("");
-    setFilteredSuggestions([]);
-    setHighlightedIndex(-1);
-    navigate(path);
-  };
-
-  const clearSearch = () => {
-    setSearchQuery("");
-    setFilteredSuggestions([]);
-    setHighlightedIndex(-1);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "ArrowDown") {
-      setHighlightedIndex((prevIndex) =>
-        Math.min(prevIndex + 1, filteredSuggestions.length - 1)
-      );
-    } else if (e.key === "ArrowUp") {
-      setHighlightedIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-    } else if (e.key === "Enter") {
-      if (highlightedIndex >= 0) {
-        handleSuggestionClick(filteredSuggestions[highlightedIndex].path);
-      }
-    } else if (e.key === "Escape") {
-      clearSearch();
-    }
-  };
-
   useEffect(() => {
-    return () => clearTimeout(timeoutId);
-  }, [timeoutId]);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Clear notifications
+  const clearNotifications = () => {
+    setNotifications([]);
+    const allNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+    const adminNotifications = allNotifications.filter(n => n.dashboard !== 'employee');
+    localStorage.setItem("notifications", JSON.stringify(adminNotifications));
+  };
+
+  const handleToggleNotifications = () => {
+    setShowNotifications((prev) => !prev);
+
+    if (!showNotifications) {
+      // Mark all notifications as read
+      const updatedNotifications = notifications.map(notif => ({ ...notif, read: true }));
+      setNotifications(updatedNotifications);
+      const allNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+      const otherNotifications = allNotifications.filter(n => n.dashboard !== 'employee');
+      localStorage.setItem("notifications", JSON.stringify([...otherNotifications, ...updatedNotifications]));
+    }
+  };
+
+  // Handle search input changes
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setShowSearchResults(e.target.value.length > 0);
+  };
+
+  // Filter navigation options based on search query
+  const filteredNavOptions = navOptions.filter(option => 
+    option.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Navigate to selected page
+  const handleNavigation = (path) => {
+    navigate(path);
+    setSearchQuery("");
+    setShowSearchResults(false);
+  };
 
   return (
-    <div className={`flex-grow transition-all duration-300 ease-in-out`}>
-      <div className="navbar bg-green-50 shadow-md w-full flex flex-wrap items-center justify-between ">
-        <div className="flex-1 flex items-center gap-3">
-          {/* Sidebar Menu Icon */}
+    <div className="flex-grow transition-all duration-300 ease-in-out">
+      <div className="navbar bg-white border-b-2 w-full flex items-center justify-between p-4">
+        <div className="flex items-center gap-3">
+          <button onClick={onSidebarToggle} className="btn text-lg text-black">
+            <GoSidebarCollapse className="font-bold" />
+          </button>
+          <span className="text-lg text-gray-700">{currentTime}</span>
+        </div>
+
+        {/* Search Bar - DaisyUI */}
+        <div className="flex-1 flex justify-center relative" ref={searchRef}>
+          <div className="form-control w-full max-w-md">
+            <div className="relative flex items-center w-full">
+              <input 
+                type="text" 
+                placeholder="Search pages..." 
+                className="input input-bordered w-full pr-12 focus:outline-none"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onFocus={() => setShowSearchResults(searchQuery.length > 0)}
+              />
+              <button className="btn btn-primary h-full absolute right-0 rounded-l-none">
+                <IoSearchOutline className="text-xl" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search Results Dropdown */}
+          {showSearchResults && (
+            <div className="absolute top-full mt-2 w-full max-w-md bg-white shadow-xl rounded-xl overflow-hidden z-50 border border-gray-200">
+              <ul className="menu bg-base-100 w-full p-2 rounded-box">
+                {filteredNavOptions.length > 0 ? (
+                  filteredNavOptions.map((option, index) => (
+                    <li key={index}>
+                      <a 
+                        onClick={() => handleNavigation(option.path)}
+                        className="hover:bg-base-200 transition-colors"
+                      >
+                        {option.label}
+                      </a>
+                    </li>
+                  ))
+                ) : (
+                  <li className="p-4 text-center text-gray-500">
+                    No results found
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Notification Icon */}
+        <div className="relative" ref={dropdownRef}>
           <button
-            onClick={onSidebarToggle}
-            className="btn drawer-button text-lg text-black dark:text-white"
+            className="relative p-2 text-gray-700 hover:text-blue-600 transition"
+            onClick={handleToggleNotifications}
           >
-            <GoSidebarCollapse className="font-bold" />{" "}
-            {/* Updated to use FiMenu */}
+            <FaBell className="text-2xl" />
+            {notifications.length > 0 && notifications.some(notif => !notif.read) && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
+                {notifications.filter(notif => !notif.read).length}
+              </span>
+            )}
           </button>
 
-          <div className="relative w-full max-w-xs">
-            <label className="input input-bordered flex items-center">
-              <input
-                type="text"
-                className="grow border-b rounded-t-md"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                aria-label="Search"
-              />
-              <button onClick={clearSearch} className="ml-2 text-gray-500">
-                &times;
-              </button>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="h-4 w-4 opacity-70"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </label>
-
-            {/* Suggestions Dropdown */}
-            {filteredSuggestions.length > 0 && (
-              <ul className="absolute left-0 w-full bg-white border border-gray-300 rounded-b-md shadow-md max-h-48 overflow-y-auto z-10 mt-[-1px]">
-                {filteredSuggestions.map((suggestion, index) => (
-                  <li
-                    key={index}
-                    className={`cursor-pointer p-2 ${
-                      highlightedIndex === index ? "bg-gray-200" : ""
-                    }`}
-                    onClick={() => handleSuggestionClick(suggestion.path)}
-                    role="option"
-                    aria-label={suggestion.name}
-                  >
-                    {suggestion.name
-                      .split(new RegExp(`(${searchQuery})`, "gi"))
-                      .map((part, i) => (
-                        <span
-                          key={i}
-                          className={
-                            part.toLowerCase() === searchQuery.toLowerCase()
-                              ? "font-bold"
-                              : ""
-                          }
-                        >
-                          {part}
+          {/* Notification Dropdown (Directly Below the Button) */}
+          {showNotifications && (
+            <div className="absolute top-full right-0 mt-2 w-96 bg-white shadow-2xl rounded-xl overflow-hidden z-50 border border-gray-200 animate-fadeIn">
+              <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50 to-blue-100">
+                <div className="flex items-center gap-2">
+                  <FaBell className="text-blue-600" />
+                  <span className="font-semibold text-gray-700">
+                    Notifications ({notifications.length})
+                  </span>
+                </div>
+                <button
+                  onClick={clearNotifications}
+                  className="px-3 py-1 text-xs text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200 border border-gray-300 hover:border-red-300"
+                >
+                  Clear All
+                </button>
+              </div>
+              <div className="max-h-[480px] overflow-y-auto divide-y divide-gray-100 bg-gray-50">
+                {notifications.length > 0 ? (
+                  notifications.map((notif, index) => (
+                    <div
+                      key={index}
+                      className={`group p-4 hover:bg-white transition-all duration-200 cursor-pointer
+                        ${!notif.read ? 'bg-blue-50/50 border-l-4 border-blue-500' : 'bg-transparent'}
+                      `}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-sm font-medium ${!notif.read ? 'text-blue-600' : 'text-gray-700'}`}>
+                          {notif.type || 'Update'}
                         </span>
-                      ))}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="ml-auto text-lg text-gray-700 dark:text-white">
-            {currentTime}
-          </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(notif.timestamp || Date.now()).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                        {notif.message}
+                      </p>
+                      {!notif.read && (
+                        <div className="mt-2 flex justify-end">
+                          <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                            New
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 px-4 text-gray-500">
+                    <FaBell className="text-4xl mb-2 text-gray-300" />
+                    <p className="text-sm">No new notifications</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

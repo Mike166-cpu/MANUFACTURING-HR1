@@ -45,9 +45,7 @@ const Onboarding = () => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [newHireData, setNewHireData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
+    fullname: "",
     phoneNumber: "",
     jobTitle: "",
     startDate: "",
@@ -65,7 +63,7 @@ const Onboarding = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Add logic to handle the form submission
+
     console.log("New Hire Data Submitted:", newHireData);
   };
 
@@ -177,7 +175,6 @@ const Onboarding = () => {
                 )}
               </div>
             </div>
-
           </div>
 
           {/* END OF MAIN CONTENT */}

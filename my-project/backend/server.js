@@ -6,6 +6,8 @@ const socketIo = require("socket.io");
 const cors = require("cors");
 require("dotenv").config();
 
+
+
 const incidentRoutes = require("./routes/incidentReport");
 const employeeRoutes = require("./routes/employee");
 const policyRoutes = require("./routes/policyRoutes");
@@ -18,14 +20,27 @@ const createSuperadminRoutes = require("./routes/auth/createaccount");
 const timeTrackingRoutes = require("./routes/totalTime");
 const scheduleRoutes = require("./routes/createSchedule");
 const leaveRoutes = require("./routes/leaveRoutes");
-const obRoutes = require('./routes/obRoutes');
+const obRoutes = require("./routes/obRoutes");
 const path = require("path");
 const leaveBalanceRoutes = require("./routes/leaveBalanceRoutes");
 const logoutRoutes = require("./routes/auth/logout");
+const documentRequest = require("./routes/documentRoutes");
+const uploadedDocument = require("./routes/uploadedDocumentRoutes");
+const timeTracking = require("./routes/timeTrackingRoutes");
+const integrationRoutes = require("./routes/integrationRoutes");
+const resignationRoutes = require("./routes/resignationRoutes");
+const { initializeLeaveBalances } = require("./controllers/leave");
+const model = require("./routes/predictiveAnalyticsRoutes");
+const { cronjob } = require("./controllers/leave");
+const onboard = require("./routes/onboardingRoutes");
 
 const app = express();
+app.set("trust proxy", true);
 app.use(express.json());
-app.use(cors());
+
+app.use((req, res, next) => {
+  next();
+});
 
 // CORS CONFIG
 const allowedOrigins = [
@@ -57,7 +72,10 @@ app.use(
 const server = http.createServer(app);
 
 const io = socketIo(server, {
-  cors: { origin: allowedOrigins, methods: ["GET", "POST"], credentials: true },
+  cors: {
+    origin: "*", 
+    methods: ["GET", "POST"],
+  },
 });
 
 io.on("connection", (socket) => {
@@ -72,24 +90,37 @@ app.use("/api/employee", employeeRoutes);
 app.use("/api/incidentreport", incidentRoutes(io));
 app.use("/api/policies", policyRoutes);
 app.use("/api/user", userProfile);
-app.use("/signup", signupRoutes);
-app.use("/login", loginRoutes);
+app.use("/api/admin", signupRoutes);
+app.use("/api/login-admin", loginRoutes);
 app.use("/api", uploadRoutes);
 app.use("/api", profilePictureRoutes);
 app.use("/api/create-account", createSuperadminRoutes);
-app.use("/api", timeTrackingRoutes);
+app.use("/api", timeTrackingRoutes); //totalTime.js
 app.use("/api/schedule", scheduleRoutes);
-app.use('/api/time-tracking', require('./routes/totalTimeRoutes'));
-app.use('/api/leave', leaveRoutes);
-app.use('/api/ob', obRoutes);
+app.use("/api/time-tracking", require("./routes/totalTimeRoutes"));
+app.use("/api/leave", leaveRoutes);
+app.use("/api/ob", obRoutes);
 app.use("/api/leave-balance", leaveBalanceRoutes);
 app.use("/api/auth", logoutRoutes);
+app.use("/api/document-request", documentRequest);
+app.use("/api/uploaded-documents", uploadedDocument);
+app.use("/api/timetrack", timeTracking);
+app.use("/api/resignation", resignationRoutes);
+app.use("/api/analytics", model);
+app.use("/api/onboarding", onboard);
+
+app.use("/api/hr", integrationRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
+  .then(async () => {
+    console.log("MongoDB Connected");
+    cronjob();
+    await initializeLeaveBalances();
+  
+  })
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Basic route
@@ -127,6 +158,8 @@ app.get("/", (req, res) => {
     </html>
   `);
 });
+
+global.io = io;
 
 // Start the server
 const PORT = process.env.PORT || 5000;

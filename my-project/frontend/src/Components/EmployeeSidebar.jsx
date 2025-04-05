@@ -19,6 +19,7 @@ import { AiOutlineClose } from "react-icons/ai";
 import { VscFeedback } from "react-icons/vsc";
 import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
 import logo from "../../src/assets/logo-2.png";
+import { FaRegCalendarAlt } from "react-icons/fa";
 
 const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
@@ -100,40 +101,30 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
 
   useEffect(() => {
     const email = localStorage.getItem("employeeEmail");
-    const firstName = localStorage.getItem("employeeFirstName");
+    const name = localStorage.getItem("fullName");
     const lastName = localStorage.getItem("employeeLastName");
     if (email) {
       setEmployeeEmail(email);
     }
-    if (firstName) {
-      setEmployeeFirstName(firstName);
+    if (name) {
+      setEmployeeFirstName(name);
     }
-    if (lastName) {
-      setEmployeeLastName(lastName);
-    }
+  
   }, []);
 
-  const getInitials = (firstName) => {
-    const firstInitial = firstName.charAt(0).toUpperCase();
-    return `${firstInitial}`;
+  const getInitials = (fullname) => {
+    if (!fullname || typeof fullname !== "string") {
+      return "?"; // Default if fullname is missing
+    }
+  
+    const nameParts = fullname.split(" "); // Split the fullname into words
+    const firstInitial = nameParts[0]?.charAt(0).toUpperCase() || "";
+    const lastInitial = nameParts.length > 1 ? nameParts[nameParts.length - 1]?.charAt(0).toUpperCase() : "";
+  
+    return firstInitial + lastInitial; // Combine initials (e.g., John Doe → JD)
   };
 
   const [profilePicture, setProfilePicture] = useState("");
-
-  useEffect(() => {
-    if (employeeId) {
-      fetch(`${APIBASED_URL}/api/profile-picture?employeeId=${employeeId}`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.profilePicture) {
-            setProfilePicture(data.profilePicture);
-          }
-        })
-        .catch((error) =>
-          console.error("Error fetching profile picture:", error)
-        );
-    }
-  }, [employeeId]);
 
   const NavItem = ({ to, icon: Icon, label, badge }) => {
     const isActive = location.pathname === to;
@@ -143,8 +134,8 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
         className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200
           ${
             isActive
-              ? "bg-purple-100 text-purple-600"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "bg-blue-500 border text-white"
+              : "text-slate-600 hover:bg-gray-100"
           }`}
       >
         <Icon className="w-5 h-5" />
@@ -159,34 +150,67 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   };
 
   const MenuSection = ({ title, children }) => (
-    <div className="px-3 py-2">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+    <div className="px-3">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
         {title}
       </h3>
       <div className="space-y-1">{children}</div>
     </div>
   );
 
+  //FETCH PFP
+  const LOCAL = "http://localhost:7685";
+  const [profile, setProfile] = useState({});
+
+  const fetchUser = async () => {
+    try {
+      const employeeId = localStorage.getItem("employeeId");
+     
+
+      const response = await axios.get(
+        `${LOCAL}/api/onboarding/getEmployee/${employeeId}`
+      );
+      const employeeData = response.data;
+      const updatedProfile = {
+        ...employeeData,
+        initials: getInitials(employeeData.fullname), // Compute initials
+      };
+  
+
+      setProfile(response.data);
+    } catch (error) {
+      console.error("Error fetching employee:", error.response?.data || error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
   return (
     <div
-      className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-lg transform 
+      className={`fixed inset-y-0 left-0 w-[280px] sm:w-72 bg-white dark:bg-gray-800 shadow-lg transform 
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        transition-transform duration-300 ease-in-out z-20 flex flex-col`}
+        transition-transform duration-300 ease-in-out z-30 flex flex-col`}
     >
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Header */}
-      <div className="p-4 border-b dark:border-gray-700">
+      <div className="p-3 sm:p-4 border-b dark:border-gray-700">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="JJM Logo" className="w-8 h-8 rounded-lg" />
-            <h1 className="font-semibold text-gray-800 dark:text-gray-200">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <img
+              src={logo}
+              alt="JJM Logo"
+              className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg"
+            />
+            <h1 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200">
               JJM MANUFACTURING
             </h1>
           </div>
           <button
             onClick={onSidebarToggle}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden"
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
           >
             <AiOutlineClose className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
@@ -194,25 +218,25 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
       </div>
 
       {/* Profile Section */}
-      <div className="p-4 border-b dark:border-gray-700">
-        <div className="flex items-center gap-4">
-          {profilePicture ? (
+      <div className="p-3 sm:p-4 border-b dark:border-gray-700">
+        <div className="flex items-center gap-3 sm:gap-4">
+          {profile.profilePicture ? (
             <img
-              src={profilePicture}
+              src={profile.profilePicture}
               alt="Profile"
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-100"
+              className="w-12 h-12 rounded-full object-cover"
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-700 flex items-center justify-center text-purple-600 dark:text-purple-100 text-lg font-medium">
-              {getInitials(employeeFirstName)}
+              {getInitials(profile.fullname)}
             </div>
           )}
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate capitalize">
-              {employeeFirstName} {employeeLastName}
+              {profile.fullname}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-              {employeeEmail}
+              {profile.email}
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
               ID: {employeeId}
@@ -222,22 +246,27 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-2 space-y-2 hide-scrollbar">
-
+      <div className="flex-1 overflow-y-auto py-2 space-y-2 hide-scrollbar text-sm sm:text-base">
         {/* HOME SECTION */}
-        <MenuSection title="Dashboard">
+        <MenuSection>
           <NavItem to="/employeedashboard" icon={IoHomeOutline} label="Home" />
           <NavItem to="/userProfile" icon={FaRegUser} label="Profile" />
+          <NavItem to="/my-calendar" icon={FaRegCalendarAlt} label="Calendar" />
         </MenuSection>
 
+        <div className="py-3">
+          <span className="text-xs bg-text-gray-500 font-bold opacity-50 px-5">
+            PAGES
+          </span>
+        </div>
 
-          {/* HR COMPLIANCE SECTION */}
-        <MenuSection title="HR Compliance">
-          <NavItem
-            to="/companypolicy"
+        {/* HR COMPLIANCE SECTION */}
+        <MenuSection>
+          {/* <NavItem
+            to="/user-handbook"
             icon={MdOutlinePolicy}
             label="User Handbook"
-          />
+          /> */}
           <NavItem
             to="/request-form"
             icon={FaPenToSquare}
@@ -245,55 +274,44 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
           />
         </MenuSection>
 
-
-          {/* ATTENDANCE AND TIME TRACKING SECTION */}
-        <MenuSection title="Attendance">
-       
-          <NavItem to="/test-timer" icon={CiCalendar} label="Time Tracking" />
+        {/* ATTENDANCE AND TIME TRACKING SECTION */}
+        <MenuSection>
+          <NavItem to="/timetracking" icon={CiCalendar} label="Time Tracking" />
           <NavItem to="/file-leave" icon={CiFileOn} label="File Leave" />
         </MenuSection>
 
-
-          {/* ONBOARDING SECTION */}
-        <MenuSection title="Onboarding">
-        <NavItem
+        {/* ONBOARDING SECTION */}
+        <MenuSection>
+          <NavItem
             to="/work-schedule"
             icon={MdOutlinePolicy}
             label="Work Schedule"
           />
-          {/* <NavItem
-            to="/upload-documents"
+          <NavItem
+            to="/upload-requirements"
             icon={IoCloudUploadOutline}
-            label="Upload Documents"
-          /> */}
+            label="Submit Requirements"
+          />
         </MenuSection>
 
-
-          {/* OFFBOARDING SECTION */}
-        <MenuSection title="Offboarding">
+        {/* OFFBOARDING SECTION */}
+        <MenuSection>
           <NavItem
             to="/resignation-form"
             icon={VscFeedback}
             label="Resignation Form"
           />
-          {/* <NavItem
-            to="/upload-documents"
-            icon={IoCloudUploadOutline}
-            label="Upload Documents"
-          /> */}
         </MenuSection>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 border-t dark:border-gray-700">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300
-            hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
-        >
-          <FiLogOut className="w-5 h-5" />
-          <span>Logout</span>
-        </button>
+        <div className="p-3 sm:p-4 border-t dark:border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300
+            hover:bg-gray-100 dark:hover:bg-red-700 rounded-lg transition-colors duration-200"
+          >
+            <FiLogOut className="w-5 h-5" />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
     </div>
   );

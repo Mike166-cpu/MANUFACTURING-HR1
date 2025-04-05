@@ -5,7 +5,7 @@ exports.setLeaveBalance = async (req, res) => {
   try {
     const { employee_id, vacation_leave, sick_leave } = req.body;
 
-    const existingLeaveBalance = await LeaveBalance.findOne({ employee_id });
+    const existingLeaveBalance = await LeaveBalance.findOne({ employeeId });
 
     if (existingLeaveBalance) {
       return res.status(400).json({ message: "Leave balance already exists for this employee" });
@@ -34,7 +34,7 @@ exports.updateLeaveBalance = async (req, res) => {
     const { employee_id } = req.params;
     const { vacation_leave, sick_leave } = req.body;
 
-    const leaveBalance = await LeaveBalance.findOne({ employee_id });
+    const leaveBalance = await LeaveBalance.findOne({ employeeId});
 
     if (!leaveBalance) {
       return res.status(404).json({ message: "Leave balance not found" });
@@ -53,11 +53,13 @@ exports.updateLeaveBalance = async (req, res) => {
     res.status(500).json({ message: "Error updating leave balance", error: error.message });
   }
 };
+
+
 // Get leave balance for a specific employee
 exports.getLeaveBalance = async (req, res) => {
   try {
-    const { id } = req.params;
-    const leaveBalance = await LeaveBalance.find({ employee_id: id });
+    const { employee_id } = req.params;
+    const leaveBalance = await LeaveBalance.findOne({ employeeId: employee_id });
 
     if (!leaveBalance) {
       return res.status(404).json({ message: "Leave balance not found" });
@@ -66,5 +68,21 @@ exports.getLeaveBalance = async (req, res) => {
     res.status(200).json({ leaveBalance });
   } catch (error) {
     res.status(500).json({ message: "Error retrieving leave balance", error: error.message });
+  }
+};
+
+// Delete leave balance for a specific employee
+exports.deleteLeaveBalance = async (req, res) => {
+  try {
+    const { employee_id } = req.params;
+    const result = await LeaveBalance.findOneAndDelete({ employeeId: employee_id });
+
+    if (!result) {
+      return res.status(404).json({ message: "Leave balance not found" });
+    }
+
+    res.status(200).json({ message: "Leave balance deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting leave balance", error: error.message });
   }
 };

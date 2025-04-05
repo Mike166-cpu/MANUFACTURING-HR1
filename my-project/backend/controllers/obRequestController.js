@@ -1,11 +1,13 @@
-const TotalTime = require("../models/TotalTime");
+const TotalTime = require("../models/TimeTracking");
 
 // Create new OB request
 exports.createOBRequest = async (req, res) => {
   try {
     // Check if user is authenticated
     if (!req.headers.authorization) {
-      return res.status(401).json({ message: "No authorization token provided" });
+      return res
+        .status(401)
+        .json({ message: "No authorization token provided" });
     }
 
     const {
@@ -17,8 +19,8 @@ exports.createOBRequest = async (req, res) => {
       purpose,
       remarks,
       entry_type,
-      work_duration, // Add this field
-      overtime_duration // 
+      work_duration, 
+      overtime_duration, 
     } = req.body;
 
     // Validate required fields
@@ -37,16 +39,26 @@ exports.createOBRequest = async (req, res) => {
       remarks,
       purpose,
       break_duration: 0,
-      entry_type: entry_type || "Manual Entry", // Default to Manual Entry for OB requests
+      entry_type: entry_type || "Manual Entry", 
       session_id: `OB-${employee_id}-${Date.now()}`,
       overtime_duration,
-      work_duration
+      work_duration,
     });
 
     const savedRequest = await newOBRequest.save();
+
+    if (global.io) {
+      console.log("🔴 Emitting event: obRequestCreated", savedRequest);
+      global.io.emit("obRequestCreated", savedRequest);
+    } else {
+      console.warn(
+        "⚠️ WebSocket (global.io) is not initialized! OB request saved but not emitted."
+      );
+    }
+
     res.status(201).json({
       message: "OB request created successfully",
-      data: savedRequest
+      data: savedRequest,
     });
   } catch (error) {
     console.error("Error creating OB request:", error);
@@ -70,7 +82,7 @@ exports.getEmployeeOBRequests = async (req, res) => {
     const { employee_id } = req.params;
     const obRequests = await TotalTime.find({
       employee_id,
-      label: "OB"
+      label: "OB",
     });
     res.status(200).json(obRequests);
   } catch (error) {
@@ -81,11 +93,10 @@ exports.getEmployeeOBRequests = async (req, res) => {
 // Update OB request status
 exports.updateOBRequestStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
+    const { requestId, status } = req.body;
 
     const updatedRequest = await TotalTime.findOneAndUpdate(
-      { _id: id, label: "OB" },
+      { _id: requestId, label: "OB" },
       { status },
       { new: true }
     );
@@ -94,12 +105,14 @@ exports.updateOBRequestStatus = async (req, res) => {
       return res.status(404).json({ message: "OB request not found" });
     }
 
+    // Emit with specific event name for OB status updates
+    global.io.emit("obRequestUpdated", updatedRequest);
+
     res.status(200).json(updatedRequest);
   } catch (error) {
     res.status(500).json({ error: "Failed to update OB request status" });
   }
 };
-
 
 //GET ALL MANUALY ENTRIES FOR SPECIFIC EMPLOYEE
 exports.getManualEntries = async (req, res) => {
@@ -107,8 +120,10 @@ exports.getManualEntries = async (req, res) => {
     const { employee_id } = req.params;
     const manualEntries = await TotalTime.find({
       employee_id,
-      entry_type: "Manual Entry"
+      entry_type: "Manual Entry",
     });
+
+    global.io.emit("obRequestCreated", savedRequest);
 
     res.status(200).json(manualEntries);
   } catch (error) {

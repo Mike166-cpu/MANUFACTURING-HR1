@@ -1,9 +1,12 @@
+// USER HANDBOOK
+
 import React, { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Breadcrumbs from "../../Components/BreadCrumb";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -105,26 +108,7 @@ const CompanyPolicy = () => {
     return <Navigate to="/employeelogin" replace />;
   }
 
-  const Breadcrumbs = ({ items }) => {
-    return (
-      <nav className="pl-5">
-        <ol className="list-reset flex">
-          {items.map((item, index) => (
-            <li key={index} className="flex items-center">
-              <span className="text-blue-800 text-sm">{item.label}</span>
-              {index < items.length - 1 && <span className="mx-2">{">"}</span>}
-            </li>
-          ))}
-        </ol>
-      </nav>
-    );
-  };
-
-  const breadcrumbItems = [
-    { label: "HR Compliance" },
-    { label: "Policies", className: "font-bold" },
-  ];
-
+ 
   const handleResize = () => {
     if (window.innerWidth >= 768) {
       setIsSidebarOpen(true);
@@ -168,16 +152,15 @@ const CompanyPolicy = () => {
               onClick={() => setIsSidebarOpen(false)}
             ></div>
           )}
-          <div className="flex-1 overflow-y-auto bg-base-500">
-            <div className="border rounded-lg m-5 py-5">
-              <h2 className="text-2xl font-bold pl-5 dark:text-white">
-                Company Policies
-              </h2>
-              <Breadcrumbs items={breadcrumbItems} />
-            </div>
 
+          <div className="p-5">
+            <Breadcrumbs/>
+            <h1 className="px-5 text-xl font-bold"> Company Policy</h1>
+          </div>
+          <div className="flex-1 overflow-y-auto bg-gray-100">
             {/* MAIN CONTENT */}
-            <div className="p-5">
+
+            <div className="p-5 m-5 border bg-white rounded-md shadow-sm min-h-screen">
               <table className="table-auto w-full">
                 <thead>
                   <tr>

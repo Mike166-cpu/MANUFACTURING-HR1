@@ -5,7 +5,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../src/assets/logo-2.png";
 import Swal from "sweetalert2";
 import ReCAPTCHA from "react-google-recaptcha";
-import { loginUser } from "../store/authStore";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -13,19 +14,62 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
-  //const [captchaValue, setCaptchaValue] = useState(null); // ReCAPTCHA state
+  const [captchaValue, setCaptchaValue] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    document.title = "Login - HR1";
-  }, []);
+  const [loading, setLoading] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:7685";
+
+  const LoadingOverlay = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="flex space-x-2">
+          <div
+            className="w-4 h-4 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "0s" }}
+          ></div>
+          <div
+            className="w-4 h-4 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "0.2s" }}
+          ></div>
+          <div
+            className="w-4 h-4 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "0.4s" }}
+          ></div>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    document.title = "Login - Admin";
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem("adminToken");
+    if (token) {
+      toast.info("Already Logged In. Redirecting to dashboard...", {
+        position: "top-right",
+        autoClose: 1500,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: "colored",
+      });
+      navigate("/dashboard", { replace: true }); // Redirect user away
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setLoading(true);
+    document.title = "Logging in...";
+  
     if (!email || !password) {
       Swal.fire({
         title: "Error",
@@ -33,32 +77,69 @@ const LoginForm = () => {
         icon: "error",
         confirmButtonText: "OK",
       });
+      setLoading(false);
+      document.title = "Login - Admin";
       return;
     }
-
-    const success = await loginUser(email, password, navigate, location);
-    if (!success) {
+  
+    try {
+      const response = await fetch(`${LOCAL}/api/login-admin/userLogin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        toast.error(data.message || "Login failed!");
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        return;
+      }
+  
+      // Store token and user details in localStorage
+      localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("firstName", data.user.firstName);
+      localStorage.setItem("lastName", data.user.lastName);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("role", data.user.role);
+      localStorage.setItem("accessLevel", data.user.accessLevel);
+  
+      if (data.user.department === "HR1") {
+        window.location.href = "https://hr1.jjm-manufacturing.com/";
+        return;
+      }
+  
+      toast.success("Login successful!", { autoClose: 1500 });
+  
+      setTimeout(() => {
+        const redirectTo = location.state?.from?.pathname || "/dashboard";
+        navigate(redirectTo, { replace: true });
+      }, 1500);
+  
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("An error occurred. Please try again.");
       setShake(true);
       setTimeout(() => setShake(false), 500);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const handleCaptchaChange = (value) => {
-    setCaptchaValue(value);
-  };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-500 bg-green-100 bg-opacity-25">
-      <div className="absolute top-0 left-0 w-32 h-32 bg-green-300 rounded-full opacity-50 -z-10"></div>
-      <div className="absolute bottom-10 right-10 w-24 h-24 bg-green-500 opacity-50 -z-10"></div>
-      <div className="absolute top-20 right-0 w-40 h-40 bg-yellow-400 rounded-full opacity-30 -z-10"></div>
-      <div className="absolute bottom-20 left-12 w-32 h-32 border-2 border-dashed border-gray-400 -z-10"></div>
-      <div className="absolute top-10 right-10 w-24 h-24 border-2 border-dashed border-gray-500 -z-10"></div>
+      <ToastContainer />
       <div
         className={`bg-white rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.25)] p-10 w-full max-w-sm${
           shake ? " shake" : ""
         }`}
       >
+        {loading && <LoadingOverlay />}
         <div className="flex justify-center gap-x-2 pb-2">
           <img
             src={logo}
@@ -93,10 +174,6 @@ const LoginForm = () => {
               <label className="block text-gray-700 text-sm mb-2">
                 Password
               </label>
-
-              <label className="block text-sm mb-2 justify-end ml-auto text-green-600">
-                Forgot Password?
-              </label>
             </div>
             <div className="flex items-center border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-green-500">
               <input
@@ -127,19 +204,40 @@ const LoginForm = () => {
             </div>
           </div>
 
-          {/* reCAPTCHA v2 Field
-          <div className="mb-6">
-            <ReCAPTCHA
-              sitekey="6LdA22gqAAAAAH57gImSaofpR0dY3ppke4-7Jjks" // Your reCAPTCHA site key
-              onChange={handleCaptchaChange} // Capture the reCAPTCHA response
-            />
-          </div> */}
+          <div className="text-center text-sm mb-4">
+            <button
+              type="button"
+              className="text-blue-500 hover:underline"
+              onClick={() => setIsTermsModalOpen(true)}
+            >
+              Terms and Conditions
+            </button>
+          </div>
 
           <button className="btn btn-primary w-full bg-green-600 text-white hover:bg-green-700 py-3 rounded transition duration-200">
             Login
           </button>
         </form>
       </div>
+      {isTermsModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+            <h3 className="text-xl font-semibold mb-4">Terms and Conditions</h3>
+            <p className="text-sm text-gray-600">
+              By using this application, you agree to our terms and conditions.
+              Please read them carefully before proceeding.
+            </p>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setIsTermsModalOpen(false)}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-200"
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

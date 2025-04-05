@@ -104,6 +104,7 @@ const AddEmployee = () => {
   const genders = ["Male", "Female", "Other"];
 
   const APIBase_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const Local= "http://localhost:7685";
 
   const handleChange = (e) => {
     setFormData({

@@ -41,4 +41,48 @@ router.post('/register', async (req, res) => {
   }
 });
 
+
+router.post("/adminLogin", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const serviceToken = generateServiceToken();
+
+    const response = await axios.get(
+      `${process.env.API_GATEWAY_URL}/admin/get-accounts`,
+      {
+        headers: { Authorization: `Bearer ${serviceToken}` },
+      }
+    );
+
+    const users = response.data;
+
+    const user = users.find((u) => u.email === email);
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    if (user.role !== "Admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+    
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(200).json({ token, user });
+  } catch (err) {
+    console.error("Error during login:", err.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

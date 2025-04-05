@@ -2,11 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import Swal from "sweetalert2";
 import {
-  FaPlay,
-  FaPause,
   FaClock,
   FaStop,
   FaFilter,
@@ -95,6 +92,10 @@ const TestTimer = () => {
   const WORK_START_HOUR = 8; // 8 AM
   const WORK_END_HOUR = 17; // 5 PM
 
+  // Add lunch break constants
+  const LUNCH_BREAK_START = 12; // 12 PM
+  const LUNCH_BREAK_END = 13; // 1 PM
+
   useEffect(() => {
     let interval;
     if (isClockedIn && !isPaused) {
@@ -151,9 +152,10 @@ const TestTimer = () => {
           return {
             ...log,
             isOnBreak: log.break_start && !log.break_end,
-            overtime_duration: overtimeDuration || parseInt(log.overtime_duration) || 0,
+            overtime_duration:
+              overtimeDuration || parseInt(log.overtime_duration) || 0,
             // Ensure work_duration is formatted correctly
-            work_duration: log.work_duration || "00:00"
+            work_duration: log.work_duration || 0,
           };
         });
 
@@ -161,7 +163,11 @@ const TestTimer = () => {
         setLogs(transformedLogs);
       } catch (error) {
         console.error("Error fetching logs:", error);
-        toast.error("Failed to fetch time tracking data");
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Failed to fetch time tracking data",
+        });
       }
     };
 
@@ -229,15 +235,23 @@ const TestTimer = () => {
     );
 
     if (!todaySchedule) {
-      toast.error("You do not have a schedule for today.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "You do not have a schedule for today.",
+      });
       return;
     }
 
     // Check if current time is within working hours
-     if (!isWithinWorkingHours(todaySchedule)) {
-       toast.error("You can only time in during your scheduled working hours.");
-       return;
-     }
+    if (!isWithinWorkingHours(todaySchedule)) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "You can only time in during your scheduled working hours.",
+      });
+      return;
+    }
 
     setTimeIn(now);
     setIsClockedIn(true);
@@ -251,12 +265,20 @@ const TestTimer = () => {
         employee_id: employeeId,
         start_time: now,
       });
-      toast.success("Timer started successfully");
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Timer started successfully",
+      });
       setTimeout(() => {
         window.location.reload();
       }, 100);
     } catch (error) {
-      toast.error("Failed to start the timer");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to start the timer",
+      });
     }
   };
 
@@ -284,11 +306,68 @@ const TestTimer = () => {
     return { adjustedTimeOut: outTime.toISOString(), overtimeMinutes: 0 };
   };
 
+  // Modify work duration calculation to exclude lunch break and overtime
+  const calculateWorkDuration = (timeIn, timeOut, breakStart, breakEnd) => {
+    const startTime = new Date(timeIn);
+    const endTime = new Date(timeOut);
+
+    // Set lunch break times
+    const lunchStart = new Date(startTime);
+    lunchStart.setHours(LUNCH_BREAK_START, 0, 0);
+    const lunchEnd = new Date(startTime);
+    lunchEnd.setHours(LUNCH_BREAK_END, 0, 0);
+
+    let totalSeconds = 0;
+
+    // If work spans lunch break
+    if (startTime < lunchStart && endTime > lunchEnd) {
+      totalSeconds += (lunchStart - startTime) / 1000;
+      totalSeconds += (endTime - lunchEnd) / 1000;
+    } else {
+      totalSeconds = (endTime - startTime) / 1000;
+    }
+
+    // Subtract break duration if break times are provided
+    if (breakStart && breakEnd) {
+      const breakStartTime = new Date(breakStart);
+      const breakEndTime = new Date(breakEnd);
+      totalSeconds -= (breakEndTime - breakStartTime) / 1000;
+    }
+
+    // Format to HH:MM
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Modify the handleTimeOut function
   const handleTimeOut = async (logId) => {
     const now = new Date();
+    const log = logs.find((l) => l._id === logId);
+
+    if (!log) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Log entry not found",
+      });
+      return;
+    }
+
+    const workDuration = calculateWorkDuration(
+      log.time_in,
+      now,
+      log.break_start,
+      log.break_end
+    );
+    const overtimeDuration = calculateOvertimeDuration(now);
+
     const timeOutData = {
       time_out: now.toISOString(),
-      overtime_duration: calculateOvertimeDuration(now), // Add this function
+      work_duration: workDuration,
+      overtime_duration: overtimeDuration,
       status: "pending",
     };
 
@@ -299,14 +378,20 @@ const TestTimer = () => {
       );
 
       if (response.data) {
-        toast.success("Time out successful. Waiting for admin approval.");
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Time out successful. Waiting for admin approval.",
+        });
+        // Update logs state
         setLogs((prevLogs) =>
           prevLogs.map((log) =>
             log._id === logId
               ? {
                   ...log,
                   time_out: now.toISOString(),
-                  overtime_duration: response.data.overtime_duration,
+                  work_duration: workDuration,
+                  overtime_duration: overtimeDuration,
                 }
               : log
           )
@@ -314,7 +399,11 @@ const TestTimer = () => {
       }
     } catch (error) {
       console.error("Time out error:", error);
-      toast.error("Failed to log time out.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to log time out.",
+      });
     }
   };
 
@@ -328,86 +417,6 @@ const TestTimer = () => {
       return Math.floor((outTime - cutoffTime) / 1000); // Convert ms to seconds
     }
     return 0;
-  };
-
-  // Update handlePause function
-  const handlePause = async (logId = null) => {
-    const now = new Date();
-
-    if (logId) {
-      try {
-        await axios.put(`${APIBASED_URL}/api/time-tracking/${logId}`, {
-          break_start: now.toISOString(),
-        });
-
-        setLogs((prevLogs) =>
-          prevLogs.map((log) =>
-            log._id === logId && !log.time_out
-              ? {
-                  ...log,
-                  isOnBreak: true,
-                  break_start: now.toISOString(),
-                }
-              : log
-          )
-        );
-        toast.success("Break started successfully");
-      } catch (error) {
-        toast.error("Failed to start break");
-      }
-    } else {
-      // Handle pause for main timer
-      setPauseStart(now);
-      setIsPaused(true);
-      setWorkDuration((prev) => prev + timer);
-      setTimer(0);
-    }
-  };
-
-  // Update handleResume function
-  const handleResume = async (logId = null) => {
-    const now = new Date();
-
-    if (logId) {
-      try {
-        const log = logs.find((log) => log._id === logId);
-        if (!log.break_start) {
-          toast.error("No break start time found");
-          return;
-        }
-
-        await axios.put(`${APIBASED_URL}/api/time-tracking/${logId}`, {
-          break_end: now.toISOString(),
-        });
-
-        setLogs((prevLogs) =>
-          prevLogs.map((log) =>
-            log._id === logId && !log.time_out
-              ? {
-                  ...log,
-                  isOnBreak: false,
-                  break_end: now.toISOString(),
-                }
-              : log
-          )
-        );
-        toast.success("Break stopped successfully");
-
-        // Refresh the logs to get the updated break duration
-        const response = await axios.get(`${APIBASED_URL}/api/time-tracking`);
-        const transformedLogs = response.data.map((log) => ({
-          ...log,
-          isOnBreak: log.break_start && !log.break_end,
-        }));
-        setLogs(transformedLogs);
-      } catch (error) {
-        toast.error("Failed to stop break");
-      }
-    } else {
-      // Handle resume for main timer
-      setIsPaused(false);
-      setBreakDuration((prev) => prev + (now - pauseStart) / 1000);
-    }
   };
 
   const getFilteredLogs = () => {
@@ -467,7 +476,11 @@ const TestTimer = () => {
         `${APIBASED_URL}/api/time-tracking/${updatedLog._id}`,
         updatedLog
       );
-      toast.success("Task name updated successfully");
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Task name updated successfully",
+      });
       setEditingLogIndex(null); // Exit edit mode
       setLogs((prevLogs) => {
         const newLogs = [...prevLogs];
@@ -475,7 +488,11 @@ const TestTimer = () => {
         return newLogs;
       });
     } catch (error) {
-      toast.error("Failed to update task name");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to update task name",
+      });
     }
   };
 
@@ -496,20 +513,16 @@ const TestTimer = () => {
     return `${hours}h ${minutes}m`;
   };
 
+  // Add this helper function near your other utility functions
+  const formatDurationDisplay = (seconds) => {
+    if (!seconds && seconds !== 0) return "00h 00m";
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans antialiased">
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
       <EmployeeSidebar
         onSidebarToggle={handleSidebarToggle}
         isSidebarOpen={isSidebarOpen}
@@ -541,28 +554,6 @@ const TestTimer = () => {
                 <div className="flex items-center space-x-3">
                   {activeSession ? (
                     <>
-                      {/* Pause/Resume Button */}
-                      <button
-                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200
-                                  ${
-                                    activeSession.isOnBreak
-                                      ? "bg-red-500 hover:bg-red-600 text-white"
-                                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                                  }`}
-                        onClick={() =>
-                          activeSession.isOnBreak
-                            ? handleResume(activeSession._id)
-                            : handlePause(activeSession._id)
-                        }
-                      >
-                        {activeSession.isOnBreak ? (
-                          <FaPause className="w-4 h-4" />
-                        ) : (
-                          <FaPlay className="w-4 h-4" />
-                        )}
-                        {activeSession.isOnBreak ? "Stop Break" : "Start Break"}
-                      </button>
-
                       {/* Time Out Button */}
                       <button
                         className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors duration-200"
@@ -574,24 +565,25 @@ const TestTimer = () => {
                     </>
                   ) : (
                     /* Time In Button */
-                     <button
-                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200
+                    <button
+                      className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200
                                    ${
-                                     !isScheduledForToday || !isWithinTimeRange()
+                                     !isScheduledForToday ||
+                                     !isWithinTimeRange()
                                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                                        : "bg-green-500 hover:bg-green-600 text-white"
                                    }`}
-                       onClick={handleClockIn}
-                       disabled={!isScheduledForToday || !isWithinTimeRange()} // Disable if not scheduled or not within time range
-                       aria-disabled={
+                      onClick={handleClockIn}
+                      disabled={!isScheduledForToday || !isWithinTimeRange()} // Disable if not scheduled or not within time range
+                      aria-disabled={
                         !isScheduledForToday || !isWithinTimeRange()
                       }
-                     >
-                       <FaClock className="w-4 h-4" />
-                     Time In
-                     </button>
+                    >
+                      <FaClock className="w-4 h-4" />
+                      Time In
+                    </button>
                   )}
-                   {!isScheduledForToday && !activeSession && (
+                  {!isScheduledForToday && !activeSession && (
                     <p className="text-red-500 text-sm">
                       You are not scheduled to work today.
                     </p>
@@ -602,7 +594,7 @@ const TestTimer = () => {
                       <p className="text-red-500 text-sm">
                         You can only time in between 8 AM and 5 PM.
                       </p>
-                    )} 
+                    )}
                 </div>
               </div>
             </div>
@@ -752,28 +744,10 @@ const TestTimer = () => {
                           </div>
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-300 whitespace-nowrap">
-                          {log.work_duration || "00:00"}
+                          {formatDurationDisplay(log.work_duration)}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-300 whitespace-nowrap">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span>{formatTime(log.break_duration)}</span>
-                            {log.time_in && !log.time_out && (
-                              <button
-                                className={`px-2 py-1 text-xs rounded transition-colors duration-200 ${
-                                  log.isOnBreak
-                                    ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-700 dark:text-red-100 dark:hover:bg-red-600"
-                                    : "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-700 dark:text-blue-100 dark:hover:bg-blue-600"
-                                }`}
-                                onClick={() =>
-                                  log.isOnBreak
-                                    ? handleResume(log._id)
-                                    : handlePause(log._id)
-                                }
-                              >
-                                {log.isOnBreak ? "Stop Break" : "Start Break"}
-                              </button>
-                            )}
-                          </div>
+                          12:00 PM - 1:00 PM
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-300 whitespace-nowrap">
                           {formatOvertimeDuration(log.overtime_duration)}
