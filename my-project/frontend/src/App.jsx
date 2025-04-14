@@ -26,8 +26,7 @@ import TimeTrackingRecord from "./pages/Admin/TimeTrackingRecords.jsx";
 import OnboardEmployee from "./pages/Admin/OnboardEmployee.jsx";
 import AddEmployee from "./pages/AddEmployee.jsx";
 import EmployeeDocuments from "./pages/Admin/EmployeeDocuments.jsx";
-
-
+import Policies from  "./pages/Admin/Policies.jsx";
 
 
 // EMPLOYEE IMPORTS
@@ -51,6 +50,7 @@ import RequestForm from "./pages/Employee/RequestForm.jsx";
 import ResignationForm from "./pages/Employee/ResignationForm.jsx";
 import UploadRequiremens from "./pages/Employee/UploadRequirements.jsx";
 import TimeTracking from "./pages/Employee/TimeTracking.jsx";
+import Settings from "./pages/Employee/Settings.jsx"
 
 //HR LOGIN
 import HumanResources from "./pages/HumanResources.jsx";
@@ -107,11 +107,9 @@ function App() {
           <Route path="/resignation-form" element={<EmployeeProtectedRoute><ResignationForm /></EmployeeProtectedRoute>} /> {/*RESIGNATION FORM*/}
           <Route path="/upload-requirements" element={<EmployeeProtectedRoute><UploadRequiremens /></EmployeeProtectedRoute>} />  {/*EMPLOYEE UPLOAD REQUIREMENTS*/}
           <Route path="/my-calendar" element={<EmployeeProtectedRoute><UploadDocuments /></EmployeeProtectedRoute>} />
+          <Route path="/settings" element={<EmployeeProtectedRoute><Settings /></EmployeeProtectedRoute>} />
 
          
-
-
-          
 
           {/*ADMIN DASHBORAD*/}
           <Route path="/login" element={<LoginForm />} />
@@ -132,6 +130,9 @@ function App() {
           <Route path="/time-records" element={<ProtectedRoute><TimeTrackingRecord /></ProtectedRoute>} />
           <Route path="/onboard-employee" element={<ProtectedRoute><OnboardEmployee /></ProtectedRoute>} />
           <Route path="/signup" element={<ProtectedRoute><SignUpForm /></ProtectedRoute>} />
+          <Route path="/policy" element={<ProtectedRoute><Policies /></ProtectedRoute>} /> 
+          
+
           
 
           

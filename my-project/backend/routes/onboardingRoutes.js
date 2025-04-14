@@ -150,7 +150,8 @@ router.post("/accept", async (req, res) => {
       civilStatus: applicant.civilStatus,
       role: "Employee",
       skills: applicant.skills || [],
-      documents, // Store documents array here
+      documents, 
+      status: "Active",
     });
 
     await newEmployee.save();

@@ -11,6 +11,8 @@ const UserSchema = new mongoose.Schema({
     enum: ['employee', 'admin', 'superadmin'], 
     default: 'employee', 
   },
+  otp: String,
+  otpExpires: Date,
 });
 const User = mongoose.model('User', UserSchema);
 

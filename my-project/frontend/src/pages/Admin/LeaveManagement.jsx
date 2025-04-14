@@ -26,6 +26,8 @@ const useMediaQuery = (query) => {
 const LeaveManagement = () => {
   const navigate = useNavigate();
   const isMobileView = useMediaQuery("(max-width: 768px)");
+  const [selectedLeave, setSelectedLeave] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [dashboardStats, setDashboardStats] = useState({
@@ -45,6 +47,7 @@ const LeaveManagement = () => {
         `${LOCAL}/api/leave/get-employees-leave`
       );
       setLeaveRequests(response.data);
+      console.log("Leave", response.data);
     } catch (error) {
       console.error("Error fetching leave requests:", error);
     }
@@ -178,6 +181,13 @@ const LeaveManagement = () => {
     );
   };
 
+  const formatDate = (date) =>
+    new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -306,120 +316,126 @@ const LeaveManagement = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
+            <table className="min-w-full table-auto">
+              <thead className="bg-white border-b text-xs text-gray-600 uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {""}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Leave Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Duration
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reason
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="p-3"></th>
+                  <th className="p-3 text-left">Employee</th>
+                  <th className="p-3 text-left">Leave</th>
+                  <th className="p-3 text-left">Duration</th>
+                  <th className="p-3 text-left">Status</th>
+                  <th className="p-3 text-left">Payment</th>
+                  <th className="p-3 text-left">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 text-sm">
                 {paginatedLeaves.length > 0 ? (
                   paginatedLeaves.map((leave) => {
-                    const today = new Date(); // Get today's date
+                    const today = new Date();
                     const startDate = new Date(leave.start_date);
                     const endDate = new Date(leave.end_date);
-
-                    // Check if the leave is currently active
                     const isActiveLeave =
                       leave.status === "Approved" &&
                       today >= startDate &&
                       today <= endDate;
-
-                    // Check if leave is approved but not yet active
-                    const isFutureApprovedLeave =
-                      leave.status === "Approved" && today < startDate;
 
                     return (
                       <tr
                         key={leave.leave_id}
                         className={`${
                           selectedRows.includes(leave.leave_id)
-                            ? "bg-blue-100"
-                            : ""
-                        }`}
+                            ? "bg-blue-50"
+                            : "bg-white"
+                        } hover:bg-gray-50`}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="p-3">
                           <input
                             type="checkbox"
                             checked={selectedRows.includes(leave.leave_id)}
                             onChange={() => toggleRowSelection(leave.leave_id)}
                           />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="p-3 capitalize">
                           <div className="flex items-center gap-2">
-                            {leave.employee_firstname}
+                            <span className="font-medium">
+                              {leave.employee_name}
+                            </span>
                             {isActiveLeave && (
-                              <span className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
+                              <span className="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">
                                 On Leave
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {leave.leave_type}
+                        <td className="p-3">
+                          <div className="text-gray-800">
+                            {leave.leave_type}
+                          </div>
+                          <div
+                            className="text-xs text-gray-500 line-clamp-1"
+                            title={leave.reason}
+                          ></div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(leave.start_date).toLocaleDateString()} -{" "}
-                          {new Date(leave.end_date).toLocaleDateString()}
+                        <td className="p-3 text-gray-700">
+                          <span className="block text-sm">
+                            {formatDate(leave.start_date)} –{" "}
+                            {formatDate(leave.end_date)}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {leave.reason}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="p-3">
                           <span
-                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                              ${
-                                leave.status === "Approved"
-                                  ? "bg-green-100 text-green-800"
-                                  : leave.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
+                            className={`px-2 py-1 text-xs font-semibold rounded-full 
+                  ${
+                    leave.status === "Approved"
+                      ? "bg-green-100 text-green-800"
+                      : leave.status === "Pending"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
                           >
                             {leave.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {leave.status === "Pending" && (
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() =>
-                                  handleStatusUpdate(leave.leave_id, "Approved")
-                                }
-                                className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleStatusUpdate(leave.leave_id, "Rejected")
-                                }
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
+                        <td className="p-3">
+                          <span className="badge badge-outline badge-primary text-xs">
+                            {leave.payment_status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedLeave(leave)}
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                            >
+                              View Details
+                            </button>
+                            {leave.status === "Pending" && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleStatusUpdate(
+                                      leave.leave_id,
+                                      "Approved"
+                                    )
+                                  }
+                                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleStatusUpdate(
+                                      leave.leave_id,
+                                      "Rejected"
+                                    )
+                                  }
+                                  className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -433,6 +449,52 @@ const LeaveManagement = () => {
                 )}
               </tbody>
             </table>
+
+            {selectedLeave && (
+              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                  <h2 className="text-lg font-semibold mb-4">Leave Details</h2>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p>
+                      <strong>Employee:</strong> {selectedLeave.employee_name}
+                    </p>
+                    <p>
+                      <strong>Leave Type:</strong> {selectedLeave.leave_type}
+                    </p>
+                    <p>
+                      <strong>Duration:</strong>{" "}
+                      {formatDate(selectedLeave.start_date)}{" "}
+                      - {formatDate(selectedLeave.end_date)}
+                    </p>
+                    <p>
+                      <strong>Reason:</strong> {selectedLeave.reason}
+                    </p>
+                    <p>
+                      <strong>Status:</strong> {selectedLeave.status}
+                    </p>
+                    <p>
+                      <strong>Payment Status:</strong>{" "}
+                      {selectedLeave.payment_status}
+                    </p>
+                    <p>
+                      <strong>Paid Days:</strong> {selectedLeave.paid_days}
+                    </p>
+                    <p>
+                      <strong>Unpaid Days:</strong> {selectedLeave.unpaid_days}
+                    </p>
+                  </div>
+                  <div className="flex justify-end mt-6">
+                    <button
+                      onClick={() => setSelectedLeave(null)}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Pagination Controls */}
             <div className="flex justify-between items-center mt-4 p-4 border-t">
               <span className="text-sm text-gray-600">

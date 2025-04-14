@@ -1,7 +1,7 @@
 const Leave = require("../models/Leave");
 const LeaveBalance = require("../models/LeaveBalance");
 const { v4: uuidv4 } = require("uuid");
-const {generateServiceToken} = require('../middleware/gatewayTokenGenerator');
+const { generateServiceToken } = require("../middleware/gatewayTokenGenerator");
 
 // Add this helper function at the top
 const hasActiveLeave = async (employeeId) => {
@@ -9,7 +9,7 @@ const hasActiveLeave = async (employeeId) => {
   const activeLeave = await Leave.findOne({
     employeeId,
     status: "Approved",
-    end_date: { $gte: today }
+    end_date: { $gte: today },
   });
   return activeLeave;
 };
@@ -26,7 +26,7 @@ exports.checkActiveLeaves = async (req, res) => {
   try {
     const { id } = req.params;
     const today = new Date();
-    
+
     const activeLeave = await Leave.findOne({
       employeeId: id,
       status: "Approved",
@@ -35,7 +35,7 @@ exports.checkActiveLeaves = async (req, res) => {
 
     res.json({
       hasActiveLeave: !!activeLeave,
-      endDate: activeLeave ? activeLeave.end_date.toLocaleDateString() : null
+      endDate: activeLeave ? activeLeave.end_date.toLocaleDateString() : null,
     });
   } catch (error) {
     console.error("Error checking active leaves:", error);
@@ -50,7 +50,7 @@ exports.getEmployeeLeaveStatus = async (req, res) => {
     const employees = await Leave.find({
       status: "Approved",
       start_date: { $lte: today },
-      end_date: { $gte: today }
+      end_date: { $gte: today },
     });
 
     // Create a map of employee IDs to their leave status
@@ -58,7 +58,7 @@ exports.getEmployeeLeaveStatus = async (req, res) => {
       acc[leave.employeeId] = {
         onLeave: true,
         leaveType: leave.leave_type,
-        endDate: leave.end_date
+        endDate: leave.end_date,
       };
       return acc;
     }, {});
@@ -83,33 +83,109 @@ exports.fileLeave = async (req, res) => {
       reason,
     } = req.body;
 
-    // Check for active approved leaves
     const activeLeave = await hasActiveLeave(employeeId);
     if (activeLeave) {
       return res.status(400).json({
-        message: `You have an active approved leave that ends on ${new Date(activeLeave.end_date).toLocaleDateString()}`
+        message: `You have an active approved leave that ends on ${new Date(
+          activeLeave.end_date
+        ).toLocaleDateString()}`,
       });
     }
 
-    // Calculate days
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
     const leaveDays = (endDate - startDate) / (1000 * 60 * 60 * 24) + 1;
 
-    // Only check if balance exists and is sufficient (without deducting)
     const leaveBalance = await LeaveBalance.findOne({ employeeId });
     if (!leaveBalance) {
       return res.status(404).json({ message: "Leave balance not found" });
     }
 
-    // Just check if there's enough balance
-    if (leave_type === "Vacation Leave" && leaveBalance.vacation_leave < leaveDays) {
-      return res.status(400).json({ message: "Insufficient vacation leave balance" });
-    } else if (leave_type === "Sick Leave" && leaveBalance.sick_leave < leaveDays) {
-      return res.status(400).json({ message: "Insufficient sick leave balance" });
+    let paid_days = 0;
+    let unpaid_days = leaveDays;
+
+    if (leave_type === "Vacation Leave") {
+      paid_days = Math.min(leaveDays, leaveBalance.vacation_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.vacation_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "Sick Leave") 
+    {
+      paid_days = Math.min(leaveDays, leaveBalance.sick_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.sick_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "Service Incentive Leave") {
+      paid_days = Math.min(leaveDays, leaveBalance.service_incentive_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.service_incentive_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "Bereavement Leave") {
+      paid_days = Math.min(leaveDays, leaveBalance.bereavement_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.bereavement_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "PWD Parental Leave") {
+      paid_days = Math.min(leaveDays, leaveBalance.pwd_parental_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.pwd_parental_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "Maternity Leave") {
+      paid_days = Math.min(leaveDays, leaveBalance.maternity_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.maternity_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "Paternity Leave") {
+      paid_days = Math.min(leaveDays, leaveBalance.paternity_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.paternity_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "Solo Parent Leave") {
+      paid_days = Math.min(leaveDays, leaveBalance.solo_parent_leave);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.solo_parent_leave -= paid_days;
+    } 
+    
+    else if (leave_type === "Special Leave for Women") {
+      paid_days = Math.min(leaveDays, leaveBalance.special_leave_for_women);
+      unpaid_days = leaveDays - paid_days;
+      leaveBalance.special_leave_for_women -= paid_days;
+    } 
+    
+    else {
+      unpaid_days = leaveDays;
+      paid_days = 0;
     }
 
-    // Create leave request
+    let payment_status = "Unpaid";
+    if (paid_days === 0) {
+      payment_status = "Unpaid";
+    } else if (paid_days > 0 && unpaid_days > 0) {
+      payment_status = "Partially Paid";
+    } else if (paid_days === leaveDays) {
+      payment_status = "Paid";
+    }
+
+    leaveBalance.total_remaining_leaves =
+      leaveBalance.vacation_leave +
+      leaveBalance.sick_leave +
+      leaveBalance.service_incentive_leave +
+      leaveBalance.bereavement_leave +
+      leaveBalance.pwd_parental_leave +
+      leaveBalance.maternity_leave +
+      leaveBalance.paternity_leave +
+      leaveBalance.solo_parent_leave +
+      leaveBalance.special_leave_for_women;
+
+    await leaveBalance.save();
+
     const leave_id = uuidv4();
     const newLeave = new Leave({
       leave_id,
@@ -121,26 +197,32 @@ exports.fileLeave = async (req, res) => {
       end_date,
       reason,
       status: "Pending",
-      days_requested: leaveDays
+      days_requested: leaveDays,
+      remaining_leaves: leaveBalance.total_remaining_leaves,
+      paid_days,
+      unpaid_days,
+      payment_status
     });
 
     await newLeave.save();
 
-    // Notify admin
-    global.io.emit('notification-admin', {
+    global.io.emit("notification-admin", {
       message: `Employee requested a leave.`,
-      employeeId,
-      leave_id,
-      dashboard: "admin"
+      employeeId: employeeId,
+      leave_id: leave_id,
+      dashboard: "admin",
     });
 
     res.status(201).json({
       message: "Leave request submitted successfully",
-      leave: newLeave
+      leave: newLeave,
     });
   } catch (error) {
     console.error("Error filing leave request:", error);
-    res.status(500).json({ message: "Error filing leave request", error: error.message });
+    res.status(500).json({
+      message: "Error filing leave request",
+      error: error.message,
+    });
   }
 };
 
@@ -157,7 +239,9 @@ exports.updateLeaveStatus = async (req, res) => {
 
     // Only deduct balance if the status is being set to "Approved"
     if (status === "Approved") {
-      const leaveBalance = await LeaveBalance.findOne({ employeeId: leave.employeeId });
+      const leaveBalance = await LeaveBalance.findOne({
+        employeeId: leave.employeeId,
+      });
       if (!leaveBalance) {
         return res.status(404).json({ message: "Leave balance not found" });
       }
@@ -165,18 +249,23 @@ exports.updateLeaveStatus = async (req, res) => {
       // Check current balance before deducting
       if (leave.leave_type === "Vacation Leave") {
         if (leaveBalance.vacation_leave < leave.days_requested) {
-          return res.status(400).json({ message: "Insufficient vacation leave balance" });
+          return res
+            .status(400)
+            .json({ message: "Insufficient vacation leave balance" });
         }
         leaveBalance.vacation_leave -= leave.days_requested;
       } else if (leave.leave_type === "Sick Leave") {
         if (leaveBalance.sick_leave < leave.days_requested) {
-          return res.status(400).json({ message: "Insufficient sick leave balance" });
+          return res
+            .status(400)
+            .json({ message: "Insufficient sick leave balance" });
         }
         leaveBalance.sick_leave -= leave.days_requested;
       }
 
       // Update total remaining leaves
-      leaveBalance.total_remaining_leaves = leaveBalance.vacation_leave + leaveBalance.sick_leave;
+      leaveBalance.total_remaining_leaves =
+        leaveBalance.vacation_leave + leaveBalance.sick_leave;
       await leaveBalance.save();
     }
 
@@ -191,17 +280,19 @@ exports.updateLeaveStatus = async (req, res) => {
         // employee_id: leave.employee_id,
         request_id: leaveId,
         type: "leave_status_update",
-        status: status
+        status: status,
       });
     }
 
     res.status(200).json({
       message: `Leave request ${status.toLowerCase()} successfully`,
-      leave
+      leave,
     });
   } catch (error) {
     console.error("Error updating leave status:", error);
-    res.status(500).json({ message: "Error updating leave status", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating leave status", error: error.message });
   }
 };
 
@@ -229,9 +320,9 @@ exports.getEmployeeLeaves = async (req, res) => {
     }
 
     // Add isActive field to each leave
-    const leavesWithActiveStatus = leaves.map(leave => ({
+    const leavesWithActiveStatus = leaves.map((leave) => ({
       ...leave.toObject(),
-      isActive: isLeaveActive(leave)
+      isActive: isLeaveActive(leave),
     }));
 
     res.status(200).json(leavesWithActiveStatus);
@@ -276,9 +367,6 @@ exports.getLeaveById = async (req, res) => {
 
 exports.getApprovedLeaves = async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
 
     const approvedLeaves = await Leave.find(
       { status: "Approved" },
@@ -293,17 +381,20 @@ exports.getApprovedLeaves = async (req, res) => {
         end_date: 1,
         reason: 1,
         status: 1,
-        _id: 0
+        paid_days: 1,
+        unpaid_days: 1,
+        days_requested: 1,
+        _id: 0,
       }
     );
-    
+
     if (!approvedLeaves || approvedLeaves.length === 0) {
       return res.status(404).json({ message: "No approved leaves found" });
     }
 
     res.status(200).json({
       success: true,
-      data: approvedLeaves
+      data: approvedLeaves,
     });
   } catch (error) {
     console.error("Error retrieving approved leaves:", error);
@@ -313,7 +404,6 @@ exports.getApprovedLeaves = async (req, res) => {
     });
   }
 };
-
 
 // GET LEAVE STATUS FOR EMPLOYEE DASHBOARD
 exports.getLatestLeaveRequest = async (req, res) => {
@@ -325,8 +415,8 @@ exports.getLatestLeaveRequest = async (req, res) => {
     }
 
     const latestLeave = await Leave.findOne({ employeeId })
-      .sort({ start_date: -1 }) 
-      .limit(1); 
+      .sort({ start_date: -1 })
+      .limit(1);
 
     if (!latestLeave) {
       return res.status(404).json({ message: "No leave request found." });
@@ -339,7 +429,6 @@ exports.getLatestLeaveRequest = async (req, res) => {
       end_date: latestLeave.end_date,
       status: latestLeave.status,
     });
-
   } catch (error) {
     console.error("Error fetching latest leave request:", error);
     res.status(500).json({ message: "Failed to fetch leave request" });

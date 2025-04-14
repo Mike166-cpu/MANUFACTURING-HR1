@@ -71,6 +71,8 @@ exports.updateRequestStatus = async (req, res) => {
     const { request_id } = req.params;
     const { status } = req.body;
 
+    console.log(`[DEBUG] Updating status of request ${request_id} to ${status}`);
+
     if (
       !["Pending", "Submitted for Approval", "Approved", "Rejected"].includes(
         status
@@ -91,13 +93,40 @@ exports.updateRequestStatus = async (req, res) => {
     }
 
     // Also update the status in UploadedDocument
-    await UploadedDocument.findOneAndUpdate(
+    const uploadedDoc = await UploadedDocument.findOneAndUpdate(
       { request_id },
       { status },
       { new: true }
     );
 
+    console.log(`[DEBUG] Found uploadedDoc:`, uploadedDoc);
+
     const { employeeId, document_name } = request;
+
+    // ✅ Push the uploaded document to employee's documents array if approved
+    if (status === "Approved" && uploadedDoc?.document_url) {
+      const updatedEmployee = await Employee.findOneAndUpdate(
+        { employeeId },
+        {
+          $push: {
+            documents: {
+              name: document_name,
+              url: uploadedDoc.document_url, // Map to the correct field
+              uploadedAt: new Date(),
+            },
+          },
+        },
+        { new: true }
+      );
+
+      if (!updatedEmployee) {
+        console.warn(`[WARN] Employee with ID ${employeeId} not found`);
+      } else {
+        console.log(`[DEBUG] Document pushed to employee ${employeeId}`, updatedEmployee.documents.slice(-1));
+      }
+    } else {
+      console.warn(`[WARN] Document approved but no uploadedDoc or missing document_url`);
+    }
 
     // Send notification
     global.io.emit(`notification-${employeeId}`, {
@@ -108,9 +137,12 @@ exports.updateRequestStatus = async (req, res) => {
 
     res.status(200).json({ message: "Request updated successfully", request });
   } catch (error) {
+    console.error("[ERROR] updateRequestStatus failed:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
 
 exports.deleteDocumentRequest = async (req, res) => {
   try {

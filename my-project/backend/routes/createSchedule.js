@@ -214,10 +214,18 @@ router.post("/assign", async (req, res) => {
       shiftType,
       shiftname,
       breakStart,
-      breakEnd,
       flexibleStartTime,
       flexibleEndTime
     } = req.body;
+
+    // Calculate break end (1 hour after break start)
+    let breakEnd = null;
+    if (breakStart) {
+      const [hours, minutes] = breakStart.split(':');
+      let breakEndHour = parseInt(hours) + 1;
+      if (breakEndHour > 23) breakEndHour = 0;
+      breakEnd = `${breakEndHour.toString().padStart(2, '0')}:${minutes}`;
+    }
 
     // Validate required fields
     if (!employeeId || !department || !days || !startTime || !endTime || !shiftType || !shiftname || !role) {
@@ -553,38 +561,50 @@ router.get("/schedule-validation/:employeeId", async (req, res) => {
 router.put("/:scheduleId", async (req, res) => {
   try {
     const scheduleId = req.params.scheduleId;
-    const { employeeId, days, startTime, endTime } = req.body;
+    const updateData = {
+      employeeId: req.body.employeeId,
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      email: req.body.email,
+      department: req.body.department,
+      role: req.body.role,
+      days: req.body.days,
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+      shiftType: req.body.shiftType,
+      shiftname: req.body.shiftname,
+      breakStart: req.body.breakStart || null,
+      breakEnd: req.body.breakEnd || null,
+      flexibleStartTime: req.body.flexibleStartTime || null,
+      flexibleEndTime: req.body.flexibleEndTime || null
+    };
 
-    // Verify employee exists in EmployeeLoginModel
-    const employee = await EmployeeLogin.findById(employeeId);
-    if (!employee) {
-      return res.status(404).json({ message: "Employee not found" });
-    }
+    console.log('Updating schedule:', { scheduleId, updateData });
 
     const updatedSchedule = await Schedule.findByIdAndUpdate(
       scheduleId,
-      {
-        days,
-        startTime,
-        endTime,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        position: employee.position,
-      },
-      { new: true }
+      updateData,
+      { new: true, runValidators: true }
     );
 
     if (!updatedSchedule) {
-      return res.status(404).json({ message: "Schedule not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Schedule not found" 
+      });
     }
 
-    res.status(200).json(updatedSchedule);
+    res.status(200).json({
+      success: true,
+      message: "Schedule updated successfully",
+      schedule: updatedSchedule
+    });
   } catch (error) {
     console.error("Schedule update error:", error);
     res.status(400).json({
+      success: false,
       message: "Failed to update schedule",
-      error: error.message,
+      error: error.message
     });
   }
 });

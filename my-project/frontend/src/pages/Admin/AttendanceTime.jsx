@@ -23,6 +23,13 @@ import "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { IoMdDownload } from "react-icons/io";
 
+const formatHours = (hoursString) => {
+  if (!hoursString) return '-';
+  // If already in new format, return as is
+  if (hoursString.includes('M')) return hoursString;
+  // Convert old format "8H" to "8H 00M"
+  return hoursString.replace('H', 'H 00M');
+};
 
 const AttendanceTime = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -76,6 +83,7 @@ const AttendanceTime = () => {
           }, {})
         );
         setAllTimeTrackingSessions(response.data);
+        console.log(response.data);
       } catch (error) {
         console.error("Error fetching all time tracking sessions:", error);
       }
@@ -288,16 +296,8 @@ const AttendanceTime = () => {
             minute: "2-digit",
           })
         : "N/A",
-      session.total_hours
-        ? `${Math.floor(session.total_hours / 3600)}h ${Math.floor(
-            (session.total_hours % 3600) / 60
-          )}m`
-        : "-",
-      session.overtime_duration
-        ? `${Math.floor(session.overtime_duration / 3600)}h ${Math.floor(
-            (session.overtime_duration % 3600) / 60
-          )}m`
-        : "0h 0m",
+      session.total_hours || "-",
+      session.overtime_hours || "0H",
       session.status || "Pending",
     ]);
 
@@ -340,16 +340,8 @@ const AttendanceTime = () => {
             minute: "2-digit",
           })
         : "N/A",
-      "Work Duration": session.total_hours
-        ? `${Math.floor(session.total_hours / 3600)}h ${Math.floor(
-            (session.total_hours % 3600) / 60
-          )}m`
-        : "-",
-      Overtime: session.overtime_duration
-        ? `${Math.floor(session.overtime_duration / 3600)}h ${Math.floor(
-            (session.overtime_duration % 3600) / 60
-          )}m`
-        : "0h 0m",
+      "Work Duration": session.total_hours || "-",
+      Overtime: session.overtime_hours || "0H",
       Status: session.status || "Pending",
     }));
 
@@ -448,6 +440,7 @@ const AttendanceTime = () => {
                 <thead>
                   <tr className="bg-gray-50">
                     <th>Select</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Time Tracking Id</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Employee</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Schedule</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Time Records</th>
@@ -470,6 +463,11 @@ const AttendanceTime = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
+                          <span className="text-sm capitalize">{session.time_tracking_id}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col">
                           <span className="font-medium text-sm capitalize">{session.employee_fullname}</span>
                           <span className="text-xs text-gray-500">{session.entry_type}</span>
                         </div>
@@ -480,7 +478,7 @@ const AttendanceTime = () => {
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <FiClock className="text-gray-400 w-4 h-4" />
+                            <FiClock className="text-green-500 w-3 h-3" />
                             <span className="text-sm">
                               {session.time_in ? new Date(session.time_in).toLocaleTimeString('en-US', { 
                                 hour: '2-digit', 
@@ -489,7 +487,7 @@ const AttendanceTime = () => {
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <FiClock className="text-gray-400 w-4 h-4" />
+                            <FiClock className="text-red-500 w-3 h-3" />
                             <span className="text-sm">
                               {session.time_out ? new Date(session.time_out).toLocaleTimeString('en-US', {
                                 hour: '2-digit',
@@ -502,10 +500,10 @@ const AttendanceTime = () => {
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-1">
                           <span className="text-sm">
-                            Work: {session.total_hours ? formatDuration(session.total_hours) : '-'}
+                            Work: {formatHours(session.total_hours)}
                           </span>
                           <span className="text-xs text-gray-500">
-                            OT: {session.overtime_duration ? formatDuration(session.overtime_duration) : '0h 0m'}
+                            OT: {formatHours(session.overtime_hours)}
                           </span>
                         </div>
                       </td>

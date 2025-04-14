@@ -23,10 +23,12 @@ router.get("/get-user-leave/:id", leaveController.getLeaveById);
 router.get("/get-employees-leave", leaveController.getAllLeaves);
 router.put("/update-leave-status/:leaveId", leaveController.updateLeaveStatus); 
 router.get("/get-employee-leaves/:id", leaveController.getEmployeeLeaves);
-router.get("/get-approved-leaves",tokenVerify,leaveController.getApprovedLeaves);
+router.get("/get-approved-leaves",leaveController.getApprovedLeaves);
 router.get('/check-active-leaves/:id', leaveController.checkActiveLeaves);
 router.get('/employee-leave-status', leaveController.getEmployeeLeaveStatus);
 router.get("/latest-leave/:employee_id", leaveController.getLatestLeaveRequest);
+
+router.get("/approve-leave", leaveController.getApprovedLeaves);
 
 
 module.exports = router;

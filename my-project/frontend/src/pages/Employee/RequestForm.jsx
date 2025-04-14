@@ -279,20 +279,33 @@ const RequestForm = () => {
       }
     }
 
+    const timeIn = new Date(`${formData.date}T${formData.morning_time_in}`);
+    const timeOut = new Date(`${formData.date}T${formData.afternoon_time_out}`);
+    
+    // Handle night shift crossing midnight
+    if (timeOut < timeIn) {
+      timeOut.setDate(timeOut.getDate() + 1);
+    }
+
+    // Calculate total duration and subtract break time
+    const totalMilliseconds = timeOut - timeIn;
+    const hoursWorked = (totalMilliseconds / (1000 * 60 * 60)) - 1; // Subtract 1 hour for break
+    
     const requestData = {
       employee_id: formData.employee_id,
       position: formData.position,
       employee_name: formData.employee_name,
-      time_in: new Date(`${formData.date}T${formData.morning_time_in}`),
-      time_out: new Date(`${formData.date}T${formData.afternoon_time_out}`),
-      total_hours: workDuration * 3600, // Convert hours to seconds
-      overtime_hours: overtimeHours * 3600,
+      time_in: timeIn.toISOString(),
+      time_out: timeOut.toISOString(),
+      overtime_start: formData.overtime_start || null,  // Add overtime fields
+      overtime_end: formData.overtime_end || null,      // Add overtime fields
       status: "pending",
       remarks: formData.remarks,
       purpose: formData.purpose,
       entry_type: "Manual Entry",
       file_url: uploadedFileUrl,
-      shift_name: formData.shift_name, // Add this line
+      shift_name: formData.shift_name,
+      total_hours: `${Math.floor(hoursWorked)}H`, // Format as "8H" after break deduction
     };
 
     try {
@@ -482,7 +495,6 @@ const RequestForm = () => {
     }
   };
 
-  // Helper function to add hours to time string
   const addHours = (timeStr, hours) => {
     const [h, m] = timeStr.split(':');
     const date = new Date(2000, 0, 1, parseInt(h), parseInt(m));
@@ -505,7 +517,6 @@ const RequestForm = () => {
           `${LOCAL}/api/schedule/findByEmployeeId/${employeeId}`
         );
 
-        // Check if the response contains a 'message' (indicating no schedule found)
         if (response.data?.message) {
           Swal.fire({
             title: "Warning",

@@ -22,6 +22,7 @@ import { IoDocuments } from "react-icons/io5";
 import { TbLogs } from "react-icons/tb";
 import { IoMdCalendar } from "react-icons/io";
 import { FaChalkboardTeacher } from "react-icons/fa";
+import { MdOutlinePolicy } from "react-icons/md";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -194,7 +195,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 </div>
 
                 {/* DOCUMENT RECORDS */}
-                <div
+                {/* <div
                   className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
                     activePage === "/document-records"
                       ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
@@ -206,10 +207,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                   <span className="text-sm font-medium ml-3">
                     Document Records
                   </span>
-                </div>
+                </div> */}
 
                 {/* Time Records */}
-                <div
+                {/* <div
                   className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
                     activePage === "/time-records"
                       ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
@@ -221,7 +222,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                   <span className="text-sm font-medium ml-3">
                     Time Tracking Records
                   </span>
-                </div>
+                </div> */}
               </div>
             )}
           </div>
@@ -277,6 +278,19 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <span className="font-medium text-sm ml-3">OB Request</span>
             </div>
 
+            {/* POLICIES  */}
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                activePage === "/policy"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/policy")}
+            >
+              <MdOutlinePolicy className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Company Policy</span>
+            </div>
+
             {/* USER LOGS  */}
             {role?.toLowerCase() === "superadmin" && (
               <div
@@ -311,7 +325,6 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 Resignation Request
               </span>
             </div>
-
           </div>
         </div>
       </div>

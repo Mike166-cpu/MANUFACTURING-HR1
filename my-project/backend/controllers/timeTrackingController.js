@@ -9,6 +9,7 @@ const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage() });
 const Schedule = require("../models/Schedule");
 
+
 exports.createManualEntry = async (req, res) => {
   try {
     const {
@@ -17,13 +18,16 @@ exports.createManualEntry = async (req, res) => {
       employee_name,
       time_in,
       time_out,
-      total_hours,
-      overtime_hours,
       purpose,
       remarks,
       file_url,
-      shift_name,  // Add this line
+      shift_name,
+      overtime_start,
+      overtime_end,
     } = req.body;
+
+    // Initialize 'now' here
+    const now = new Date(); // Add this line to define 'now'
 
     console.log("🔍 Incoming Manual Entry Request:", {
       employee_id,
@@ -31,19 +35,20 @@ exports.createManualEntry = async (req, res) => {
       position,
       time_in,
       time_out,
-      total_hours,
-      overtime_hours,
       purpose,
       remarks,
       file_url,
     });
 
-    const formattedDate = new Date(time_in).setHours(0, 0, 0, 0);
-    const dayOfWeek = new Date(time_in).toLocaleString("en-US", {
-      weekday: "long",
-    });
+    const dateObj = new Date(time_in);
+    const formattedDate = dateObj.toISOString().split("T")[0]; // "YYYY-MM-DD"
+    const dayOfWeek = dateObj.toLocaleString("en-US", { weekday: "long" });
 
-    console.log("🗓️ Formatted Date:", new Date(formattedDate));
+    const dateStart = new Date(formattedDate); // 00:00:00 of the date
+    const dateEnd = new Date(dateStart);
+    dateEnd.setDate(dateEnd.getDate() + 1); // Next day 00:00:00
+
+    console.log("🗓️ Formatted Date:", dateStart);
     console.log("📆 Day of Week:", dayOfWeek);
 
     const schedule = await Schedule.findOne({ employeeId: employee_id });
@@ -56,7 +61,7 @@ exports.createManualEntry = async (req, res) => {
         success: false,
         warning: true,
         message:
-          "You have no working schedule for awhile, Please kindly wait for HR to set your schedule, Thank you.",
+          "You have no working schedule for awhile. Please kindly wait for HR to set your schedule. Thank you.",
       });
     }
 
@@ -76,10 +81,7 @@ exports.createManualEntry = async (req, res) => {
 
     const existingRequest = await RequestModel.findOne({
       employee_id,
-      time_in: {
-        $gte: new Date(formattedDate),
-        $lt: new Date(formattedDate + 86400000),
-      },
+      time_in: { $gte: dateStart, $lt: dateEnd },
     });
 
     console.log("🔍 Checking for existing request on the same date:", !!existingRequest);
@@ -95,7 +97,7 @@ exports.createManualEntry = async (req, res) => {
     console.log("🖼️ Received file_url:", file_url);
 
     const holiday = isHoliday(formattedDate);
-    const is_holiday = holiday ? true : false;
+    const is_holiday = !!holiday;
     const holiday_name = holiday ? holiday.name : null;
 
     console.log("🎉 Holiday Check:", {
@@ -103,14 +105,78 @@ exports.createManualEntry = async (req, res) => {
       holiday_name,
     });
 
+    const timeInDate = new Date(time_in);
+    let timeOutDate = new Date(time_out);
+
+    // Handle night shift
+    let timeDiffMs = timeOutDate - timeInDate;
+    if (timeDiffMs < 0) {
+      timeOutDate.setDate(timeOutDate.getDate() + 1);
+      timeDiffMs = timeOutDate - timeInDate;
+    }
+
+    const rawHours = timeDiffMs / (1000 * 60 * 60);
+    const hours = Math.floor(rawHours - 1); // Deduct 1 hour break
+    const minutes = Math.floor((rawHours - 1 - hours) * 60);
+    const formattedHours = `${hours}H ${minutes.toString().padStart(2, "0")}M`;
+
+    console.log("📊 Time Calculation:", {
+      timeIn: timeInDate,
+      timeOut: timeOutDate,
+      rawHours,
+      adjustedHours: hours,
+      minutes,
+      finalFormat: formattedHours,
+    });
+
+    const absentEntry = await TimeTracking.findOneAndUpdate(
+      {
+        employee_id,
+        time_in: { $gte: dateStart, $lt: dateEnd },
+        entry_status: "absent",
+      },
+      { $set: { entry_status: "on_time" } },
+      { new: true }
+    );
+
+    if (absentEntry) {
+      console.log("🗑️ Removed absent entry and updated to present for:", employee_id);
+    }
+
+    // Calculate overtime if present
+    let overtimeString = "0H 00M";
+    if (overtime_start && overtime_end) {
+      const overtimeInDate = new Date(`${formattedDate}T${overtime_start}`);
+      let overtimeOutDate = new Date(`${formattedDate}T${overtime_end}`);
+
+      let overtimeDiffMs = overtimeOutDate - overtimeInDate;
+      if (overtimeDiffMs < 0) {
+        overtimeOutDate.setDate(overtimeOutDate.getDate() + 1);
+        overtimeDiffMs = overtimeOutDate - overtimeInDate;
+      }
+
+      const overtimeHours = Math.floor(overtimeDiffMs / (1000 * 60 * 60));
+      const overtimeMinutes = Math.floor(
+        (overtimeDiffMs % (1000 * 60 * 60)) / (1000 * 60)
+      );
+      overtimeString = `${overtimeHours}H ${overtimeMinutes.toString().padStart(2, "0")}M`;
+    }
+
+    const monthYear = `${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear()}`;
+
+    const randomLetters = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    const customTimeTrackingID = `TRID-${monthYear}-${randomLetters}`;
+
     const newTimeEntry = new RequestModel({
+      time_tracking_id: customTimeTrackingID,
       employee_id,
       position,
       employee_name,
-      time_in: new Date(time_in),
-      time_out: new Date(time_out),
-      total_hours,
-      overtime_hours,
+      time_in: timeInDate,
+      time_out: timeOutDate,
+      total_hours: formattedHours,
+      overtime_hours: overtimeString,
       status: "pending",
       purpose,
       remarks,
@@ -118,7 +184,7 @@ exports.createManualEntry = async (req, res) => {
       is_holiday,
       holiday_name,
       file_url,
-      shift_name,  // Add this line
+      shift_name,
     });
 
     console.log("📝 New Entry to be saved:", newTimeEntry);
@@ -131,9 +197,7 @@ exports.createManualEntry = async (req, res) => {
       console.log("📡 Emitting WebSocket event: obRequestCreated", savedEntry);
       global.io.emit("obRequestCreated", savedEntry);
     } else {
-      console.warn(
-        "⚠️ WebSocket (global.io) not initialized! Manual entry saved but not emitted."
-      );
+      console.warn("⚠️ WebSocket (global.io) not initialized! Manual entry saved but not emitted.");
     }
 
     res.status(201).json({
@@ -152,6 +216,7 @@ exports.createManualEntry = async (req, res) => {
     });
   }
 };
+
 
 
 exports.reviewOBRequest = async (req, res) => {
@@ -179,22 +244,32 @@ exports.reviewOBRequest = async (req, res) => {
         .json({ success: false, message: "OB Request not found" });
     }
 
+    // Use the same time_tracking_id from the OB Request
+    const time_tracking_id = obRequest.time_tracking_id;
+
     if (status === "approved") {
       console.log("✅ Approving OB Request and creating TimeTracking record...");
 
+      // Get hours from request
+      const totalHours = obRequest.total_hours || "0H";
+      const overtimeHours = obRequest.overtime_hours || "0H";
+
       const newTimeEntry = new TimeTracking({
+        time_tracking_id, // Use the same time_tracking_id from OB request
         employee_id: obRequest.employee_id,
         shift_name: obRequest.shift_name,
         employee_fullname: obRequest.employee_name,
         position: obRequest.position,
         time_in: obRequest.time_in,
         time_out: obRequest.time_out,
-        total_hours: obRequest.total_hours,
-        overtime_hours: obRequest.overtime_hours,
+        total_hours: totalHours,     
+        overtime_hours: overtimeHours, 
         purpose: obRequest.purpose,
         remarks: "OB Approved",
         status: "pending",
         entry_type: "Manual Entry",
+        is_holiday: obRequest.is_holiday || false,
+        holiday_name: obRequest.holiday_name || null,
       });
 
       console.log("📝 New TimeTracking Entry (before save):", newTimeEntry);
@@ -230,6 +305,8 @@ exports.reviewOBRequest = async (req, res) => {
     });
   }
 };
+
+
 
 
 // GET ALL REQUEST

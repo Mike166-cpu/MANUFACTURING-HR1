@@ -12,6 +12,10 @@ const LeaveSchema = new mongoose.Schema({
   status: { type: String, default: "Pending" }, 
   remaining_leaves: { type: Number, default: 10 },
   days_requested: { type: Number, required: true },
+  paid_days:           { type: Number, default: 0 },
+  unpaid_days:         { type: Number, default: 0 },
+  payment_status: { type: String, enum: ["Paid", "Partially Paid", "Unpaid"], default: "Unpaid" },
+
 });
 
 module.exports = mongoose.model("Leave", LeaveSchema);

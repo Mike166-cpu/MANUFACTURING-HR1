@@ -338,6 +338,8 @@ const FileLeave = () => {
     return commonLeaves;
   };
 
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <EmployeeSidebar
@@ -360,103 +362,155 @@ const FileLeave = () => {
           ></div>
         )}
 
-        <div className="p-5 font-bold text-2xl">
+        <div className="p-5 bg-white shadow font-bold text-2xl">
           <Breadcrumbs />
 
           <h1 className="px-3">Start Your Time Tracking</h1>
         </div>
 
         <div className="p-6 transition-all duration-300 ease-in-out bg-slate-100 min-h-screen">
-          {/* Leave Balance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {/* Sick Leave Card */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Sick Leave Available
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-800 mt-1">
-                    {leaveBalance?.sick_leave ?? 0} days
-                  </h3>
-                </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Vacation Leave Card */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Vacation Leave Available
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-800 mt-1">
-                    {leaveBalance?.vacation_leave ?? 0} days
-                  </h3>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Leave Balance Card */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Available Leaves
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-800 mt-1">
-                    {leaveBalance?.total_remaining_leaves ?? 0} days
-                  </h3>
-                </div>
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
+          {/* Replace leave balance cards with a button */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowBalanceModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+              View Available Leaves
+            </button>
           </div>
 
+          {/* Leave Balance Modal */}
+          {showBalanceModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+              <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Available Leaves
+                  </h2>
+                  <button
+                    onClick={() => setShowBalanceModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="overflow-hidden rounded-lg border border-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Leave Type
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Available Days
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Vacation Leave
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {leaveBalance?.vacation_leave ?? 0}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Sick Leave
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {leaveBalance?.sick_leave ?? 0}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Service Incentive
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {leaveBalance?.service_incentive_leave ?? 0}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Bereavement
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          {leaveBalance?.bereavement_leave ?? 0}
+                        </td>
+                      </tr>
+                      {employeeGender === "Female" && (
+                        <>
+                          <tr>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              Maternity Leave
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                              {leaveBalance?.maternity_leave ?? 0}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              Special Leave (Women)
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                              {leaveBalance?.special_leave_for_women ?? 0}
+                            </td>
+                          </tr>
+                        </>
+                      )}
+                      {employeeGender === "Male" && (
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            Paternity Leave
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                            {leaveBalance?.paternity_leave ?? 0}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                          Total Available
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                          {leaveBalance?.total_remaining_leaves ?? 0}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rest of the existing content */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 px-1">
             {/* FILTERING SECTION */}
             <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">

@@ -4,6 +4,8 @@ import logo from "../../../src/assets/logo-2.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Swal from "sweetalert2";
 import ReCAPTCHA from "react-google-recaptcha";
+import * as faceapi from 'face-api.js';
+import axios from 'axios';
 
 const EmployeeLoginForm = () => {
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,8 @@ const EmployeeLoginForm = () => {
       setRememberMe(true);
     }
   }, []);
+
+  const LOCAL = "http://localhost:7685"; // Localhost URL
 
   const checkAuthStatus = () => {
     const token = localStorage.getItem("employeeToken");
@@ -47,6 +51,87 @@ const EmployeeLoginForm = () => {
 
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [useFaceId, setUseFaceId] = useState(false);
+  const [faceLoginStatus, setFaceLoginStatus] = useState('');
+  const videoRef = useRef();
+  const canvasRef = useRef();
+
+  useEffect(() => {
+    if (useFaceId) {
+      initializeFaceLogin();
+    } else {
+      stopVideo();
+    }
+  }, [useFaceId]);
+
+  const initializeFaceLogin = async () => {
+    try {
+      setFaceLoginStatus('Loading face detection models...');
+      await Promise.all([
+        faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+      ]);
+      
+      setFaceLoginStatus('Starting camera...');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoRef.current.srcObject = stream;
+    } catch (error) {
+      console.error('Error:', error);
+      setFaceLoginStatus('Error initializing face login');
+    }
+  };
+
+  const stopVideo = () => {
+    const stream = videoRef.current?.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const handleFaceLogin = async () => {
+    try {
+      setLoading(true);
+      setFaceLoginStatus('Detecting face...');
+
+      const detections = await faceapi.detectSingleFace(videoRef.current,
+        new faceapi.SsdMobilenetv1Options())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detections) {
+        throw new Error('No face detected');
+      }
+
+      const { data } = await axios.post(`${LOCAL}/api/login-admin/face-login`, {
+        email: formData.email,
+        faceDescriptor: Array.from(detections.descriptor)
+      });
+
+      // Handle successful login
+      localStorage.setItem("employeeToken", data.token);
+      localStorage.setItem("employeeId", data.user.employeeId);
+      localStorage.setItem("fullName", data.user.name);
+      localStorage.setItem("email", data.user.email);
+
+      Swal.fire({
+        icon: "success",
+        title: "Face Login Successful!",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      navigate("/employeedashboard");
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Face Login Failed",
+        text: error.response?.data?.message || error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -114,23 +199,12 @@ const EmployeeLoginForm = () => {
     const LOCAL = "http://localhost:7685";
 
     try {
-      const response = await fetch(`${LOCAL}/api/login-admin/emp-login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData), 
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
-      }
+      const { data } = await axios.post(`${APIBASED_URL}/api/login-admin/emp-login`, formData);
 
       localStorage.setItem("employeeToken", data.token);
       localStorage.setItem("employeeId", data.user.employeeId);
       localStorage.setItem("fullName", data.user.name);
+      localStorage.setItem("email", data.user.email);
 
      
       Swal.fire({
@@ -144,12 +218,12 @@ const EmployeeLoginForm = () => {
       navigate("/employeedashboard");
     } catch (error) {
       console.error(error);
-      setError(error.message);
+      setError(error.response?.data?.message || error.message);
 
       Swal.fire({
         icon: "error",
         title: "Login failed",
-        text: error.message,
+        text: error.response?.data?.message || error.message,
         confirmButtonColor: "#d33",
       });
     } finally {
@@ -176,85 +250,125 @@ const EmployeeLoginForm = () => {
           <p className="text-red-500 text-xs text-center mb-2">{error}</p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative">
-            <label
-              htmlFor="email"
-              className="block text-xs py-2 font-medium text-gray-600"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              id="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Email"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <label
-              htmlFor="password"
-              className="block text-xs font-medium text-gray-600 py-2"
-            >
-              Password
-            </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              id="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Password"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 text-sm"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 mt-8 pr-3 flex items-center text-gray-600 "
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </button>
-          </div>
-
-          <div className="flex items-center">
+        <div className="mb-4">
+          <label className="flex items-center space-x-2 text-sm">
             <input
               type="checkbox"
-              id="rememberMe"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-3 w-3 text-black focus:ring-blue-500 border-gray-300 rounded"
+              checked={useFaceId}
+              onChange={(e) => setUseFaceId(e.target.checked)}
+              className="h-4 w-4"
             />
-            <label
-              htmlFor="rememberMe"
-              className="ml-2 block text-xs text-gray-900"
-            >
-              Remember me
-            </label>
-          </div>
+            <span>Use Face ID</span>
+          </label>
+        </div>
 
-          <div className="text-right">
-            <Link
-              to="/employeelogin"
-              className="text-xs text-blue-600 hover:underline"
+        {useFaceId ? (
+          <div className="space-y-4">
+            <div className="relative">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                className="w-full h-48 border rounded-lg"
+              />
+              <canvas ref={canvasRef} className="absolute top-0 left-0" />
+            </div>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Enter your email"
+              className="w-full px-3 py-2 border rounded-md"
+            />
+            <button
+              onClick={handleFaceLogin}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md"
             >
-              Forgot Password?
-            </Link>
+              Login with Face ID
+            </button>
+            <p className="text-sm text-center text-gray-600">{faceLoginStatus}</p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <label
+                htmlFor="email"
+                className="block text-xs py-2 font-medium text-gray-600"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Email"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-md transition-colors flex items-center justify-center"
-          >
-          Login
-          </button>
-        </form>
+            <div className="relative">
+              <label
+                htmlFor="password"
+                className="block text-xs font-medium text-gray-600 py-2"
+              >
+                Password
+              </label>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                id="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Password"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 text-sm"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 mt-8 pr-3 flex items-center text-gray-600 "
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-3 w-3 text-black focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label
+                htmlFor="rememberMe"
+                className="ml-2 block text-xs text-gray-900"
+              >
+                Remember me
+              </label>
+            </div>
+
+            <div className="text-right">
+              <Link
+                to="/employeelogin"
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-md transition-colors flex items-center justify-center"
+            >
+            Login
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="fixed bottom-0 text-center w-full bg-white p-4 shadow-md">

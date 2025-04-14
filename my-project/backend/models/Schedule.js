@@ -24,7 +24,10 @@ const scheduleSchema = new mongoose.Schema({
   position: {
     type: String,
   },
-
+  role: {
+    type: String,
+    required: true,
+  },
   days: {
     type: [String],
     enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -55,8 +58,8 @@ const scheduleSchema = new mongoose.Schema({
     },
   },
   shiftType: {
-    type: String,
-    enum: ['Fixed', 'Rotating', 'Split', 'Flexible'],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Shift',
     required: true
   },
   shiftname: {
@@ -69,15 +72,13 @@ const scheduleSchema = new mongoose.Schema({
   flexibleEndTime: String,
 }, { 
   timestamps: true,
-  strict: false // Allow additional fields
+  strict: false 
 });
 
 scheduleSchema.pre('find', function() {
   console.log('Finding with query:', this.getQuery());
 });
 
-// Remove the problematic index
-// scheduleSchema.index({ employeeId: 1, days: 1 }, { unique: true });
 
 const Schedule = mongoose.model("Schedule", scheduleSchema);
 

@@ -8,12 +8,13 @@ const { formatDuration } = require("../utils/formatDuration");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { isHoliday } = require("../utils/holiday");
-const {
-  authenticateUser,
-  authorizeRoles,
-} = require("../middleware/authMiddleware");
+const { authenticateUser, authorizeRoles} = require("../middleware/authMiddleware");
 const { deleteOBRequest } = require("../controllers/timeTrackingController");
 const OBRequest = require("../models/ObRequest");
+const Leave = require("../models/Leave");
+const cron = require("node-cron");
+const Employee = require("../models/Employee")
+const { v4: uuidv4 } = require('uuid');
 
 router.get("/check-time-in", async (req, res) => {
   try {
@@ -63,16 +64,75 @@ router.get("/upcoming-holiday", (req, res) => {
   }
 });
 
+const markAbsents = async () => {
+  const sgNow = new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" });
+  const today = new Date(sgNow);
+  const dateOnly = today.toISOString().split("T")[0];
+  const dayOfWeek = today.toLocaleString("en-US", { weekday: "long" });
+
+  const schedules = await Schedule.find({ days: dayOfWeek });
+
+  for (const sched of schedules) {
+    const employeeId = sched.employeeId;
+
+    const existingTimeIn = await TimeTracking.findOne({
+      employee_id: employeeId,
+      time_in: {
+        $gte: new Date(`${dateOnly}T00:00:00.000Z`),
+        $lt: new Date(`${dateOnly}T23:59:59.999Z`)
+      }
+    });
+
+    if (!existingTimeIn) {
+      const employee = await Employee.findOne({ employeeId: employeeId });
+      if (!employee) continue;
+
+      const hasLeave = await Leave.findOne({
+        employeeId,
+        status: "Approved",
+        start_date: { $lte: today },
+        end_date: { $gte: today },
+      });
+      if (hasLeave) continue;
+
+      const holidayInfo = isHoliday(dateOnly); // 
+      if (holidayInfo) continue;
+
+      const absentEntry = new TimeTracking({
+        employee_id: employeeId,
+        employee_fullname: employee.fullname,
+        position: employee.position,
+        time_in: null,
+        entry_type: "System Entry",
+        entry_status: "absent",
+        status: "active",
+        remarks: "Marked absent due to no time-in",
+        shift_name: sched.shift_name || null,
+        shift_period: null,
+        is_holiday: false,
+        holiday_name: null
+      });
+
+      await absentEntry.save();
+    }
+  }
+
+  console.log("✅ Absentees marked for", dateOnly);
+};
+
+cron.schedule("59 23 * * *", () => {
+  markAbsents();
+});
+
 // Time In
 router.post("/time-in", async (req, res) => {
   try {
-    const { employee_id, employee_firstname, employee_lastname, position } = req.body;
+    const { employee_id, employee_fullname, position } = req.body;
     
     // Create Singapore time
     const sgTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" });
     const now = new Date(sgTime);
 
-    // Check for existing time in for today in Singapore time
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
     
@@ -93,16 +153,28 @@ router.post("/time-in", async (req, res) => {
         message: "You have already timed in today"
       });
     }
+     const dateOnly = now.toISOString().split("T")[0]; 
+     const holidayInfo = isHoliday(dateOnly);
 
-    // Create time tracking entry with Singapore time
+
+        // Get current month and year
+    const monthYear = `${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear()}`;
+
+    // Generate a random 6-letter string
+    const randomLetters = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Custom time_tracking_id format: TRID-MMYYYY-XXXXXX
+    const customTimeTrackingID = `TRID-${monthYear}-${randomLetters}`;
+
     const timeTracking = new TimeTracking({
       employee_id,
-      employee_firstname,
-      employee_lastname,
+      employee_fullname,
       position,
       time_in: now,
       entry_type: 'System Entry',
-      status: 'active'
+      status: 'active',
+      is_holiday: !!holidayInfo,
+      holiday_name: holidayInfo ? holidayInfo.name : null
     });
 
     await timeTracking.save();
@@ -319,15 +391,32 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-router.get("/approveSessions", verifyToken, async (req, res) => {
+router.get("/approveSessions", async (req, res) => {
   try {
     const sessions = await TimeTracking.find({ status: "approved" });
 
-    const formattedSessions = sessions.map((session) => ({
-      ...session._doc,
-      total_hours: formatDuration(session.total_hours),
-      overtime_hours: formatDuration(session.overtime_hours),
-    }));
+    const formatDuration = (duration) => {
+      if (typeof duration === "string") {
+        const match = duration.match(/^(\d+)H (\d+)M$/);
+        if (match) {
+          const hours = parseInt(match[1]);
+          const minutes = parseInt(match[2]);
+          return `${hours}H ${minutes.toString().padStart(2, '0')}M`;
+        }
+      }
+      return duration || "0H 00M";
+    };
+
+    const formattedSessions = sessions.map((session) => {
+      const totalHours = session.total_hours || "0H 00M";
+      const overtimeHours = session.overtime_hours || "0H 00M";
+      
+      return {
+        ...session._doc,
+        total_hours: formatDuration(totalHours),
+        overtime_hours: formatDuration(overtimeHours),
+      };
+    });
 
     res.status(200).json(formattedSessions);
   } catch (error) {
@@ -339,19 +428,13 @@ router.get("/approveSessions", verifyToken, async (req, res) => {
 router.get("/approveTime", async (req, res) => {
   try {
     const sessions = await TimeTracking.find({ status: "approved" });
-
-    const formattedSessions = sessions.map((session) => ({
-      ...session._doc,
-      total_hours: formatDuration(session.total_hours),
-      overtime_hours: formatDuration(session.overtime_hours),
-    }));
-
-    res.status(200).json(formattedSessions);
+    res.status(200).json(sessions); // Directly return the raw session data
   } catch (error) {
     console.error("Error fetching approved sessions:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 router.get("/check-timein", async (req, res) => {
   try {
@@ -563,7 +646,6 @@ const markAbsences = async () => {
   }
 };
 
-const cron = require("node-cron");
 cron.schedule("0 0 * * *", markAbsences, {
   timezone: "Asia/Manila",
 });

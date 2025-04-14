@@ -7,6 +7,7 @@ import Swal from "sweetalert2";
 import ReCAPTCHA from "react-google-recaptcha";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -20,6 +21,7 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
+  const [canResend, setCanResend] = useState(false);
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
   const LOCAL = "http://localhost:7685";
 
@@ -49,6 +51,10 @@ const LoginForm = () => {
     checkAuthStatus();
   }, []);
 
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+
   const checkAuthStatus = () => {
     const token = localStorage.getItem("adminToken");
     if (token) {
@@ -69,7 +75,7 @@ const LoginForm = () => {
     e.preventDefault();
     setLoading(true);
     document.title = "Logging in...";
-  
+
     if (!email || !password) {
       Swal.fire({
         title: "Error",
@@ -81,45 +87,26 @@ const LoginForm = () => {
       document.title = "Login - Admin";
       return;
     }
-  
+
     try {
-      const response = await fetch(`${LOCAL}/api/login-admin/userLogin`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      const response = await axios.post(`${LOCAL}/api/login-admin/userLogin`, {
+        email,
+        password,
       });
-  
-      const data = await response.json();
-  
-      if (!response.ok) {
+
+      const data = response.data;
+
+      if (response.status !== 200) {
         toast.error(data.message || "Login failed!");
         setShake(true);
         setTimeout(() => setShake(false), 500);
         return;
       }
-  
-      // Store token and user details in localStorage
-      localStorage.setItem("adminToken", data.token);
-      localStorage.setItem("firstName", data.user.firstName);
-      localStorage.setItem("lastName", data.user.lastName);
-      localStorage.setItem("email", data.user.email);
-      localStorage.setItem("role", data.user.role);
-      localStorage.setItem("accessLevel", data.user.accessLevel);
-  
-      if (data.user.department === "HR1") {
-        window.location.href = "https://hr1.jjm-manufacturing.com/";
-        return;
-      }
-  
-      toast.success("Login successful!", { autoClose: 1500 });
-  
-      setTimeout(() => {
-        const redirectTo = location.state?.from?.pathname || "/dashboard";
-        navigate(redirectTo, { replace: true });
-      }, 1500);
-  
+
+      setLoginEmail(email);
+      setIsOtpModalOpen(true); // Show OTP modal
+
+      toast.success("Your OTP was sent to your email", { autoClose: 1500 });
     } catch (error) {
       console.error("Login error:", error);
       toast.error("An error occurred. Please try again.");
@@ -129,7 +116,93 @@ const LoginForm = () => {
       setLoading(false);
     }
   };
-  
+
+  const handleOtpSubmit = async () => {
+    if (!otp) {
+      toast.error("Please enter the OTP.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${LOCAL}/api/login-admin/verify-otp`, {
+        email: loginEmail,
+        otp,
+      });
+
+      const data = response.data;
+
+      if (response.status !== 200) {
+        toast.error(data.message || "OTP verification failed!");
+        return;
+      }
+
+      localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("firstName", data.user.firstName);
+      localStorage.setItem("lastName", data.user.lastName);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("role", data.user.role);
+      localStorage.setItem("accessLevel", data.user.accessLevel);
+
+      toast.success("Login successful!", { autoClose: 1500 });
+
+      setTimeout(() => {
+        const redirectTo = location.state?.from?.pathname || "/dashboard";
+        navigate(redirectTo, { replace: true });
+      }, 1500);
+    } catch (error) {
+      console.error("OTP error:", error);
+      toast.error("Something went wrong. Try again.");
+    }
+  };
+
+  //timer
+  const [timer, setTimer] = useState(300); // 5 minutes
+  const [resendDisabled, setResendDisabled] = useState(true);
+
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+  };
+
+  useEffect(() => {
+    let interval;
+
+    if (isOtpModalOpen && resendDisabled) {
+      interval = setInterval(() => {
+        setTimer((prevTimer) => {
+          if (prevTimer <= 1) {
+            clearInterval(interval);
+            setResendDisabled(false);
+            return 0;
+          }
+          return prevTimer - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [isOtpModalOpen, resendDisabled]);
+
+  const handleResendOtp = async () => {
+    try {
+      const response = await axios.post(`${LOCAL}/api/login-admin/userLogin`, {
+        email: loginEmail,
+        password, // You might want to skip this or use a token/refresh logic for real cases
+      });
+
+      if (response.status === 200) {
+        toast.success("OTP resent to your email.");
+        setTimer(300);
+        setCanResend(false);
+      } else {
+        toast.error("Failed to resend OTP.");
+      }
+    } catch (error) {
+      toast.error("Error resending OTP.");
+      console.error(error);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-500 bg-green-100 bg-opacity-25">
@@ -219,6 +292,57 @@ const LoginForm = () => {
           </button>
         </form>
       </div>
+      {isOtpModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-lg">
+            <h3 className="text-xl font-bold mb-2 text-center">Enter OTP</h3>
+            <input
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              maxLength={6}
+              className="input input-bordered w-full p-3 text-center text-xl tracking-widest"
+              placeholder="6-digit code"
+            />
+            <div className="text-center mt-2 text-gray-600">
+              {canResend ? (
+                <button
+                  onClick={handleResendOtp}
+                  className="text-blue-600 hover:underline"
+                >
+                  Resend OTP
+                </button>
+              ) : (
+                <span>
+                  Resend in{" "}
+                  <span className="font-semibold">
+                    {Math.floor(timer / 60)
+                      .toString()
+                      .padStart(2, "0")}
+                    :{(timer % 60).toString().padStart(2, "0")}
+                  </span>
+                </span>
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-between">
+              <button
+                onClick={() => setIsOtpModalOpen(false)}
+                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleOtpSubmit}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-200"
+              >
+                Verify OTP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isTermsModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">

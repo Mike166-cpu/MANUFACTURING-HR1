@@ -111,8 +111,10 @@ const EmployeeInfo = () => {
   //fetch login data
   const fetchLoginData = async () => {
     try {
-      const response = await axios.get(`${LOCAL}/api/login-admin/employee-data`);
-      console.log("LOGIN ",response.data);
+      const response = await axios.get(
+        `${LOCAL}/api/login-admin/employee-data`
+      );
+      console.log("LOGIN ", response.data);
     } catch (error) {
       console.error("Error fetching login data:", error);
     }
@@ -142,21 +144,7 @@ const EmployeeInfo = () => {
         <div className="bg-base-100 shadow-md py-4 px-6 mb-4">
           <BreadCrumbs />
           <div className="flex items-center mt-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-primary mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            <span className="text-2xl font-bold text-primary">
+            <span className="text-2xl px-4 font-bold">
               Employee Information
             </span>
           </div>
@@ -203,60 +191,84 @@ const EmployeeInfo = () => {
 
                 <div className="divider"></div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    {/* Email Field */}
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-base-content/70">
+                      <label className="text-sm font-semibold text-base-content/70">
                         Email
                       </label>
                       <div
-                        className="blur-sm hover:blur-none transition-all duration-300 cursor-help tooltip tooltip-primary"
-                        data-tip="Hover to view"
+                        className="hover:blur-none transition-all duration-300 cursor-pointer tooltip tooltip-primary text-left"
+                        data-tip="Click to view"
                       >
-                        <span className="text-base font-medium">
+                        <span className="text-base font-medium text-gray-900">
                           {selectedEmployee.email}
                         </span>
                       </div>
                     </div>
 
+                    {/* Department Field */}
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-base-content/70">
+                      <label className="text-sm font-semibold text-base-content/70">
                         Department
                       </label>
-                      <span className="text-base font-medium">
+                      <span className="text-base font-medium text-gray-900">
                         {selectedEmployee.department}
                       </span>
                     </div>
 
+                    {/* Experience Field */}
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-base-content/70">
+                      <label className="text-sm font-semibold text-base-content/70">
                         Experience
                       </label>
-                      <span className="text-base font-medium">
+                      <span className="text-base font-medium text-gray-900">
                         {selectedEmployee.experience}
                       </span>
                     </div>
 
+                    {/* Education Field */}
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-base-content/70">
+                      <label className="text-sm font-semibold text-base-content/70">
                         Education
                       </label>
-                      <span className="text-base font-medium">
+                      <span className="text-base font-medium text-gray-900">
                         {selectedEmployee.education}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-sm font-semibold text-base-content/70">
+                        Gender
+                      </label>
+                      <span className="text-base font-medium text-gray-900">
+                        {selectedEmployee.gender}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-sm font-semibold text-base-content/70">
+                        Employee Status
+                      </label>
+                      <span className="text-base font-medium text-gray-900">
+                        {selectedEmployee.status}
                       </span>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Skills Field */}
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-base-content/70">
+                      <label className="text-sm font-semibold text-base-content/70">
                         Skills
                       </label>
-                      <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="flex flex-wrap gap-3 mt-2">
                         {selectedEmployee.skills.map((skill, index) => (
                           <span
                             key={index}
-                            className="badge badge-secondary badge-outline"
+                            className="badge badge-secondary badge-outline text-sm"
                           >
                             {skill}
                           </span>
@@ -264,30 +276,67 @@ const EmployeeInfo = () => {
                       </div>
                     </div>
 
+                    {/* Nationality Field */}
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-base-content/70">
+                      <label className="text-sm font-semibold text-base-content/70">
                         Nationality
                       </label>
                       <div
-                        className="blur-sm hover:blur-none transition-all duration-300 cursor-help tooltip tooltip-primary"
-                        data-tip="Hover to view"
+                        className="hover:blur-none transition-all duration-300 cursor-pointer tooltip tooltip-primary text-left"
+                        data-tip="Click to view"
                       >
-                        <span className="text-base font-medium">
+                        <span className="text-base font-medium text-gray-900">
                           {selectedEmployee.nationality}
                         </span>
                       </div>
                     </div>
 
+                    {/* Civil Status Field */}
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-base-content/70">
+                      <label className="text-sm font-semibold text-base-content/70">
                         Civil Status
                       </label>
                       <div
-                        className="blur-sm hover:blur-none transition-all duration-300 cursor-help tooltip tooltip-primary"
-                        data-tip="Hover to view"
+                        className="hover:blur-none transition-all duration-300 cursor-pointer tooltip tooltip-primary text-left"
+                        data-tip="Click to view"
                       >
-                        <span className="text-base font-medium">
+                        <span className="text-base font-medium text-gray-900">
                           {selectedEmployee.civilStatus}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* POSITION */}
+                    <div className="flex flex-col">
+                      <label className="text-sm font-semibold text-base-content/70">
+                        Position
+                      </label>
+                      <div
+                        className="hover:blur-none transition-all duration-300 cursor-pointer tooltip tooltip-primary text-left"
+                        data-tip="Click to view"
+                      >
+                        <span className="text-base font-medium text-gray-900">
+                          {selectedEmployee.position}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-sm font-semibold text-base-content/70">
+                        Hired Date
+                      </label>
+                      <div
+                        className="hover:blur-none transition-all duration-300 cursor-pointer tooltip tooltip-primary text-left"
+                        data-tip="Click to view"
+                      >
+                        <span className="text-base font-medium text-gray-900">
+                          {new Date(
+                            selectedEmployee.createdAt
+                          ).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
                         </span>
                       </div>
                     </div>
@@ -295,89 +344,6 @@ const EmployeeInfo = () => {
                 </div>
 
                 <div className="divider"></div>
-                {/* 
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-base-content/70">
-                    Documents
-                  </span>
-                  <div className="mt-2 space-y-4">
-                    {selectedEmployee.documents && selectedEmployee.documents.length > 0 ? (
-                      selectedEmployee.documents.map((doc, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5 text-primary"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{doc.name}</span>
-                              <span className="text-sm text-base-content/70">
-                                Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div 
-                              className="blur-sm hover:blur-none transition-all duration-300 cursor-help tooltip tooltip-primary"
-                              data-tip="Hover to view"
-                            >
-                              <a
-                                href={doc.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-primary btn-sm"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4 mr-1"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                                  />
-                                </svg>
-                                View Document
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="alert alert-info">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span>No documents available</span>
-                      </div>
-                    )}
-                  </div>
-                </div> */}
 
                 {selectedEmployee.documents &&
                   selectedEmployee.documents.some((doc) =>
@@ -402,21 +368,34 @@ const EmployeeInfo = () => {
                           </svg>
                           <span className="font-medium">Document Preview</span>
                         </div>
-                        <div
-                          className="blur-sm hover:blur-none transition-all duration-300 cursor-help"
-                          data-tip="Hover to view"
-                        >
-                          <embed
-                            src={
-                              selectedEmployee.documents.find((doc) =>
-                                doc.url.endsWith(".pdf")
-                              )?.url
-                            }
-                            type="application/pdf"
-                            width="100%"
-                            height="600px"
-                            className="border-none rounded-lg"
-                          />
+                        <div className="space-y-4">
+                          {selectedEmployee.documents.map((doc, index) => {
+                            const isPdf = doc.url.endsWith(".pdf");
+
+                            return (
+                              <div
+                                key={index}
+                                className="blur-sm hover:blur-none transition-all duration-300 cursor-help"
+                                data-tip="Hover to view"
+                              >
+                                {isPdf ? (
+                                  <embed
+                                    src={doc.url}
+                                    type="application/pdf"
+                                    width="100%"
+                                    height="600px"
+                                    className="border-none rounded-lg"
+                                  />
+                                ) : (
+                                  <img
+                                    src={doc.url}
+                                    alt={doc.name}
+                                    className="w-full h-auto max-h-[600px] object-contain rounded-lg"
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -436,23 +415,6 @@ const EmployeeInfo = () => {
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                  <h2 className="card-title text-xl font-bold">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 text-primary mr-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    Employee List
-                  </h2>
                   <div className="flex items-center">
                     <div className="form-control">
                       <div className="input-group">
@@ -463,22 +425,6 @@ const EmployeeInfo = () => {
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <button className="btn btn-square">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
-                          </svg>
-                        </button>
                       </div>
                     </div>
                     <button
@@ -527,19 +473,22 @@ const EmployeeInfo = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full">
+                    <table className="table w-full">
                       <thead>
                         <tr>
+                          <th className="bg-base-200">Employee ID</th>
                           <th className="bg-base-200">Full Name</th>
                           <th className="bg-base-200">Email</th>
                           <th className="bg-base-200">Department</th>
-                          <th className="bg-base-200">Experience</th>
                           <th className="bg-base-200">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredEmployees.map((employee) => (
                           <tr key={employee._id} className="hover">
+                            <td className="font-medium">
+                              {employee.employeeId}
+                            </td>
                             <td className="font-medium">{employee.fullname}</td>
                             <td>{employee.email}</td>
                             <td>
@@ -547,7 +496,7 @@ const EmployeeInfo = () => {
                                 {employee.department}
                               </div>
                             </td>
-                            <td>{employee.experience}</td>
+
                             <td>
                               <button
                                 className="btn btn-primary btn-sm"

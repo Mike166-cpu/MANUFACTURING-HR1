@@ -33,6 +33,7 @@ const { initializeLeaveBalances } = require("./controllers/leave");
 const model = require("./routes/predictiveAnalyticsRoutes");
 const { cronjob } = require("./controllers/leave");
 const onboard = require("./routes/onboardingRoutes");
+const faceIdRoutes = require("./routes/faceId");
 
 const app = express();
 app.set("trust proxy", true);
@@ -85,6 +86,9 @@ io.on("connection", (socket) => {
   });
 });
 
+// Serve static files for face-api models
+app.use('/models', express.static(path.join(__dirname, 'public/models')));
+
 // Routes
 app.use("/api/employee", employeeRoutes);
 app.use("/api/incidentreport", incidentRoutes(io));
@@ -108,10 +112,12 @@ app.use("/api/timetrack", timeTracking);
 app.use("/api/resignation", resignationRoutes);
 app.use("/api/analytics", model);
 app.use("/api/onboarding", onboard);
-
 app.use("/api/hr", integrationRoutes);
+app.use("/api/faceid", faceIdRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+
 
 mongoose
   .connect(process.env.MONGO_URI)

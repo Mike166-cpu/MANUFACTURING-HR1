@@ -94,9 +94,7 @@ const obRequest = () => {
     const fetchRequests = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(
-          `${APIBASED_URL}/api/timetrack/get-request`
-        );
+        const res = await axios.get(`${LOCAL}/api/timetrack/get-request`);
         setObRequests(res.data);
       } catch (err) {
         console.error("Error fetching OB requests:", err);
@@ -144,8 +142,7 @@ const obRequest = () => {
           icon: "success",
           confirmButtonColor: "#3085d6",
           confirmButtonText: "OK",
-        })
-        .then(() => {
+        }).then(() => {
           setLoading(false);
         });
       } else {
@@ -156,7 +153,7 @@ const obRequest = () => {
           confirmButtonColor: "#d33",
           confirmButtonText: "Try Again",
         }).then(() => {
-          setLoading(false); 
+          setLoading(false);
         });
       }
     } catch (error) {
@@ -186,8 +183,10 @@ const obRequest = () => {
   const filteredRequests = obRequests.filter((req) => {
     const matchesStatus = filterStatus === "all" || req.status === filterStatus;
     const matchesSearch =
-      (req.employee_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (req.purpose?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (req.employee_name?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (req.purpose?.toLowerCase() || "").includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -257,6 +256,7 @@ const obRequest = () => {
               <thead className="bg-gray-50">
                 <tr className="text-gray-500">
                   <th>Select</th>
+                  <th>ID</th>
                   <th>Employee</th>
                   <th>Purpose</th>
                   <th>Status</th>
@@ -268,6 +268,9 @@ const obRequest = () => {
                   // Loading skeleton
                   [...Array(10)].map((_, index) => (
                     <tr key={index}>
+                      <td>
+                        <div className="animate-pulse h-4 w-4 bg-gray-200"></div>
+                      </td>
                       <td>
                         <div className="animate-pulse h-4 w-4 bg-gray-200"></div>
                       </td>
@@ -298,9 +301,8 @@ const obRequest = () => {
                           onChange={() => toggleRowSelection(req._id)}
                         />
                       </td>
-                      <td>
-                        {req.employee_name}
-                      </td>
+                      <td>{req.time_tracking_id}</td>
+                      <td>{req.employee_name}</td>
                       <td>{req.purpose}</td>
                       <td>
                         <span
@@ -359,11 +361,12 @@ const obRequest = () => {
                   </tr>
                 )}
               </tbody>
+              {/* Pagination inside table */}
               {!loading && filteredRequests.length > 0 && (
                 <tfoot>
                   <tr>
-                    <td colSpan="5">
-                      <div className="px-6 py-3">
+                    <td colSpan="6">
+                      <div className="mt-4 px-4 ">
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-normal text-gray-600">
                             Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
@@ -422,6 +425,9 @@ const obRequest = () => {
 
               <div className="mt-4 space-y-2">
                 <p>
+                  <strong>Time Tracking ID</strong> {selectedRequest.time_tracking_id}
+                </p>
+                <p>
                   <strong>Employee ID:</strong> {selectedRequest.employee_id}
                 </p>
                 <p>
@@ -458,12 +464,11 @@ const obRequest = () => {
                   )}
                 </p>
                 <p>
-                  <strong>Total Hours:</strong>{" "}
-                  {Math.floor(selectedRequest.total_hours / 3600)} Hours
+                  <strong>Total Hours:</strong> {selectedRequest.total_hours}
                 </p>
                 <p>
                   <strong>Overtime Hours:</strong>{" "}
-                  {Math.floor(selectedRequest.overtime_hours / 3600)} Hours
+                  {selectedRequest.overtime_hours}
                 </p>
 
                 <hr className="my-2" />

@@ -129,162 +129,174 @@ const WorkSchedule = () => {
         <div className="transition-all duration-300 ease-in-out p-6 bg-slate-100 min-h-screen">
           <div className="mb-8"></div>
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">
-                    Working Days
-                  </h3>
-                  <p className="text-xl font-semibold text-gray-800">
-                    {schedules.length > 0 && schedules[0].days
-                      ? schedules[0].days.length
-                      : 0}{" "}
-                    days
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-green-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">
-                    Department
-                  </h3>
-                  <p className="text-xl font-semibold text-gray-800">
-                    {employeeDepartment}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">
-                    Employee Name
-                  </h3>
-                  <p className="text-xl font-semibold text-gray-800">{`${employeeFirstName} ${employeeLastName}`}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Schedule Table */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                Schedule Details
-              </h2>
-              {schedules.length > 0 && schedules[0].days ? (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="mb-6"></div>
+            {schedules.length > 0 && schedules[0].days ? (
+              <div className="space-y-6">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <p className="flex items-center">
+                        <span className="font-medium text-gray-600 w-32">
+                          Shift Type:
+                        </span>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                          {schedules[0].shiftname || "Regular"}
+                        </span>
+                      </p>
+                      <p className="flex items-center">
+                        <span className="font-medium text-gray-600 w-32">
+                          Working Hours:
+                        </span>
+                        <span className="text-gray-800">
+                          {new Date(
+                            `1970-01-01T${schedules[0].startTime}`
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                          {" - "}
+                          {new Date(
+                            `1970-01-01T${schedules[0].endTime}`
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>
+                      </p>
+                      {schedules[0].breakStart && (
+                        <p className="flex items-center">
+                          <span className="font-medium text-gray-600 w-32">
+                            Break Time:
+                          </span>
+                          <span className="text-gray-800">
+                            {new Date(`2000-01-01T${schedules[0].breakStart}`).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })} - {new Date(`2000-01-01T${schedules[0].breakEnd}`).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider rounded-tl-lg">
                           Day
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                           Start Time
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                           End Time
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider rounded-tr-lg">
+                          Break Time
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {schedules.map((schedule) =>
-                        schedule.days.map((day, index) => (
+                      {[
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday",
+                      ].map((day) => {
+                        const isWorkDay = schedules[0].days.includes(day);
+                        return (
                           <tr
-                            key={`${schedule._id}-${index}`}
-                            className="hover:bg-gray-50"
+                            key={day}
+                            className="hover:bg-gray-50 transition-colors duration-200"
                           >
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {day}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {schedule.startTime}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span
+                                className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                  isWorkDay
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {isWorkDay ? "Work Day" : "Off Day"}
+                              </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {schedule.endTime}
+                              {isWorkDay ? (
+                                new Date(`2000-01-01T${schedules[0].startTime}`).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })
+                              ) : "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {isWorkDay ? (
+                                new Date(`2000-01-01T${schedules[0].endTime}`).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })
+                              ) : "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {isWorkDay && schedules[0].breakStart && schedules[0].breakEnd ? (
+                                `${new Date(`2000-01-01T${schedules[0].breakStart}`).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })} - ${new Date(`2000-01-01T${schedules[0].breakStart}`).getHours() + 1}:${new Date(`2000-01-01T${schedules[0].breakStart}`).getMinutes().toString().padStart(2, '0')} ${new Date(`2000-01-01T${schedules[0].breakStart}`).getHours() < 11 ? 'AM' : 'PM'}`
+                              ) : "-"}
                             </td>
                           </tr>
-                        ))
-                      )}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    No schedule found
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    No work schedule has been assigned yet.
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No schedule found
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  No work schedule has been assigned yet.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

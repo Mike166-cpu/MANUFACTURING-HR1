@@ -284,8 +284,7 @@ const TimeTracking = () => {
       // If all validations pass, proceed with time in
       const response = await axios.post(`${LOCAL}/api/timetrack/time-in`, {
         employee_id: employeeId,
-        employee_firstname: employeeFirstName,
-        employee_lastname: employeeLastName,
+        employee_fullname: fullname,
         position: localStorage.getItem("employeePosition"),
         entry_status: isLate ? 'late' : 'on_time',
         minutes_late: minutesLate,
