@@ -1,6 +1,6 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { loginUser, employeeLogin, verifyOtp, employeeFaceLogin } = require("../../controllers/loginController");
+const { loginUser, employeeLogin, verifyOtp, employeeFaceLogin, verifyFaceOnly } = require("../../controllers/loginController");
 const {generateServiceToken} = require("../../middleware/gatewayTokenGenerator");
 const router = express.Router();
 const LoginData = require("../../models/LoginAccount");
@@ -12,6 +12,8 @@ const faceId = require("../faceId");
 //   max: 5,
 //   message: { status: 429, error: "Too many login attempts. Please try again after 15 minutes." },
 // });
+
+router.post("/verify-face", verifyFaceOnly)
 
 router.get("/check-face-id/:email", async (req, res) => {
   const { email } = req.params;

@@ -67,7 +67,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     <div
       className={`fixed left-0 top-0 w-72 h-full z-50 transform ${
         isOpen ? "translate-x-0" : "-translate-x-full"
-      } transition-transform duration-300 ease-in-out bg-gradient-to-b from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700`}
+      } transition-transform duration-300 ease-in-out bg-white dark:from-gray-800 dark:to-gray-900 border-r border-gray-200 dark:border-gray-700`}
     >
       <div className="p-6 h-full overflow-y-auto custom-scrollbar">
         {/* Header */}

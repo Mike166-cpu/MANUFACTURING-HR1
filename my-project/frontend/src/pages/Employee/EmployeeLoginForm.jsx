@@ -249,7 +249,7 @@ const EmployeeLoginForm = () => {
         {error && (
           <p className="text-red-500 text-xs text-center mb-2">{error}</p>
         )}
-
+{/* 
         <div className="mb-4">
           <label className="flex items-center space-x-2 text-sm">
             <input
@@ -260,7 +260,7 @@ const EmployeeLoginForm = () => {
             />
             <span>Use Face ID</span>
           </label>
-        </div>
+        </div> */}
 
         {useFaceId ? (
           <div className="space-y-4">

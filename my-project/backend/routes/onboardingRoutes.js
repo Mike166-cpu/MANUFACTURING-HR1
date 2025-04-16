@@ -65,25 +65,25 @@ router.get("/applicant", async (req, res) => {
     );
 
     // Get onboarded employees (fetch only emails and archived status)
-    const onboardedEmployees = await Employee.find({}, "email archived");
+    const onboardedEmployees = await Employee.find({}, "email archived status");
 
     // Separate onboarded emails and archived emails
     const onboardedEmails = new Set(onboardedEmployees.map((emp) => emp.email));
-    const archivedEmails = new Set(
-      onboardedEmployees
-        .filter((emp) => emp.archived === true)
-        .map((emp) => emp.email)
+    
+    // Create a map of email to archived status
+    const archivedStatusMap = new Map(
+      onboardedEmployees.map(emp => [emp.email, emp.archived])
     );
 
-    // Add onboarded status & filter out archived applicants
-    const filteredApplicants = response.data
-      .map((applicant) => ({
-        ...applicant,
-        onboarded: onboardedEmails.has(applicant.email),
-      }))
-      .filter((applicant) => !archivedEmails.has(applicant.email));
+    // Add onboarded and archived status to all applicants
+    const processedApplicants = response.data.map((applicant) => ({
+      ...applicant,
+      onboarded: onboardedEmails.has(applicant.email),
+      archived: archivedStatusMap.get(applicant.email) || false,
+      rejected: onboardedEmployees.find(emp => emp.email === applicant.email)?.status === "Rejected" || false
+    }));
 
-    res.status(200).json(filteredApplicants);
+    res.status(200).json(processedApplicants);
   } catch (err) {
     console.error("Error fetching data:", err);
     res.status(500).json({ message: "Server error" });
@@ -204,13 +204,13 @@ async function sendLoginEmail(email, password) {
 
 router.post("/archive", async (req, res) => {
   try {
-    const { applicantId } = req.body;
-    if (!applicantId) {
-      return res.status(400).json({ message: "Applicant ID is missing." });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is missing." });
     }
 
     const employee = await Employee.findOneAndUpdate(
-      { userId: applicantId },
+      { email: email },
       { archived: true },
       { new: true }
     );
@@ -222,6 +222,54 @@ router.post("/archive", async (req, res) => {
     res.status(200).json({ message: "Employee archived successfully." });
   } catch (error) {
     console.error("Archiving error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/unarchive", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is missing." });
+    }
+
+    const employee = await Employee.findOneAndUpdate(
+      { email: email },
+      { archived: false },
+      { new: true }
+    );
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found." });
+    }
+
+    res.status(200).json({ message: "Employee unarchived successfully." });
+  } catch (error) {
+    console.error("Unarchiving error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/reject", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is missing." });
+    }
+
+    const employee = await Employee.findOneAndUpdate(
+      { email: email },
+      { status: "Rejected" },
+      { new: true }
+    );
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found." });
+    }
+
+    res.status(200).json({ message: "Employee rejected successfully." });
+  } catch (error) {
+    console.error("Rejection error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

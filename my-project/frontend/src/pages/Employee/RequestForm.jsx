@@ -1,12 +1,14 @@
 // MANUAL ENTRIES TIME TRACKING
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
 import Swal from "sweetalert2";
 import Breadcrumbs from "../../Components/BreadCrumb";
+import * as faceapi from "face-api.js";
+import Webcam from "react-webcam";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -36,6 +38,12 @@ const RequestForm = () => {
   const [position, setPosition] = useState("");
   const navigate = useNavigate();
   const [proofFile, setProofFile] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [faceVerified, setFaceVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [openingModal, setOpeningModal] = useState(false); // loading state for opening modal
+  const [pendingSubmitData, setPendingSubmitData] = useState(null); // <-- NEW
+  const webcamRef = useRef(null);
 
   const authToken = localStorage.getItem("employeeToken");
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
@@ -43,6 +51,9 @@ const RequestForm = () => {
 
   const fullname = localStorage.getItem("fullName");
   console.log(fullname);
+
+  const email = localStorage.getItem("email");
+  console.log("Email:", email);
 
   useEffect(() => {
     document.title = "Request Form";
@@ -97,15 +108,29 @@ const RequestForm = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        await faceapi.nets.faceLandmark68Net.loadFromUri("/models");
+        await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
+        console.log("✅ face-api models loaded");
+      } catch (error) {
+        console.error("❌ Error loading face-api models", error);
+      }
+    };
+
+    loadModels();
+  }, []);
   const [formData, setFormData] = useState({
     position: "",
     employee_name: "",
     employee_id: "",
     date: new Date().toISOString().split("T")[0],
-    morning_time_in: localStorage.getItem('scheduleStartTime') || "", 
-    morning_time_out: localStorage.getItem('breakStartTime') || "",
-    afternoon_time_in: localStorage.getItem('breakEndTime') || "",
-    afternoon_time_out: localStorage.getItem('scheduleEndTime') || "",
+    morning_time_in: localStorage.getItem("scheduleStartTime") || "",
+    morning_time_out: localStorage.getItem("breakStartTime") || "",
+    afternoon_time_in: localStorage.getItem("breakEndTime") || "",
+    afternoon_time_out: localStorage.getItem("scheduleEndTime") || "",
     overtime_start: "",
     overtime_end: "",
     purpose: "",
@@ -155,18 +180,148 @@ const RequestForm = () => {
   const calculateNightShiftDuration = (date, startTime, endTime) => {
     let start = new Date(`${date}T${startTime}`);
     let end = new Date(`${date}T${endTime}`);
-    
+
     if (end < start) {
       end.setDate(end.getDate() + 1);
     }
-    
+
     const duration = end - start;
-    
+
     return duration / (1000 * 60 * 60);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const checkFaceId = async () => {
+      try {
+        setIsLoading(true);
+        const email = localStorage.getItem("email");
+  
+        if (!email) {
+          throw new Error("No email found in localStorage");
+        }
+  
+        const response = await axios.get(
+          `${LOCAL}/api/login-admin/check-face-id/${email}`
+        );
+        const { hasFaceId } = response.data;
+  
+        if (!hasFaceId) {
+          Swal.fire({
+            title: "Face ID not registered",
+            text: "You need to register your face ID in the settings first.",
+            icon: "warning",
+          }).then(() => {
+            navigate("/settings");
+          });
+        }
+      } catch (error) {
+        console.error("Error checking face ID:", error);
+        Swal.fire({
+          title: "Error",
+          text: "There was an issue checking your face ID. Please try again later.",
+          icon: "error",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    checkFaceId();
+  }, [navigate]); // ✅ Keep navigate in dependency array
+
+  const getFaceDescriptorFromWebcam = async () => {
+    if (!webcamRef.current) throw new Error("Webcam not available");
+    const video = webcamRef.current.video;
+    if (!video) throw new Error("Webcam video not ready");
+    const detection = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    if (!detection) throw new Error("No face detected.");
+    return detection.descriptor;
+  };
+
+  const verifyFaceBeforeSubmit = async (faceDescriptor) => {
+    try {
+      const email = localStorage.getItem("email");
+
+      // Convert face descriptor to array format
+      const descriptorArray = Array.from(faceDescriptor);
+
+      const response = await axios.post(
+        `${LOCAL}/api/login-admin/verify-face`,
+        {
+          email,
+          faceDescriptor: descriptorArray,
+        }
+      );
+
+      if (response.status === 200) {
+        console.log("✅ Face verified successfully");
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("❌ Face verification failed:", err);
+      Swal.fire({
+        title: "Face Verification Failed",
+        text:
+          err.response?.data?.message ||
+          "Face verification failed. Please try again.",
+        icon: "error",
+      });
+      return false;
+    }
+  };
+
+  const handleFaceVerification = async () => {
+    setVerifying(true);
+    try {
+      const faceDescriptor = await getFaceDescriptorFromWebcam();
+      const isVerified = await verifyFaceBeforeSubmit(faceDescriptor);
+      if (isVerified) {
+        setFaceVerified(true); // Set before calling handleSubmit
+        Swal.fire({
+          title: "Face Verified",
+          text: "Face verification successful. Submitting your request...",
+          icon: "success",
+          timer: 1200,
+          showConfirmButton: false,
+        });
+        setShowCamera(false);
+        // If there is a pending submit, proceed
+        if (pendingSubmitData !== null) {
+          setPendingSubmitData(null);
+          setTimeout(() => {
+            handleSubmit({ preventDefault: () => {} }, true); // Pass skipFaceCheck=true
+          }, 300);
+        }
+      } else {
+        setFaceVerified(false);
+      }
+    } catch (err) {
+      Swal.fire({
+        title: "Face Verification Failed",
+        text: err.message || "Face verification failed. Please try again.",
+        icon: "error",
+      });
+      setFaceVerified(false);
+    }
+    setVerifying(false);
+  };
+
+  // Update handleSubmit to accept skipFaceCheck
+  const handleSubmit = async (e, skipFaceCheck = false) => {
+    e.preventDefault && e.preventDefault();
+
+    // Only check faceVerified if not skipping
+    if (!skipFaceCheck && !faceVerified) {
+      setPendingSubmitData({});
+      setShowCamera(true);
+      return;
+    }
 
     const authToken = localStorage.getItem("employeeToken");
     if (!authToken) {
@@ -186,6 +341,18 @@ const RequestForm = () => {
         text: "You cannot submit requests for future dates.",
         icon: "warning",
       });
+      return;
+    }
+
+    // Validate file upload
+    if (!proofFile) {
+      Swal.fire({
+        title: "Missing File",
+        text: "Please upload a supporting document image.",
+        icon: "warning",
+      });
+      // Optionally, focus the label or scroll to file upload area
+      document.getElementById("fileUpload").scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -281,7 +448,7 @@ const RequestForm = () => {
 
     const timeIn = new Date(`${formData.date}T${formData.morning_time_in}`);
     const timeOut = new Date(`${formData.date}T${formData.afternoon_time_out}`);
-    
+
     // Handle night shift crossing midnight
     if (timeOut < timeIn) {
       timeOut.setDate(timeOut.getDate() + 1);
@@ -289,16 +456,16 @@ const RequestForm = () => {
 
     // Calculate total duration and subtract break time
     const totalMilliseconds = timeOut - timeIn;
-    const hoursWorked = (totalMilliseconds / (1000 * 60 * 60)) - 1; // Subtract 1 hour for break
-    
+    const hoursWorked = totalMilliseconds / (1000 * 60 * 60) - 1; // Subtract 1 hour for break
+
     const requestData = {
       employee_id: formData.employee_id,
       position: formData.position,
       employee_name: formData.employee_name,
       time_in: timeIn.toISOString(),
       time_out: timeOut.toISOString(),
-      overtime_start: formData.overtime_start || null,  // Add overtime fields
-      overtime_end: formData.overtime_end || null,      // Add overtime fields
+      overtime_start: formData.overtime_start || null, // Add overtime fields
+      overtime_end: formData.overtime_end || null, // Add overtime fields
       status: "pending",
       remarks: formData.remarks,
       purpose: formData.purpose,
@@ -362,10 +529,10 @@ const RequestForm = () => {
   //FETCH EMPLOYEE SCHEDULE
   const [schedules, setSchedules] = useState([]);
   const [validDates, setValidDates] = useState([]);
-  const [scheduleStartTime, setScheduleStartTime] = useState('');
-  const [scheduleEndTime, setScheduleEndTime] = useState('');
-  const [breakStartTime, setBreakStartTime] = useState('');
-  const [breakEndTime, setBreakEndTime] = useState('');
+  const [scheduleStartTime, setScheduleStartTime] = useState("");
+  const [scheduleEndTime, setScheduleEndTime] = useState("");
+  const [breakStartTime, setBreakStartTime] = useState("");
+  const [breakEndTime, setBreakEndTime] = useState("");
 
   const processSchedules = (schedules) => {
     const today = new Date();
@@ -391,13 +558,13 @@ const RequestForm = () => {
 
   // Add format time display function
   const formatTimeDisplay = (time) => {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':');
+    if (!time) return "";
+    const [hours, minutes] = time.split(":");
     const date = new Date(2000, 0, 1, hours, minutes);
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit', 
-      hour12: true 
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
     });
   };
 
@@ -405,24 +572,24 @@ const RequestForm = () => {
     // Convert input time and schedule time to comparable format (minutes since midnight)
     const getMinutes = (timeStr) => {
       if (!timeStr) return 0;
-      const [hours, minutes] = timeStr.split(':').map(Number);
+      const [hours, minutes] = timeStr.split(":").map(Number);
       return hours * 60 + minutes;
     };
 
     const inputMinutes = getMinutes(time);
     let scheduleMinutes;
 
-    switch(type) {
-      case 'start':
+    switch (type) {
+      case "start":
         scheduleMinutes = getMinutes(scheduleStartTime);
         break;
-      case 'break_start':
+      case "break_start":
         scheduleMinutes = getMinutes(breakStartTime);
         break;
-      case 'break_end':
+      case "break_end":
         scheduleMinutes = getMinutes(breakEndTime);
         break;
-      case 'end':
+      case "end":
         scheduleMinutes = getMinutes(scheduleEndTime);
         break;
       default:
@@ -432,7 +599,6 @@ const RequestForm = () => {
     return inputMinutes === scheduleMinutes;
   };
 
-
   // Update the fetchSchedules function
   const fetchSchedules = async () => {
     const employeeId = localStorage.getItem("employeeId");
@@ -440,7 +606,7 @@ const RequestForm = () => {
       const response = await axios.get(
         `${LOCAL}/api/schedule/findByEmployeeId/${employeeId}`
       );
-      console.log("Schedule",response.data);
+      console.log("Schedule", response.data);
 
       if (response.data?.message) {
         Swal.fire({
@@ -455,39 +621,42 @@ const RequestForm = () => {
         ? response.data
         : [response.data];
       setSchedules(scheduleData);
-      
+
       if (scheduleData[0]) {
         const schedule = scheduleData[0];
-        
+
         const isNightShift = schedule.endTime < schedule.startTime;
-        
-        localStorage.setItem('scheduleStartTime', schedule.startTime);
-        localStorage.setItem('scheduleEndTime', schedule.endTime);
-        
-    
+
+        localStorage.setItem("scheduleStartTime", schedule.startTime);
+        localStorage.setItem("scheduleEndTime", schedule.endTime);
+
         if (isNightShift) {
-          const breakStart = schedule.breakStart || addHours(schedule.startTime, 4);
+          const breakStart =
+            schedule.breakStart || addHours(schedule.startTime, 4);
           const breakEnd = schedule.breakEnd || addHours(breakStart, 1);
-          
-          localStorage.setItem('breakStartTime', breakStart);
-          localStorage.setItem('breakEndTime', breakEnd);
+
+          localStorage.setItem("breakStartTime", breakStart);
+          localStorage.setItem("breakEndTime", breakEnd);
         } else {
-          localStorage.setItem('breakStartTime', schedule.breakStart || '12:00');
-          localStorage.setItem('breakEndTime', schedule.breakEnd || '13:00');
+          localStorage.setItem(
+            "breakStartTime",
+            schedule.breakStart || "12:00"
+          );
+          localStorage.setItem("breakEndTime", schedule.breakEnd || "13:00");
         }
-        
+
         setScheduleStartTime(schedule.startTime);
         setScheduleEndTime(schedule.endTime);
-        setBreakStartTime(localStorage.getItem('breakStartTime'));
-        setBreakEndTime(localStorage.getItem('breakEndTime'));
-        
-        setFormData(prev => ({
+        setBreakStartTime(localStorage.getItem("breakStartTime"));
+        setBreakEndTime(localStorage.getItem("breakEndTime"));
+
+        setFormData((prev) => ({
           ...prev,
           morning_time_in: schedule.startTime,
-          morning_time_out: localStorage.getItem('breakStartTime'),
-          afternoon_time_in: localStorage.getItem('breakEndTime'),
+          morning_time_out: localStorage.getItem("breakStartTime"),
+          afternoon_time_in: localStorage.getItem("breakEndTime"),
           shift_name: schedule.shiftname,
-          afternoon_time_out: schedule.endTime
+          afternoon_time_out: schedule.endTime,
         }));
       }
     } catch (error) {
@@ -496,10 +665,12 @@ const RequestForm = () => {
   };
 
   const addHours = (timeStr, hours) => {
-    const [h, m] = timeStr.split(':');
+    const [h, m] = timeStr.split(":");
     const date = new Date(2000, 0, 1, parseInt(h), parseInt(m));
     date.setHours(date.getHours() + hours);
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    return `${String(date.getHours()).padStart(2, "0")}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}`;
   };
 
   useEffect(() => {
@@ -551,6 +722,20 @@ const RequestForm = () => {
     }
   }, [navigate]);
 
+  // Modal close handler
+  const handleCloseModal = () => {
+    if (!verifying) setShowCamera(false);
+  };
+
+  // Open modal with loading state
+  const handleOpenModal = () => {
+    setOpeningModal(true);
+    setTimeout(() => {
+      setShowCamera(true);
+      setOpeningModal(false);
+    }, 200); // short delay for smoother UX
+  };
+
   return (
     <div className="flex">
       <EmployeeSidebar
@@ -580,6 +765,62 @@ const RequestForm = () => {
         {/* MAIN CONTENT */}
         <div className="p-8 bg-slate-100">
           <div className="transition-all duration-300 ease-in-out flex-grow p-8 bg-white rounded-sm">
+            {/* Face Verification Modal with Camera */}
+            {showCamera && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="modal modal-open">
+                  <div className="modal-box flex flex-col items-center relative p-6">
+                    <button
+                      className="btn btn-sm btn-circle absolute right-2 top-2"
+                      onClick={handleCloseModal}
+                      disabled={verifying}
+                      aria-label="Close"
+                    >
+                      ✕
+                    </button>
+                    <h3 className="font-semibold text-lg mb-2">
+                      Face Verification
+                    </h3>
+                    <p className="mb-2 text-gray-600 text-sm text-center">
+                      Please show your face clearly in the camera preview below
+                      and click "Verify".
+                    </p>
+                    <div className="relative w-[240px] h-[180px] flex items-center justify-center mb-2">
+                      <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        width={240}
+                        height={180}
+                        videoConstraints={{ facingMode: "user" }}
+                        className="rounded-lg border border-gray-300"
+                      />
+                      {verifying && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-80 rounded-lg z-20">
+                          <span className="loading loading-spinner loading-lg text-primary mb-2"></span>
+                          <span className="text-base font-semibold">
+                            Verifying face...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary mt-3 w-full flex items-center justify-center"
+                      onClick={handleFaceVerification}
+                      disabled={verifying}
+                    >
+                      {verifying && (
+                        <span className="loading loading-spinner loading-xs mr-2"></span>
+                      )}
+                      {verifying ? "Verifying..." : "Verify"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ...existing form... */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="justify-end text-end">
                 <span className="text-xs bg-red-100 rounded-full p-1 text-red-500 font-semibold">
@@ -624,7 +865,7 @@ const RequestForm = () => {
                   <input
                     type="text"
                     name="shift_name"
-                    value={formData.shift_name || ''}
+                    value={formData.shift_name || ""}
                     className="input input-bordered w-full bg-gray-100"
                     readOnly
                   />
@@ -676,20 +917,23 @@ const RequestForm = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium py-2">
-                    Shift Start Time * (Schedule: {formatTimeDisplay(scheduleStartTime)})
+                    Shift Start Time * (Schedule:{" "}
+                    {formatTimeDisplay(scheduleStartTime)})
                   </label>
                   <input
                     type="time"
                     name="morning_time_in"
                     value={formData.morning_time_in}
                     onChange={(e) => {
-                      if (validateTimeInput(e.target.value, 'start')) {
+                      if (validateTimeInput(e.target.value, "start")) {
                         handleChange(e);
                       } else {
                         Swal.fire({
                           title: "Invalid Time",
-                          text: `Time must match your schedule time: ${formatTimeDisplay(scheduleStartTime)}`,
-                          icon: "warning"
+                          text: `Time must match your schedule time: ${formatTimeDisplay(
+                            scheduleStartTime
+                          )}`,
+                          icon: "warning",
                         });
                         e.target.value = scheduleStartTime;
                       }
@@ -700,20 +944,23 @@ const RequestForm = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium py-2">
-                    Break Start Time * (Schedule: {formatTimeDisplay(breakStartTime)})
+                    Break Start Time * (Schedule:{" "}
+                    {formatTimeDisplay(breakStartTime)})
                   </label>
                   <input
                     type="time"
                     name="morning_time_out"
                     value={formData.morning_time_out}
                     onChange={(e) => {
-                      if (validateTimeInput(e.target.value, 'break_start')) {
+                      if (validateTimeInput(e.target.value, "break_start")) {
                         handleChange(e);
                       } else {
                         Swal.fire({
                           title: "Invalid Time",
-                          text: `Time must match your schedule time: ${formatTimeDisplay(breakStartTime)}`,
-                          icon: "warning"
+                          text: `Time must match your schedule time: ${formatTimeDisplay(
+                            breakStartTime
+                          )}`,
+                          icon: "warning",
                         });
                         e.target.value = breakStartTime;
                       }
@@ -728,20 +975,23 @@ const RequestForm = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium py-2">
-                    End Break Time * (Schedule: {formatTimeDisplay(breakEndTime)})
+                    End Break Time * (Schedule:{" "}
+                    {formatTimeDisplay(breakEndTime)})
                   </label>
                   <input
                     type="time"
                     name="afternoon_time_in"
                     value={formData.afternoon_time_in}
                     onChange={(e) => {
-                      if (validateTimeInput(e.target.value, 'break_end')) {
+                      if (validateTimeInput(e.target.value, "break_end")) {
                         handleChange(e);
                       } else {
                         Swal.fire({
                           title: "Invalid Time",
-                          text: `Time must match your schedule time: ${formatTimeDisplay(breakEndTime)}`,
-                          icon: "warning"
+                          text: `Time must match your schedule time: ${formatTimeDisplay(
+                            breakEndTime
+                          )}`,
+                          icon: "warning",
                         });
                         e.target.value = breakEndTime;
                       }
@@ -752,20 +1002,23 @@ const RequestForm = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium py-2">
-                    Shift End Time * (Schedule: {formatTimeDisplay(scheduleEndTime)})
+                    Shift End Time * (Schedule:{" "}
+                    {formatTimeDisplay(scheduleEndTime)})
                   </label>
                   <input
                     type="time"
                     name="afternoon_time_out"
                     value={formData.afternoon_time_out}
                     onChange={(e) => {
-                      if (validateTimeInput(e.target.value, 'end')) {
+                      if (validateTimeInput(e.target.value, "end")) {
                         handleChange(e);
                       } else {
                         Swal.fire({
                           title: "Invalid Time",
-                          text: `Time must match your schedule time: ${formatTimeDisplay(scheduleEndTime)}`,
-                          icon: "warning"
+                          text: `Time must match your schedule time: ${formatTimeDisplay(
+                            scheduleEndTime
+                          )}`,
+                          icon: "warning",
                         });
                         e.target.value = scheduleEndTime;
                       }
@@ -804,73 +1057,69 @@ const RequestForm = () => {
                 </div>
               </div>
 
-              {/* Purpose */}
-              <div>
-                <label className="block text-sm font-medium py-2">
-                  Purpose *{" "}
-                </label>
-                <textarea
-                  name="purpose"
-                  value={formData.purpose}
-                  onChange={handleChange}
-                  placeholder="e.g. Time Tracking"
-                  className="textarea textarea-bordered w-full"
-                  required
-                ></textarea>
-              </div>
+              {/* Form Fields */}
+              <div className="space-y-4">
+                {/* Purpose & Remarks */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Purpose *</label>
+                    <textarea
+                      name="purpose"
+                      value={formData.purpose}
+                      onChange={handleChange}
+                      placeholder="Enter purpose for manual entry"
+                      className="textarea textarea-bordered w-full h-24"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Remarks (Optional)
+                    </label>
+                    <textarea
+                      name="remarks"
+                      value={formData.remarks}
+                      onChange={handleChange}
+                      placeholder="Additional comments if any"
+                      className="textarea textarea-bordered w-full h-24"
+                    />
+                  </div>
+                </div>
 
-              {/* Remarks */}
-              <div>
-                <label className="block text-sm font-medium py-2">
-                  Remarks (Optional)
-                </label>
-                <textarea
-                  name="remarks"
-                  value={formData.remarks}
-                  onChange={handleChange}
-                  placeholder="Additional comments"
-                  className="textarea textarea-bordered w-full"
-                ></textarea>
-              </div>
-
-              <div>
-                <span className="block text-sm font-medium py-2">Upload Image *</span>
-              </div>
-              <div className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition duration-300 cursor-pointer bg-gray-50">
-                <label
-                  htmlFor="fileUpload"
-                  className="flex flex-col items-center justify-center w-full text-gray-700 text-sm font-medium cursor-pointer"
-                >
-                  Supporting Document *
-                  <svg
-                    className="w-10 h-10 text-gray-400 mb-2"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M7 16V10a4 4 0 018 0v6M5 16h14M12 8v8"
-                    ></path>
-                  </svg>
-                  <span className="text-gray-600">
-                    Click or drag a file to upload
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Only images are allowed (JPG, PNG, GIF)
-                  </span>
-                </label>
-                <input
-                  id="fileUpload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  required
-                />
+                {/* File Upload */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-2">
+                    Supporting Document *
+                  </label>
+                  <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                    <input
+                      id="fileUpload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="text-center">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        stroke="currentColor"
+                        fill="none"
+                        viewBox="0 0 48 48"
+                      >
+                        <path
+                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <p className="mt-1 text-sm text-gray-600">
+                        Click or drag image here
+                      </p>
+                      <p className="text-xs text-gray-500">JPG, PNG, GIF supported</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Submit Button */}

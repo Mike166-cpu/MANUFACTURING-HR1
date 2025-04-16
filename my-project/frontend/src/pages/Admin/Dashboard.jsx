@@ -29,6 +29,7 @@ const Dashboard = () => {
         {/* Header Section */}
         <div className="bg-white p-5 shadow-sm mb-6">
           <BreadCrumbs />
+          <h1 className="font-bold px-4 text-xl">Overview</h1>
         </div>
 
       </div>

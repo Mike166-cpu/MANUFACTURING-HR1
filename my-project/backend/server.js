@@ -29,9 +29,8 @@ const uploadedDocument = require("./routes/uploadedDocumentRoutes");
 const timeTracking = require("./routes/timeTrackingRoutes");
 const integrationRoutes = require("./routes/integrationRoutes");
 const resignationRoutes = require("./routes/resignationRoutes");
-const { initializeLeaveBalances } = require("./controllers/leave");
+const { initializeLeaveBalances, initializeEmployeeLeaveBalance, cronjob } = require("./controllers/leave");
 const model = require("./routes/predictiveAnalyticsRoutes");
-const { cronjob } = require("./controllers/leave");
 const onboard = require("./routes/onboardingRoutes");
 const faceIdRoutes = require("./routes/faceId");
 

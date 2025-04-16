@@ -6,6 +6,52 @@ const Employee = require("../models/LoginAccount");
 const EmployeeData = require("../models/Employee");
 const transporter = require("../utils/mailer");
 
+const verifyFaceOnly = async (req, res) => {
+  try {
+    const { email, faceDescriptor } = req.body;
+
+    if (!email || !faceDescriptor) {
+      return res.status(400).json({ message: "Email and face descriptor are required." });
+    }
+
+    const user = await Employee.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found." });
+    }
+
+    if (!user.faceDescriptor) {
+      return res.status(400).json({ message: "Face ID not registered for this user." });
+    }
+
+    // Ensure that faceDescriptor is in the correct format (an array of numbers)
+    if (!Array.isArray(faceDescriptor) || faceDescriptor.length !== 128) {
+      return res.status(400).json({ 
+        message: "Invalid face descriptor format.",
+        expected: "Array of 128 numbers",
+        received: `${typeof faceDescriptor}, length: ${Array.isArray(faceDescriptor) ? faceDescriptor.length : 'N/A'}`
+      });
+    }
+
+    // Ensure all elements are numbers
+    if (!faceDescriptor.every(num => typeof num === 'number')) {
+      return res.status(400).json({ message: "Face descriptor must contain only numbers." });
+    }
+
+    const similarity = calculateSimilarity(faceDescriptor, user.faceDescriptor);
+    if (similarity < 0.6) {
+      return res.status(401).json({ message: "Face verification failed." });
+    }
+
+    return res.status(200).json({ 
+      message: "Face verified successfully",
+      success: true
+    });
+  } catch (err) {
+    console.error("Face verification error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -210,4 +256,4 @@ const calculateSimilarity = (descriptor1, descriptor2) => {
   );
 };
 
-module.exports = { loginUser, employeeLogin, verifyOtp, employeeFaceLogin };
+module.exports = { loginUser, employeeLogin, verifyOtp, employeeFaceLogin, verifyFaceOnly };
