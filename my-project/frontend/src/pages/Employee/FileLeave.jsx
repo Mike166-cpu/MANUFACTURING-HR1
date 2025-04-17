@@ -59,19 +59,11 @@ const FileLeave = () => {
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
     const employeeId = localStorage.getItem("employeeId") || "";
 
-    if (!authToken) {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "You are not logged in. Redirecting to Login Page",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => navigate("/employeelogin"));
-    } else {
-      setEmployeeId(employeeId);
-      setEmployeeFirstName(firstName);
-      setEmployeeLastName(lastName);
-      setEmployeeDepartment(department);
-    }
+    setEmployeeId(employeeId);
+    setEmployeeFirstName(firstName);
+    setEmployeeLastName(lastName);
+    setEmployeeDepartment(department);
+    
   }, [navigate]);
 
   const handleSidebarToggle = () => {

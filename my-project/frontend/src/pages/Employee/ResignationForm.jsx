@@ -54,16 +54,6 @@ const ResignationForm = () => {
     document.title = "Resignation Form - HRMS";
     const authToken = localStorage.getItem("employeeToken");
 
-    if (!authToken) {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "You are not logged in. Redirecting to Login Page",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => navigate("/employeelogin"));
-      return;
-    }
-
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const employeeId = localStorage.getItem("employeeId") || "";

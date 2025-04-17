@@ -41,32 +41,21 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     document.title = "Dashboard - Home";
-    const authToken = localStorage.getItem("employeeToken");
+  
+    // Get employee data from localStorage
     const firstName = localStorage.getItem("employeeFirstName") || "";
     const lastName = localStorage.getItem("employeeLastName") || "";
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
-    const position = localStorage.getItem("employeePosition");
-    const employeeUsername = localStorage.getItem("employeeUsername");
-    const role = localStorage.getItem("employeeRole");
-    const employeeId = localStorage.getItem("employeeId");
-
-    if (!authToken) {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "You are not logged in. Redirecting to Login Page",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => {
-        navigate("/employeelogin");
-      });
-    } else {
-      setEmployeeFirstName(firstName);
-      setEmployeeLastName(lastName);
-      setEmployeeDepartment(department);
-    }
-
+    
+    // Update the state with the data
+    setEmployeeFirstName(firstName);
+    setEmployeeLastName(lastName);
+    setEmployeeDepartment(department);
+  
+    // Stop loading screen
     setTimeout(() => setLoading(false), 2000);
-  }, [navigate]);
+  }, []);
+
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);

@@ -143,14 +143,33 @@ const Settings = () => {
 
   const handleRegister = async () => {
     if (isProcessing || hasFaceId) return;
+    setIsProcessing(true);
+
+    // Immediately capture the frame
+    const imageUrl = captureFrame();
+    setCapturedImage(imageUrl);
+
     try {
-      setIsProcessing(true);
       setStatus("Checking face quality...");
 
-      const detections = await faceapi.detectSingleFace(videoRef.current, 
-        new faceapi.SsdMobilenetv1Options())
+      // Now process the captured frame
+      const img = new window.Image();
+      img.src = imageUrl;
+      await new Promise((resolve) => { img.onload = resolve; });
+
+      // Create a canvas and draw the captured image for face-api
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+
+      // Run detection on the captured image
+      const detections = await faceapi
+        .detectSingleFace(canvas, new faceapi.SsdMobilenetv1Options())
         .withFaceLandmarks()
         .withFaceDescriptor();
+
+      Swal.close();
 
       if (!detections) {
         setStatus("No face detected. Please center your face in the frame.");
@@ -163,10 +182,6 @@ const Settings = () => {
         setIsProcessing(false);
         return;
       }
-
-      // Capture the current frame
-      const imageUrl = captureFrame();
-      setCapturedImage(imageUrl);
 
       // Show confirmation dialog with captured image
       const result = await Swal.fire({
@@ -188,6 +203,16 @@ const Settings = () => {
         return;
       }
 
+      // Show loading modal for registration
+      Swal.fire({
+        title: 'Registering Face ID',
+        html: 'Please wait...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       setStatus("Processing registration...");
 
       const response = await axios.post(`${LOCAL}/api/faceid/register-face-id`, {
@@ -203,6 +228,7 @@ const Settings = () => {
       });
 
     } catch (error) {
+      Swal.close();
       setStatus("❌ " + (error.response?.data?.error || "Registration failed"));
       Swal.fire({
         icon: 'error',
@@ -301,6 +327,16 @@ const Settings = () => {
                   {!hasFaceId && (
                     <div className="mt-4">
                       <div className="relative bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        {/* Loading state above video */}
+                        {isProcessing && (
+                          <div className="flex flex-col items-center mb-4">
+                            <svg className="animate-spin h-8 w-8 text-blue-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            <span className="text-blue-600 font-medium">Processing...</span>
+                          </div>
+                        )}
                         {!hasFaceId && (
                           <>
                             <video
@@ -331,7 +367,10 @@ const Settings = () => {
                         )}
                       </div>
                       <button
-                        onClick={handleRegister}
+                        onClick={async () => {
+                          if (isProcessing) return;
+                          await handleRegister();
+                        }}
                         disabled={isProcessing}
                         className={`mt-4 w-full py-3 px-4 rounded-lg text-white font-medium transition-colors ${
                           isProcessing 
@@ -339,7 +378,7 @@ const Settings = () => {
                             : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                         }`}
                       >
-                        {isProcessing ? 'Processing...' : 'Register Face ID'}
+                        Register Face ID
                       </button>
                       <p className="mt-2 text-center text-gray-600">{status}</p>
                     </div>

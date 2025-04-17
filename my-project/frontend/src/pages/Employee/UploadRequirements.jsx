@@ -49,20 +49,9 @@ const UploadRequirements = () => {
     const department = localStorage.getItem("employeeDepartment") || "Unknown";
     const employeeId = localStorage.getItem("employeeId");
 
-    if (!authToken) {
-      Swal.fire({
-        title: "Not Logged In",
-        text: "You are not logged in. Redirecting to Login Page",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => {
-        navigate("/employeelogin");
-      });
-    } else {
-      setEmployeeFirstName(firstName);
-      setEmployeeLastName(lastName);
-      setEmployeeDepartment(department);
-    }
+    setEmployeeFirstName(firstName);
+    setEmployeeLastName(lastName);
+    setEmployeeDepartment(department);
   }, [navigate]);
 
   const handleSidebarToggle = () => {
@@ -180,9 +169,7 @@ const UploadRequirements = () => {
         (req) => req.request_id === selectedRequestId
       );
 
-
       if (currentRequest.status === "Rejected") {
-
         const existingDoc = uploadedDocuments.find(
           (doc) => doc.request_id === selectedRequestId
         );
@@ -195,42 +182,29 @@ const UploadRequirements = () => {
             }
           );
         } else {
-
-          await axios.post(
-            `${LOCAL}/api/document-request/uploaded-documents`,
-            {
-              employeeId: employeeId,
-              document_url: uploadFile.secure_url,
-              request_id: selectedRequestId,
-            }
-          );
-        }
-      } else {
-
-        await axios.post(
-          `${LOCAL}/api/document-request/uploaded-documents`,
-          {
-            employeeId: employeeId, // Changed from employeeid to employeeId
+          await axios.post(`${LOCAL}/api/document-request/uploaded-documents`, {
+            employeeId: employeeId,
             document_url: uploadFile.secure_url,
             request_id: selectedRequestId,
-          }
-        );
+          });
+        }
+      } else {
+        await axios.post(`${LOCAL}/api/document-request/uploaded-documents`, {
+          employeeId: employeeId, // Changed from employeeid to employeeId
+          document_url: uploadFile.secure_url,
+          request_id: selectedRequestId,
+        });
       }
 
       // Update request status to "Submitted for Approval"
-      await axios.put(
-        `${LOCAL}/api/document-request/${selectedRequestId}`,
-        {
-          status: "Submitted for Approval",
-        }
-      );
+      await axios.put(`${LOCAL}/api/document-request/${selectedRequestId}`, {
+        status: "Submitted for Approval",
+      });
 
       // Refresh data
       const [updatedRequests, updatedUploads] = await Promise.all([
         axios.get(`${LOCAL}/api/document-request/${employeeId}`),
-        axios.get(
-          `${LOCAL}/api/uploaded-documents/employee/${employeeId}`
-        ),
+        axios.get(`${LOCAL}/api/uploaded-documents/employee/${employeeId}`),
       ]);
 
       setDocumentRequests(updatedRequests.data);

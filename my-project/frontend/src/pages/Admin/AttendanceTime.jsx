@@ -24,11 +24,11 @@ import * as XLSX from "xlsx";
 import { IoMdDownload } from "react-icons/io";
 
 const formatHours = (hoursString) => {
-  if (!hoursString) return '-';
+  if (!hoursString) return "-";
   // If already in new format, return as is
-  if (hoursString.includes('M')) return hoursString;
+  if (hoursString.includes("M")) return hoursString;
   // Convert old format "8H" to "8H 00M"
-  return hoursString.replace('H', 'H 00M');
+  return hoursString.replace("H", "H 00M");
 };
 
 const AttendanceTime = () => {
@@ -60,9 +60,7 @@ const AttendanceTime = () => {
 
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(
-          `${LOCAL}/api/onboarding/employee`
-        );
+        const response = await axios.get(`${LOCAL}/api/onboarding/employee`);
         setEmployees(response.data);
         console.log("Fetched employees:", response.data);
       } catch (error) {
@@ -76,7 +74,8 @@ const AttendanceTime = () => {
           `${LOCAL}/api/timetrack/admin/all-sessions`
         );
         console.log("Raw sessions data:", response.data);
-        console.log("Entry types distribution:", 
+        console.log(
+          "Entry types distribution:",
           response.data.reduce((acc, session) => {
             acc[session.entry_type] = (acc[session.entry_type] || 0) + 1;
             return acc;
@@ -356,6 +355,19 @@ const AttendanceTime = () => {
     XLSX.writeFile(workbook, "time_tracking_report.xlsx");
   };
 
+  const formatHours = (hoursString) => {
+    if (!hoursString) return "-";
+
+    // Extract hours and minutes from the string
+    const hours = parseInt(hoursString.match(/(\d+)H/)?.[1] || 0);
+    const minutes = parseInt(hoursString.match(/(\d+)M/)?.[1] || 0);
+
+    // Format as HH:MM
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
   return (
     <div className="flex">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -440,13 +452,27 @@ const AttendanceTime = () => {
                 <thead>
                   <tr className="bg-gray-50">
                     <th>Select</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Time Tracking Id</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Employee</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Schedule</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Time Records</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Duration</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Time Tracking Id
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Employee
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Schedule
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Time Records
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Duration
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -463,13 +489,19 @@ const AttendanceTime = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
-                          <span className="text-sm capitalize">{session.time_tracking_id}</span>
+                          <span className="text-sm capitalize">
+                            {session.time_tracking_id}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
-                          <span className="font-medium text-sm capitalize">{session.employee_fullname}</span>
-                          <span className="text-xs text-gray-500">{session.entry_type}</span>
+                          <span className="font-medium text-sm capitalize">
+                            {session.employee_fullname}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {session.entry_type}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -480,19 +512,29 @@ const AttendanceTime = () => {
                           <div className="flex items-center gap-2">
                             <FiClock className="text-green-500 w-3 h-3" />
                             <span className="text-sm">
-                              {session.time_in ? new Date(session.time_in).toLocaleTimeString('en-US', { 
-                                hour: '2-digit', 
-                                minute: '2-digit'
-                              }) : 'N/A'}
+                              {session.time_in
+                                ? new Date(session.time_in).toLocaleTimeString(
+                                    "en-US",
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }
+                                  )
+                                : "N/A"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <FiClock className="text-red-500 w-3 h-3" />
                             <span className="text-sm">
-                              {session.time_out ? new Date(session.time_out).toLocaleTimeString('en-US', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              }) : 'N/A'}
+                              {session.time_out
+                                ? new Date(session.time_out).toLocaleTimeString(
+                                    "en-US",
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }
+                                  )
+                                : "N/A"}
                             </span>
                           </div>
                         </div>
@@ -508,19 +550,28 @@ const AttendanceTime = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          !session.time_out ? 'bg-blue-100 text-blue-800' :
-                          session.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          session.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {!session.time_out ? 'Active' : 
-                           session.status === 'approved' ? 'Approved' :
-                           session.status === 'rejected' ? 'Rejected' : 'Pending'}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            !session.time_out
+                              ? "bg-blue-100 text-blue-800"
+                              : session.status === "approved"
+                              ? "bg-green-100 text-green-800"
+                              : session.status === "rejected"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {!session.time_out
+                            ? "Active"
+                            : session.status === "approved"
+                            ? "Approved"
+                            : session.status === "rejected"
+                            ? "Rejected"
+                            : "Pending"}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {session.status === 'pending' && (
+                        {session.status === "pending" && (
                           <div className="flex gap-2">
                             <button
                               onClick={() => approveSession(session._id)}
@@ -529,7 +580,7 @@ const AttendanceTime = () => {
                             >
                               <FiCheckCircle className="w-4 h-4" />
                             </button>
-                            {userRole === 'Superadmin' && (
+                            {userRole === "Superadmin" && (
                               <button
                                 onClick={() => rejectSession(session._id)}
                                 className="btn btn-error btn-xs"

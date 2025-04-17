@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import EmployeeSidebar from "../../Components/EmployeeSidebar";
 import EmployeeNav from "../../Components/EmployeeNav";
@@ -9,6 +9,8 @@ import axios from "axios";
 import { formatDuration, calculateDuration } from "../../utils/timeUtils";
 import Breadcrumbs from "../../Components/BreadCrumb";
 import { FaPlus } from "react-icons/fa6";
+import * as faceapi from "face-api.js";
+import Webcam from "react-webcam";
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(window.matchMedia(query).matches);
@@ -38,6 +40,11 @@ const TimeTracking = () => {
   const recordsPerPage = 10;
   const [filterDateRange, setFilterDateRange] = useState("3 Months");
   const navigate = useNavigate();
+  const [showCamera, setShowCamera] = useState(false);
+  const [faceVerified, setFaceVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const webcamRef = useRef(null);
 
   useEffect(() => {
     document.title = "Dashboard - Home";
@@ -166,96 +173,162 @@ const TimeTracking = () => {
   const fullname = localStorage.getItem("fullName");
   console.log(fullname);
 
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        await faceapi.nets.faceLandmark68Net.loadFromUri("/models");
+        await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
+        console.log("✅ face-api models loaded");
+      } catch (error) {
+        console.error("❌ Error loading face-api models", error);
+      }
+    };
+
+    loadModels();
+  }, []);
+
+  const getFaceDescriptorFromWebcam = async () => {
+    if (!webcamRef.current) throw new Error("Webcam not available");
+    const video = webcamRef.current.video;
+    if (!video) throw new Error("Webcam video not ready");
+    const detection = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    if (!detection) throw new Error("No face detected.");
+    return detection.descriptor;
+  };
+
+  const verifyFaceBeforeSubmit = async (faceDescriptor) => {
+    try {
+      const email = localStorage.getItem("email");
+      const descriptorArray = Array.from(faceDescriptor);
+      const response = await axios.post(
+        `${LOCAL}/api/login-admin/verify-face`,
+        {
+          email,
+          faceDescriptor: descriptorArray,
+        }
+      );
+
+      if (response.status === 200) {
+        console.log("✅ Face verified successfully");
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("❌ Face verification failed:", err);
+      Swal.fire({
+        title: "Face Verification Failed",
+        text: err.response?.data?.message || "Face verification failed. Please try again.",
+        icon: "error",
+      });
+      return false;
+    }
+  };
+
+  const handleFaceVerification = async () => {
+    setVerifying(true);
+    try {
+      const faceDescriptor = await getFaceDescriptorFromWebcam();
+      const isVerified = await verifyFaceBeforeSubmit(faceDescriptor);
+      if (isVerified) {
+        setFaceVerified(true);
+        setShowCamera(false);
+        Swal.fire({
+          title: "Face Verified",
+          text: "Face verification successful. Processing your request...",
+          icon: "success",
+          timer: 1200,
+          showConfirmButton: false,
+        });
+        
+        // Execute pending action after verification
+        if (pendingAction === 'timeIn') {
+          timeIn(true);
+        } else if (pendingAction === 'timeOut') {
+          timeOut(true);
+        }
+        setPendingAction(null);
+      }
+    } catch (err) {
+      Swal.fire({
+        title: "Face Verification Failed",
+        text: err.message || "Face verification failed. Please try again.",
+        icon: "error",
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   // Time In Function
-  const timeIn = async () => {
+  const timeIn = async (skipFaceCheck = false) => {
+    if (!skipFaceCheck) {
+      setPendingAction('timeIn');
+      setShowCamera(true);
+      return;
+    }
+    
     try {
       setLoading(true);
       const employeeId = localStorage.getItem("employeeId");
-
-      // Get Singapore time
-      const now = new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" });
-      const sgTime = new Date(now);
-      
+  
+      // Get schedule first
       const scheduleResponse = await axios.get(
         `${LOCAL}/api/schedule/get-schedule/${employeeId}`
       );
-
+  
       const schedule = scheduleResponse.data[0];
       if (!schedule) {
         Swal.fire({
           title: "No Schedule Found",
           text: "You don't have any assigned schedule. Please contact your administrator.",
-          icon: "warning"
+          icon: "warning",
         });
         setLoading(false);
         return;
       }
-
+  
+      // Get Singapore time
+      const now = new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" });
+      const sgTime = new Date(now);
+  
       // Check if today is a working day
-      const currentDay = sgTime.toLocaleString('en-US', { weekday: 'long' });
+      const currentDay = sgTime.toLocaleString("en-US", { weekday: "long" });
       if (!schedule.days.includes(currentDay)) {
         Swal.fire({
           title: "Not Scheduled",
           text: `You are not scheduled to work on ${currentDay}`,
-          icon: "warning"
+          icon: "warning",
         });
         setLoading(false);
         return;
       }
-
-      // Parse schedule times
-      const [morningStartHour, morningStartMinute] = schedule.startTime.split(':');
-      const [afternoonStartHour, afternoonStartMinute] = "13:00".split(':'); // Afternoon shift starts at 1 PM
-      
-      const morningStartInMinutes = parseInt(morningStartHour) * 60 + parseInt(morningStartMinute);
-      const afternoonStartInMinutes = parseInt(afternoonStartHour) * 60 + parseInt(afternoonStartMinute);
-      
-      // Get current time in minutes
+  
+      // Determine shift based on current time
       const currentHour = sgTime.getHours();
-      const currentMinute = sgTime.getMinutes();
-      const currentTimeInMinutes = currentHour * 60 + currentMinute;
-
-      // Define time windows with 30 minutes before and 15 minutes grace period
-      const morningWindowStart = morningStartInMinutes - 30;
-      const morningWindowEnd = morningStartInMinutes + 15;
-      const afternoonWindowStart = afternoonStartInMinutes - 30;
-      const afternoonWindowEnd = afternoonStartInMinutes + 15;
-
-      let isMorningShift = currentTimeInMinutes >= morningWindowStart && currentTimeInMinutes <= morningWindowEnd;
-      let isAfternoonShift = currentTimeInMinutes >= afternoonWindowStart && currentTimeInMinutes <= afternoonWindowEnd;
-
-      if (!isMorningShift && !isAfternoonShift) {
-        let nextWindow;
-        if (currentTimeInMinutes < morningWindowStart) {
-          nextWindow = `${schedule.startTime}`;
-        } else if (currentTimeInMinutes < afternoonWindowStart) {
-          nextWindow = "1:00 PM";
-        } else {
-          nextWindow = "next working day";
-        }
-        
-        Swal.fire({
-          title: "Invalid Time Window",
-          text: `You can only time in during these windows:
-                Morning: ${schedule.startTime} (±30 min)
-                Afternoon: 1:00 PM (±30 min)
-                Next window: ${nextWindow}`,
-          icon: "warning"
-        });
-        setLoading(false);
-        return;
+      let shiftName = "";
+      
+      if (currentHour >= 6 && currentHour < 14) {
+        shiftName = "Morning Shift";
+      } else if (currentHour >= 14 && currentHour < 22) {
+        shiftName = "Afternoon Shift";
+      } else {
+        shiftName = "Night Shift";
       }
-
+  
       // Check for existing time in
       const checkResponse = await axios.get(
         `${LOCAL}/api/timetrack/check-time-in`,
         {
-          params: { employee_id: employeeId }
+          params: { employee_id: employeeId },
         }
       );
-
+  
       const { hasTimeIn, hasManualEntry } = checkResponse.data;
-
+  
       if (hasTimeIn) {
         Swal.fire({
           title: "Already Timed In",
@@ -265,7 +338,7 @@ const TimeTracking = () => {
         setLoading(false);
         return;
       }
-
+  
       if (hasManualEntry) {
         Swal.fire({
           title: "Manual Entry Exists",
@@ -275,30 +348,38 @@ const TimeTracking = () => {
         setLoading(false);
         return;
       }
-
-      // Calculate if late (after grace period)
-      const relevantStartTime = isMorningShift ? morningStartInMinutes : afternoonStartInMinutes;
-      const isLate = currentTimeInMinutes > (relevantStartTime + 15); // 15 minutes grace period
-      const minutesLate = isLate ? currentTimeInMinutes - relevantStartTime : 0;
-
-      // If all validations pass, proceed with time in
+  
+      // Calculate if late
+      const [scheduleStartHour, scheduleStartMinute] = schedule.startTime.split(":");
+      const scheduleStartInMinutes = parseInt(scheduleStartHour) * 60 + parseInt(scheduleStartMinute);
+      const currentTimeInMinutes = currentHour * 60 + sgTime.getMinutes();
+      const isLate = currentTimeInMinutes > scheduleStartInMinutes;
+      const minutesLate = isLate ? currentTimeInMinutes - scheduleStartInMinutes : 0;
+  
+      // Make the time-in request with shift name
       const response = await axios.post(`${LOCAL}/api/timetrack/time-in`, {
         employee_id: employeeId,
         employee_fullname: fullname,
         position: localStorage.getItem("employeePosition"),
-        entry_status: isLate ? 'late' : 'on_time',
+        entry_status: isLate ? "late" : "on_time",
         minutes_late: minutesLate,
-        shift_period: isMorningShift ? 'morning' : 'afternoon'
+        shift_name: schedule.shiftName, // Add shift name here
       });
-
+  
       setActiveSession(response.data.session);
-      
-      const message = isLate 
-        ? `Time in recorded successfully. You are ${Math.floor(minutesLate/60)}h ${minutesLate%60}m late.`
+  
+      const message = isLate
+        ? `Time in recorded successfully. You are ${Math.floor(minutesLate / 60)}h ${
+            minutesLate % 60
+          }m late.`
         : "Time in recorded successfully!";
-        
-      Swal.fire("Success!", message, "success");
-      
+  
+      Swal.fire({
+        title: "Success!",
+        text: `${message}\nShift: ${shiftName}`,
+        icon: "success",
+      });
+  
     } catch (error) {
       console.error("Error recording Time In:", error);
       Swal.fire({
@@ -312,15 +393,18 @@ const TimeTracking = () => {
   };
 
   // Time Out Function
-  const timeOut = async () => {
+  const timeOut = async (skipFaceCheck = false) => {
+    if (!skipFaceCheck) {
+      setPendingAction('timeOut');
+      setShowCamera(true);
+      return;
+    }
+
     try {
       const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.put(
-        `${LOCAL}/api/timetrack/time-out`,
-        {
-          employee_id: employeeId,
-        }
-      );
+      const response = await axios.put(`${LOCAL}/api/timetrack/time-out`, {
+        employee_id: employeeId,
+      });
 
       setActiveSession(null);
       Swal.fire("Success!", "Time Out recorded successfully!", "success");
@@ -392,7 +476,7 @@ const TimeTracking = () => {
 
               <div className="flex space-x-2">
                 <button
-                  onClick={activeSession ? timeOut : timeIn}
+                  onClick={() => activeSession ? timeOut(false) : timeIn(false)}
                   className={`btn py-2 px-4 text-lg font-semibold ${
                     activeSession ? "btn-error" : "btn-success"
                   } flex items-center space-x-2`}
@@ -411,36 +495,7 @@ const TimeTracking = () => {
             </div>
           </div>
 
-          {/* Active Session Card */}
-          {activeSession && (
-            <div className="card bg-base-100 shadow-sm mb-6">
-              <div className="card-body">
-                <h2 className="card-title text-success">
-                  <i className="fas fa-clock mr-2"></i> Active Session
-                </h2>
-                <div className="stats shadow">
-                  <div className="stat">
-                    <div className="stat-title">Time In (SGT)</div>
-                    <div className="stat-value text-success">
-                      {new Date(activeSession.time_in).toLocaleString("en-US", {
-                        timeZone: "Asia/Singapore",
-                        hour12: true,
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                      })}
-                    </div>
-                    <div className="stat-desc">
-                      {new Date(activeSession.time_in).toLocaleDateString("en-US", {
-                        timeZone: "Asia/Singapore"
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
+   
           {/* Time Tracking History Table */}
           <div className="flex justify-between items-center mb-4">
             <div className="flex space-x-4">
@@ -592,6 +647,59 @@ const TimeTracking = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Face Verification Modal */}
+      {showCamera && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="modal modal-open">
+            <div className="modal-box flex flex-col items-center relative p-6">
+              <button
+                className="btn btn-sm btn-circle absolute right-2 top-2"
+                onClick={() => {
+                  if (!verifying) {
+                    setShowCamera(false);
+                    setPendingAction(null);
+                  }
+                }}
+                disabled={verifying}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+              <h3 className="font-semibold text-lg mb-2">Face Verification</h3>
+              <p className="mb-2 text-gray-600 text-sm text-center">
+                Please show your face clearly in the camera preview below and click "Verify".
+              </p>
+              <div className="relative w-[240px] h-[180px] flex items-center justify-center mb-2">
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  width={240}
+                  height={180}
+                  videoConstraints={{ facingMode: "user" }}
+                  className="rounded-lg border border-gray-300"
+                />
+                {verifying && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-80 rounded-lg z-20">
+                    <span className="loading loading-spinner loading-lg text-primary mb-2"></span>
+                    <span className="text-base font-semibold">Verifying face...</span>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary mt-3 w-full flex items-center justify-center"
+                onClick={handleFaceVerification}
+                disabled={verifying}
+              >
+                {verifying && <span className="loading loading-spinner loading-xs mr-2"></span>}
+                {verifying ? "Verifying..." : "Verify"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

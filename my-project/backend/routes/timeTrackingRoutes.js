@@ -128,6 +128,14 @@ cron.schedule("59 23 * * *", () => {
 router.post("/time-in", async (req, res) => {
   try {
     const { employee_id, employee_fullname, position } = req.body;
+
+    const schedule = await Schedule.findOne({ employeeId: employee_id });
+    if (!schedule) {
+      return res.status(400).json({
+        success: false,
+        message: "No schedule found for employee"
+      });
+    }
     
     // Create Singapore time
     const sgTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" });
@@ -167,6 +175,7 @@ router.post("/time-in", async (req, res) => {
     const customTimeTrackingID = `TRID-${monthYear}-${randomLetters}`;
 
     const timeTracking = new TimeTracking({
+      time_tracking_id: customTimeTrackingID,
       employee_id,
       employee_fullname,
       position,
@@ -174,7 +183,11 @@ router.post("/time-in", async (req, res) => {
       entry_type: 'System Entry',
       status: 'active',
       is_holiday: !!holidayInfo,
-      holiday_name: holidayInfo ? holidayInfo.name : null
+      holiday_name: holidayInfo ? holidayInfo.name : null,
+      shift_name: schedule.shiftname || null, 
+      entry_status: req.body.entry_status || 'on_time', 
+      minutes_late: req.body.minutes_late || 0,
+      
     });
 
     await timeTracking.save();
