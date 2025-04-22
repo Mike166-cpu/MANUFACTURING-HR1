@@ -50,7 +50,7 @@ const RequestForm = () => {
   const LOCAL = "http://localhost:7685";
 
   const fullname = localStorage.getItem("fullName");
-  console.log(fullname);
+  console.log("Name",fullname);
 
   const email = localStorage.getItem("email");
   console.log("Email:", email);
@@ -203,7 +203,7 @@ const RequestForm = () => {
         }
   
         const response = await axios.get(
-          `${LOCAL}/api/login-admin/check-face-id/${email}`
+          `${APIBASED_URL}/api/login-admin/check-face-id/${email}`
         );
         const { hasFaceId } = response.data;
   
@@ -251,7 +251,7 @@ const RequestForm = () => {
       const descriptorArray = Array.from(faceDescriptor);
 
       const response = await axios.post(
-        `${LOCAL}/api/login-admin/verify-face`,
+        `${APIBASED_URL}/api/login-admin/verify-face`,
         {
           email,
           faceDescriptor: descriptorArray,
@@ -367,7 +367,7 @@ const RequestForm = () => {
 
     try {
       const checkResponse = await axios.get(
-        `${LOCAL}/api/timetrack/check-duplicate`,
+        `${APIBASED_URL}/api/timetrack/check-duplicate`,
         {
           params: {
             employee_id: formData.employee_id,
@@ -477,7 +477,7 @@ const RequestForm = () => {
 
     try {
       const response = await axios.post(
-        `${LOCAL}/api/timetrack/manual-entry`,
+        `${APIBASED_URL}/api/timetrack/manual-entry`,
         requestData,
         {
           headers: {
@@ -604,7 +604,7 @@ const RequestForm = () => {
     const employeeId = localStorage.getItem("employeeId");
     try {
       const response = await axios.get(
-        `${LOCAL}/api/schedule/findByEmployeeId/${employeeId}`
+        `${APIBASED_URL}/api/schedule/findByEmployeeId/${employeeId}`
       );
       console.log("Schedule", response.data);
 
@@ -685,7 +685,7 @@ const RequestForm = () => {
       try {
         // Fetch schedule by employee ID
         const response = await axios.get(
-          `${LOCAL}/api/schedule/findByEmployeeId/${employeeId}`
+          `${APIBASED_URL}/api/schedule/findByEmployeeId/${employeeId}`
         );
 
         if (response.data?.message) {

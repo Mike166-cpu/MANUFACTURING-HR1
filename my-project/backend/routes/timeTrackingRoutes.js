@@ -129,23 +129,33 @@ router.post("/time-in", async (req, res) => {
   try {
     const { employee_id, employee_fullname, position } = req.body;
 
+    console.log("➡️ Time-in request received:");
+    console.log("Employee ID:", employee_id);
+    console.log("Fullname:", employee_fullname);
+    console.log("Position:", position);
+
     const schedule = await Schedule.findOne({ employeeId: employee_id });
+    console.log("🗓️ Schedule found:", schedule);
+
     if (!schedule) {
+      console.warn("⚠️ No schedule found for employee:", employee_id);
       return res.status(400).json({
         success: false,
         message: "No schedule found for employee"
       });
     }
-    
-    // Create Singapore time
+
     const sgTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" });
     const now = new Date(sgTime);
+    console.log("⏰ Singapore time:", now);
 
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
+
+    console.log("📅 Time range for today:", startOfDay, "to", endOfDay);
 
     const existingTimeIn = await TimeTracking.findOne({
       employee_id,
@@ -156,23 +166,22 @@ router.post("/time-in", async (req, res) => {
     });
 
     if (existingTimeIn) {
+      console.warn("⛔ Employee has already timed in today:", existingTimeIn);
       return res.status(400).json({
         success: false,
         message: "You have already timed in today"
       });
     }
-     const dateOnly = now.toISOString().split("T")[0]; 
-     const holidayInfo = isHoliday(dateOnly);
 
+    const dateOnly = now.toISOString().split("T")[0];
+    const holidayInfo = isHoliday(dateOnly);
+    console.log("🎉 Holiday info:", holidayInfo);
 
-        // Get current month and year
     const monthYear = `${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear()}`;
-
-    // Generate a random 6-letter string
     const randomLetters = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-    // Custom time_tracking_id format: TRID-MMYYYY-XXXXXX
     const customTimeTrackingID = `TRID-${monthYear}-${randomLetters}`;
+
+    console.log("🆔 Generated Time Tracking ID:", customTimeTrackingID);
 
     const timeTracking = new TimeTracking({
       time_tracking_id: customTimeTrackingID,
@@ -184,13 +193,13 @@ router.post("/time-in", async (req, res) => {
       status: 'active',
       is_holiday: !!holidayInfo,
       holiday_name: holidayInfo ? holidayInfo.name : null,
-      shift_name: schedule.shiftname || null, 
-      entry_status: req.body.entry_status || 'on_time', 
+      shift_name: schedule.shiftname || null,
+      entry_status: req.body.entry_status || 'on_time',
       minutes_late: req.body.minutes_late || 0,
-      
     });
 
     await timeTracking.save();
+    console.log("✅ Time-in record saved successfully:", timeTracking);
 
     res.status(201).json({
       success: true,
@@ -200,7 +209,7 @@ router.post("/time-in", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Time-in error:", error);
+    console.error("❌ Time-in error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to record time in",
@@ -606,6 +615,48 @@ router.get("/activity/:employee_id", async (req, res) => {
   } catch (error) {
     console.error("Error fetching activity data:", error);
     res.status(500).json({ message: "Failed to fetch activity data" });
+  }
+});
+
+// Get summarized stats for promotion evaluation
+router.get("/promotion-stats/:employee_id", async (req, res) => {
+  try {
+    const { employee_id } = req.params;
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const stats = await TimeTracking.aggregate([
+      {
+        $match: {
+          employee_id,
+          time_in: { $gte: sixMonthsAgo },
+          status: "approved"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalDays: { $sum: 1 },
+          totalHours: { $sum: { $toDouble: "$total_hours" } },
+          onTimeCount: {
+            $sum: { $cond: [{ $eq: ["$entry_status", "on_time"] }, 1, 0] }
+          },
+          lateCount: {
+            $sum: { $cond: [{ $eq: ["$entry_status", "late"] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    res.json(stats[0] || {
+      totalDays: 0,
+      totalHours: 0,
+      onTimeCount: 0,
+      lateCount: 0
+    });
+  } catch (error) {
+    console.error("Error fetching promotion stats:", error);
+    res.status(500).json({ message: "Failed to fetch promotion statistics" });
   }
 });
 

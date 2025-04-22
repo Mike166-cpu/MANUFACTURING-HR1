@@ -77,7 +77,7 @@ const EmployeeSchedule = () => {
   // Modify the schedules fetch to be a function we can reuse
   const fetchSchedules = async () => {
     try {
-      const response = await axios.get(`${LOCAL}/api/schedule/all-schedules`);
+      const response = await axios.get(`${APIBASE_URL}/api/schedule/all-schedules`);
       setSchedules(response.data);
       console.log("Fetched Schedules:", response.data);
       return response.data; // Return the data for immediate use
@@ -97,7 +97,7 @@ const EmployeeSchedule = () => {
   useEffect(() => {
     const fetchShiftSchedule = async () => {
       try {
-        const response = await axios.get(`${LOCAL}/api/schedule/fetch-shift`);
+        const response = await axios.get(`${APIBASE_URL}/api/schedule/fetch-shift`);
         setSchedule(response.data);
         console.log("Shifting Schedule", response.data);
       } catch (error) {
@@ -121,11 +121,20 @@ const EmployeeSchedule = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Add these state declarations after other useState declarations
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const itemsPerPage = 10;
+
+  // Add this state near other state declarations
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+
   // Fetch employees
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${LOCAL}/api/onboarding/employee`);
+        const response = await axios.get(`${APIBASE_URL}/api/onboarding/employee`);
         setEmployees(response.data);
         console.log("Fetched Employees:", response.data);
       } catch (error) {
@@ -154,8 +163,8 @@ const EmployeeSchedule = () => {
       setError(null);
 
       const [scheduleResponse, shiftsResponse] = await Promise.all([
-        axios.get(`${LOCAL}/api/schedule/view-schedule/${employee.employeeId}`),
-        axios.get(`${LOCAL}/api/schedule/fetch-shift`),
+        axios.get(`${APIBASE_URL}/api/schedule/view-schedule/${employee.employeeId}`),
+        axios.get(`${APIBASE_URL}/api/schedule/fetch-shift`),
       ]);
 
       if (scheduleResponse.data.success) {
@@ -197,8 +206,8 @@ const EmployeeSchedule = () => {
 
       // Get both schedule and shifts data
       const [scheduleResponse, shiftsResponse] = await Promise.all([
-        axios.get(`${LOCAL}/api/schedule/view-schedule/${employee.employeeId}`),
-        axios.get(`${LOCAL}/api/schedule/fetch-shift`),
+        axios.get(`${APIBASE_URL}/api/schedule/view-schedule/${employee.employeeId}`),
+        axios.get(`${APIBASE_URL}/api/schedule/fetch-shift`),
       ]);
 
       console.log("Schedule response:", scheduleResponse.data);
@@ -280,12 +289,12 @@ const EmployeeSchedule = () => {
       let response;
       if (editMode && selectedSchedule?._id) {
         response = await axios.put(
-          `${LOCAL}/api/schedule/${selectedSchedule._id}`,
+          `${APIBASE_URL}/api/schedule/${selectedSchedule._id}`,
           assignmentData
         );
       } else {
         response = await axios.post(
-          `${LOCAL}/api/schedule/assign`,
+          `${APIBASE_URL}/api/schedule/assign`,
           assignmentData
         );
       }
@@ -313,124 +322,370 @@ const EmployeeSchedule = () => {
     }
   };
 
+  // Replace existing handlePrintSchedule function
   const handlePrintSchedule = () => {
-    if (!selectedScheduleForView) return;
-
+    if (!selectedEmployeeSchedule) return;
+  
     const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text("Employee Schedule Details", 20, 20);
-
-    const shift = schedule.find(
-      (s) => s._id === selectedScheduleForView.shiftType
-    );
-
-    const scheduleData = [
-      ["Employee ID", selectedScheduleForView.employeeId],
-      [
-        "Name",
-        `${selectedScheduleForView.firstName} ${selectedScheduleForView.lastName}`,
-      ],
-      ["Position", selectedScheduleForView.department],
-      ["Role", selectedScheduleForView.role],
-      ["Email", selectedScheduleForView.email],
-      ["Working Days", selectedScheduleForView.days.join(", ")],
-      ["Start Time", selectedScheduleForView.startTime],
-      ["End Time", selectedScheduleForView.endTime],
-      ["Shift Type", shift?.shiftType || "N/A"],
+    
+    // Add company header with logo (if available)
+    doc.setFontSize(24);
+    doc.setTextColor(41, 128, 185);
+    doc.text("Employee Schedule", 105, 20, { align: "center" });
+    
+    // Add line separator
+    doc.setDrawColor(41, 128, 185);
+    doc.line(20, 25, 190, 25);
+    
+    // Add employee information
+    doc.setFontSize(12);
+    doc.setTextColor(52, 73, 94);
+    
+    const employeeInfo = [
+      ["Employee ID:", selectedEmployeeSchedule.employeeId],
+      ["Name:", `${selectedEmployeeSchedule.firstName} ${selectedEmployeeSchedule.lastName}`],
+      ["Department:", selectedEmployeeSchedule.department],
+      ["Position:", selectedEmployeeSchedule.role],
+      ["Email:", selectedEmployeeSchedule.email],
     ];
-
-    if (shift?.breakStart && shift?.breakEnd) {
-      scheduleData.push([
-        "Break Time",
-        `${shift.breakStart} - ${shift.breakEnd}`,
+  
+    doc.autoTable({
+      startY: 35,
+      head: [["Employee Information", ""]],
+      body: employeeInfo,
+      theme: "grid",
+      headStyles: { 
+        fillColor: [41, 128, 185],
+        fontSize: 12,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      styles: {
+        cellPadding: 5,
+        fontSize: 10,
+        lineColor: [200, 200, 200]
+      },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 40 },
+        1: { cellWidth: 100 }
+      },
+    });
+  
+    // Add schedule information
+    const scheduleInfo = [
+      ["Shift Type:", selectedEmployeeSchedule.shiftname],
+      ["Working Hours:", `${selectedEmployeeSchedule.startTime} - ${selectedEmployeeSchedule.endTime}`],
+    ];
+  
+    if (selectedEmployeeSchedule.breakStart && selectedEmployeeSchedule.breakEnd) {
+      scheduleInfo.push([
+        "Break Time:",
+        `${selectedEmployeeSchedule.breakStart} - ${selectedEmployeeSchedule.breakEnd}`,
       ]);
     }
-
+  
     doc.autoTable({
-      startY: 30,
-      head: [["Field", "Details"]],
-      body: scheduleData,
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [["Schedule Details", ""]],
+      body: scheduleInfo,
       theme: "grid",
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [41, 128, 185] },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        fontSize: 12,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      styles: {
+        cellPadding: 5,
+        fontSize: 10,
+        lineColor: [200, 200, 200]
+      },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 40 },
+        1: { cellWidth: 100 }
+      },
     });
+  
+    // Add weekly schedule with improved styling
+    const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const weeklyScheduleData = weekDays.map(day => {
+      const isWorkDay = selectedEmployeeSchedule.days.includes(day);
+      return [
+        day,
+        isWorkDay ? "Work Day" : "Day Off",
+        isWorkDay ? new Date(`1970-01-01T${selectedEmployeeSchedule.startTime}`).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }) : "-",
+        isWorkDay ? new Date(`1970-01-01T${selectedEmployeeSchedule.endTime}`).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }) : "-",
+        isWorkDay && selectedEmployeeSchedule.breakStart ? 
+          `${new Date(`1970-01-01T${selectedEmployeeSchedule.breakStart}`).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+          })} - ${new Date(`1970-01-01T${selectedEmployeeSchedule.breakEnd}`).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+          })}` : 
+          "-"
+      ];
+    });
+  
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [["Day", "Status", "Start Time", "End Time", "Break Time"]],
+      body: weeklyScheduleData,
+      theme: "grid",
+      headStyles: {
+        fillColor: [41, 128, 185],
+        fontSize: 11,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      styles: {
+        cellPadding: 5,
+        fontSize: 10,
+        lineColor: [200, 200, 200],
+        halign: 'center'
+      },
+    });
+  
+    // Add footer
+    const printDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    doc.setFontSize(10);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Generated on: ${printDate}`, 20, doc.internal.pageSize.height - 10);
+  
+    // Return the doc for preview
+    return doc;
+  };
+  
+  // Add this new function for actual printing
+  const handlePrint = () => {
+    const doc = handlePrintSchedule();
+    doc.save(`schedule-${selectedEmployeeSchedule.employeeId}.pdf`);
+  };
+  
+  // Add this JSX for the preview modal just before the return statement
+  const printPreviewModal = showPrintPreview && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowPrintPreview(false)}></div>
+      <div className="relative bg-white rounded-lg w-[90%] max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Print Preview</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={handlePrint}
+              className="btn btn-primary"
+            >
+              <FaPrint className="mr-2" /> Print
+            </button>
+            <button
+              onClick={() => setShowPrintPreview(false)}
+              className="btn btn-ghost"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+        
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <iframe
+            src={handlePrintSchedule().output('datauristring')}
+            className="w-full h-[70vh]"
+            title="Print Preview"
+          />
+        </div>
+      </div>
+    </div>
+  );
 
-    doc.save(`schedule-${selectedScheduleForView.employeeId}.pdf`);
+  // Add this filtering function before tableContent
+  const filteredEmployees = employees.filter(
+    (employee) =>
+      employee.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const paginatedEmployees = filteredEmployees.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Add this function before tableContent
+  const toggleRowSelection = (employeeId) => {
+    setSelectedRows((prevSelected) =>
+      prevSelected.includes(employeeId)
+        ? prevSelected.filter((id) => id !== employeeId)
+        : [...prevSelected, employeeId]
+    );
   };
 
   const tableContent = (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white rounded-lg">
-        <thead className="bg-blue-600 text-white">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Employee ID
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Full Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Department
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Email
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {employees.map((employee) => (
-            <tr key={employee.employeeId} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                {employee.employeeId}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {employee.fullname}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {employee.department}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">{employee.email}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleAssignShift(employee)}
-                    className="bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-2 px-3 rounded inline-flex items-center"
-                  >
-                    Assign
-                  </button>
-                  <button
-                    onClick={() => handleViewSchedule(employee)}
-                    className="bg-purple-500 hover:bg-purple-700 text-white text-sm font-bold py-2 px-3 rounded inline-flex items-center"
-                  >
-                    <MdVisibility className="mr-1" /> View
-                  </button>
-                  {schedules.find(
-                    (s) => s.employeeId === employee.employeeId
-                  ) && (
-                    <button
-                      onClick={() =>
-                        handleEditSchedule(
-                          schedules.find(
-                            (s) => s.employeeId === employee.employeeId
-                          )
-                        )
-                      }
-                      className="bg-green-500 hover:bg-green-700 text-white text-sm font-bold py-2 px-3 rounded inline-flex items-center"
-                    >
-                      <MdEdit className="mr-1" /> Edit
-                    </button>
-                  )}
-                </div>
-              </td>
+    <div>
+      <div className="mb-4 flex justify-between items-center">
+        <input
+          type="text"
+          placeholder="Search employees..."
+          className="input input-bordered w-64"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      <div className="bg-white shadow-md overflow-hidden">
+        <table className="min-w-full table-auto">
+          <thead className="border-b text-xs text-gray-600 uppercase tracking-wider">
+            <tr>
+              <th className="p-3"></th>
+              <th className="p-3 text-left">Employee ID</th>
+              <th className="p-3 text-left">Full Name</th>
+              <th className="p-3 text-left">Department</th>
+              <th className="p-3 text-left">Email</th>
+              <th className="p-3 text-left">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {loading && <div className="text-center py-4">Loading...</div>}
-      {error && <div className="text-red-500 text-center py-4">{error}</div>}
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {paginatedEmployees.length > 0 ? (
+              paginatedEmployees.map((employee) => (
+                <tr
+                  key={employee.employeeId}
+                  className={`${
+                    selectedRows.includes(employee.employeeId)
+                      ? "bg-blue-50"
+                      : ""
+                  } hover:bg-gray-50`}
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(employee.employeeId)}
+                      onChange={() => toggleRowSelection(employee.employeeId)}
+                    />
+                  </td>
+                  <td className="p-3 whitespace-nowrap">{employee.employeeId}</td>
+                  <td className="p-3 whitespace-nowrap">{employee.fullname}</td>
+                  <td className="p-3 whitespace-nowrap">{employee.department}</td>
+                  <td className="p-3 whitespace-nowrap">{employee.email}</td>
+                  <td className="p-3 whitespace-nowrap">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleAssignShift(employee)}
+                        className="bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-2 px-3 rounded inline-flex items-center"
+                      >
+                        Assign
+                      </button>
+                      <button
+                        onClick={() => handleViewSchedule(employee)}
+                        className="bg-purple-500 hover:bg-purple-700 text-white text-sm font-bold py-2 px-3 rounded inline-flex items-center"
+                      >
+                        <MdVisibility className="mr-1" /> View
+                      </button>
+                      {schedules.find(
+                        (s) => s.employeeId === employee.employeeId
+                      ) && (
+                        <button
+                          onClick={() =>
+                            handleEditSchedule(
+                              schedules.find(
+                                (s) => s.employeeId === employee.employeeId
+                              )
+                            )
+                          }
+                          className="bg-green-500 hover:bg-green-700 text-white text-sm font-bold py-2 px-3 rounded inline-flex items-center"
+                        >
+                          <MdEdit className="mr-1" /> Edit
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" className="text-center py-4">
+                  <div className="flex flex-col items-center justify-center gap-2 p-4 text-gray-500">
+                    <svg 
+                      className="w-12 h-12 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={1.5}
+                        d="M20 12H4M8 16l-4-4m0 0l4-4m-4 4h16" 
+                      />
+                    </svg>
+                    <p>No employees found matching your search criteria</p>
+                    <button 
+                      onClick={() => setSearchTerm("")}
+                      className="text-blue-500 hover:text-blue-700 text-sm mt-2"
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center bg-white p-4 border-t">
+        <span className="text-sm text-gray-600">
+          Showing entries {indexOfFirstItem + 1} to{" "}
+          {Math.min(indexOfLastItem, filteredEmployees.length)} of{" "}
+          {filteredEmployees.length}
+        </span>
+
+        {totalPages > 1 && (
+          <div className="join">
+            <button
+              className="join-item btn btn-sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            >
+              «
+            </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                className={`join-item btn btn-sm ${
+                  currentPage === i + 1 ? "btn-primary" : ""
+                }`}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              className="join-item btn btn-sm"
+              disabled={currentPage === totalPages}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+            >
+              »
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -441,7 +696,7 @@ const EmployeeSchedule = () => {
           <h2 className="text-2xl font-bold">Schedule Details</h2>
           <div className="flex space-x-2">
             <button
-              onClick={handlePrintSchedule}
+              onClick={() => setShowPrintPreview(true)}
               className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
             >
               <FaPrint className="mr-2" /> Print
@@ -571,7 +826,7 @@ const EmployeeSchedule = () => {
               <MdEdit className="mr-2" /> Update Schedule
             </button>
             <button
-              onClick={handlePrintSchedule}
+              onClick={() => setShowPrintPreview(true)}
               className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
             >
               <FaPrint className="mr-2" /> Print Schedule
@@ -775,7 +1030,7 @@ const EmployeeSchedule = () => {
             {showScheduleDetail && selectedEmployeeSchedule ? (
               <ScheduleDetailView />
             ) : (
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div>
                 <div className="overflow-x-auto">{tableContent}</div>
               </div>
             )}
@@ -912,6 +1167,7 @@ const EmployeeSchedule = () => {
           )}
           {/* END OF MAIN CONTENT */}
           {viewScheduleModal}
+          {printPreviewModal}
         </div>
       </div>
     </div>

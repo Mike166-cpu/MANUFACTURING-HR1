@@ -63,7 +63,7 @@ const RequestDocuments = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${LOCAL}/api/onboarding/employee`);
+        const response = await axios.get(`${APIBASED_URL}/api/onboarding/onboard`);
         console.log("Employee data:", response.data);
   
         setEmployees(response.data || []); 
@@ -109,7 +109,7 @@ const RequestDocuments = () => {
       console.log("Sending request:", payload);
 
       const response = await axios.post(
-        `${LOCAL}/api/document-request`,
+        `${APIBASED_URL}/api/document-request`,
         payload
       );
       console.log("Response:", response.data);
@@ -120,7 +120,7 @@ const RequestDocuments = () => {
       setIsModalOpen(false);
 
       // Refresh document requests
-      const refreshResponse = await axios.get(`${LOCAL}/api/document-request`);
+      const refreshResponse = await axios.get(`${APIBASED_URL}/api/document-request`);
       setDocumentRequests(refreshResponse.data);
     } catch (error) {
       console.error("Error submitting request:", error);
@@ -130,14 +130,14 @@ const RequestDocuments = () => {
 
   const handleStatusUpdate = async (requestId, newStatus) => {
     try {
-      await axios.put(`${LOCAL}/api/document-request/${requestId}`, {
+      await axios.put(`${APIBASED_URL}/api/document-request/${requestId}`, {
         status: newStatus,
       });
 
       toast.success(`Request ${newStatus.toLowerCase()} successfully!`);
 
       // Refresh the document requests
-      const response = await axios.get(`${LOCAL}/api/document-request`);
+      const response = await axios.get(`${APIBASED_URL}/api/document-request`);
       setDocumentRequests(response.data);
     } catch (error) {
       console.error("Error updating request status:", error);

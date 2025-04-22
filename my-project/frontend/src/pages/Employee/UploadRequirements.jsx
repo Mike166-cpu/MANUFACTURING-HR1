@@ -39,7 +39,7 @@ const UploadRequirements = () => {
   const employee_id = localStorage.getItem("employeeId");
 
   const LOCAL = "http://localhost:7685";
-  const APIBASED_URl = "https://backend-hr1.jjm-manufacturing.com";
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   useEffect(() => {
     document.title = "Upload Requirements - Employee";
@@ -175,21 +175,21 @@ const UploadRequirements = () => {
         );
         if (existingDoc) {
           await axios.put(
-            `${LOCAL}/api/uploaded-documents/${existingDoc._id}`,
+            `${APIBASED_URl}/api/uploaded-documents/${existingDoc._id}`,
             {
               document_url: uploadFile.secure_url,
               request_id: selectedRequestId,
             }
           );
         } else {
-          await axios.post(`${LOCAL}/api/document-request/uploaded-documents`, {
+          await axios.post(`${APIBASED_URL}/api/document-request/uploaded-documents`, {
             employeeId: employeeId,
             document_url: uploadFile.secure_url,
             request_id: selectedRequestId,
           });
         }
       } else {
-        await axios.post(`${LOCAL}/api/document-request/uploaded-documents`, {
+        await axios.post(`${APIBASED_URL}/api/document-request/uploaded-documents`, {
           employeeId: employeeId, // Changed from employeeid to employeeId
           document_url: uploadFile.secure_url,
           request_id: selectedRequestId,
@@ -197,14 +197,14 @@ const UploadRequirements = () => {
       }
 
       // Update request status to "Submitted for Approval"
-      await axios.put(`${LOCAL}/api/document-request/${selectedRequestId}`, {
+      await axios.put(`${APIBASED_URL}/api/document-request/${selectedRequestId}`, {
         status: "Submitted for Approval",
       });
 
       // Refresh data
       const [updatedRequests, updatedUploads] = await Promise.all([
-        axios.get(`${LOCAL}/api/document-request/${employeeId}`),
-        axios.get(`${LOCAL}/api/uploaded-documents/employee/${employeeId}`),
+        axios.get(`${APIBASED_URL}/api/document-request/${employeeId}`),
+        axios.get(`${APIBASED_URL}/api/uploaded-documents/employee/${employeeId}`),
       ]);
 
       setDocumentRequests(updatedRequests.data);
@@ -245,7 +245,7 @@ const UploadRequirements = () => {
 
       try {
         const response = await axios.get(
-          `${LOCAL}/api/document-request/${employeeId}`
+          `${APIBASED_URL}/api/document-request/${employeeId}`
         );
         setDocumentRequests(response.data);
 
@@ -271,7 +271,7 @@ const UploadRequirements = () => {
 
       try {
         const response = await axios.get(
-          `${LOCAL}/api/uploaded-documents/employee/${employeeId}`
+          `${APIBASED_URL}/api/uploaded-documents/employee/${employeeId}`
         );
         setUploadedDocuments(response.data);
       } catch (error) {

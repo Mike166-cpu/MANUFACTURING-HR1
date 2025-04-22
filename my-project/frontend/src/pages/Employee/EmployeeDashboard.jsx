@@ -118,7 +118,7 @@ const EmployeeDashboard = () => {
 
     try {
       const response = await axios.get(
-        `${APIBASED_URL}/api/hr/user/${employeeId}`
+        `${APIBASED_URL}/api/employeeData/${employeeId}`
       );
       setProfileImage(response.data);
       console.log(response.data);
@@ -132,24 +132,24 @@ const EmployeeDashboard = () => {
   }, []);
 
   // FETCH LEAVE STATUS
-  const [leaveStatus, setLeaveStatus] = useState({});
+  // const [leaveStatus, setLeaveStatus] = useState({});
 
-  const fetchLeaveStatus = async () => {
-    const employeeId = localStorage.getItem("employeeId");
-    try {
-      const response = await axios.get(
-        `${APIBASED_URL}/api/leave/latest-leave/${employeeId}`
-      );
-      setLeaveStatus(response.data);
-      console.log(response.data);
-    } catch (error) {
-      console.error("Error fetching leave status:", error);
-    }
-  };
+  // const fetchLeaveStatus = async () => {
+  //   const employeeId = localStorage.getItem("employeeId");
+  //   try {
+  //     const response = await axios.get(
+  //       `${APIBASED_URL}/api/leave/latest-leave/${employeeId}`
+  //     );
+  //     setLeaveStatus(response.data);
+  //     console.log(response.data);
+  //   } catch (error) {
+  //     console.error("Error fetching leave status:", error);
+  //   }
+  // };
 
-  useEffect(() => {
-    fetchLeaveStatus();
-  }, []);
+  // useEffect(() => {
+  //   fetchLeaveStatus();
+  // }, []);
 
   //FETCHING HOLIDAYS
   const [upcomingHolidays, setUpcomingHolidays] = useState([]);

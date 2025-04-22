@@ -71,7 +71,7 @@ const AuditLogs = () => {
 
     try {
       const res = await axios.post(
-        `${LOCAL}/api/policies/create`,
+        `${APIBASED_URL}/api/policies/create`,
         form
       );
       Swal.fire("Success", res.data.message, "success");

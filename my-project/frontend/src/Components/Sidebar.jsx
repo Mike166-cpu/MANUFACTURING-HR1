@@ -1,28 +1,18 @@
 import React, { useState } from "react";
-import { LuPackage } from "react-icons/lu";
 import { RiArchiveDrawerLine, RiPagesLine } from "react-icons/ri";
-import { ImDrawer } from "react-icons/im";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MdListAlt } from "react-icons/md";
 import { TbReport } from "react-icons/tb";
-import { FaChevronDown, FaChevronRight } from "react-icons/fa";
-import { FaUsers } from "react-icons/fa";
 import { RxDashboard } from "react-icons/rx";
 import logo from "../../src/assets/logo-2.png";
-import { TbChalkboard } from "react-icons/tb";
 import { AiOutlineClose } from "react-icons/ai";
-import { IoMdPersonAdd } from "react-icons/io";
 import { IoFolderOutline } from "react-icons/io5";
 import { AiOutlineSchedule } from "react-icons/ai";
-import { RiLogoutBoxRLine } from "react-icons/ri"; // Resignation Request
+import { RiLogoutBoxRLine } from "react-icons/ri";
 import { TbCalendarTime } from "react-icons/tb";
 import { AiOutlineAudit } from "react-icons/ai";
-import { FaRegCalendarTimes } from "react-icons/fa";
-import { IoDocuments } from "react-icons/io5";
-import { TbLogs } from "react-icons/tb";
-import { IoMdCalendar } from "react-icons/io";
 import { FaChalkboardTeacher } from "react-icons/fa";
 import { MdOutlinePolicy } from "react-icons/md";
+import { IoIosTrendingUp } from "react-icons/io";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -110,22 +100,52 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         <div className="mt-8 space-y-6">
           <div>
             <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
-              ONBOARDING & OFFBOARDING
+              ONBOARDING
             </h3>
 
-            {/* CREATE EMPLOYEE WORK SCHEDULE */}
+            {/* ONBOARD EMPLOYEE */}
             <div
-              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer${
-                activePage === "/employee-schedule"
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                activePage === "/onboard-employee"
                   ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
                   : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
               }`}
-              onClick={() => handleNavigation("/employee-schedule")}
+              onClick={() => handleNavigation("/onboard-employee")}
             >
-              <AiOutlineSchedule className="w-5 h-5" />
-              <span className="font-medium text-sm ml-3">
-                Employee Schedule
-              </span>
+              <FaChalkboardTeacher className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Onboard Employee</span>
+            </div>
+
+            {/* EMployee Promotion */}
+          </div>
+
+          {/* Employee Records Section */}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
+              EMPLOYEE RECORDS MANAGEMENT
+            </h3>
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                activePage === "/employee-info"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/employee-info")}
+            >
+              <TbCalendarTime className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Employee Records</span>
+            </div>
+
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                activePage === "/promotion"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/promotion")}
+            >
+              <IoIosTrendingUp className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Promote Employee</span>
             </div>
 
             {/* SEND REQUEST DOCUMENT TO EMPLOYEE */}
@@ -140,93 +160,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <RiArchiveDrawerLine className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">Request Document</span>
             </div>
-
-            {/* ONBOARD EMPLOYEE */}
-            <div
-              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                activePage === "/onboard-employee"
-                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-              }`}
-              onClick={() => handleNavigation("/onboard-employee")}
-            >
-              <FaChalkboardTeacher className="w-5 h-5" />
-              <span className="font-medium text-sm ml-3">Onboard Employee</span>
-            </div>
           </div>
 
-          {/* Employee Records Section */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
-              EMPLOYEE RECORDS
-            </h3>
-            <div
-              className="flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-              onClick={toggleSubmenu}
-            >
-              <div className="flex items-center">
-                <ImDrawer className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <span className="font-medium text-sm ml-3 text-gray-700 dark:text-gray-300">
-                  Employee Records
-                </span>
-              </div>
-              {isSubmenuOpen ? (
-                <FaChevronDown className="w-4 h-4 text-gray-400" />
-              ) : (
-                <FaChevronRight className="w-4 h-4 text-gray-400" />
-              )}
-            </div>
-
-            {/* Submenu items with modern styling */}
-            {isSubmenuOpen && (
-              <div className="mt-2 ml-4 space-y-1">
-                <div
-                  className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                    activePage === "/employee-info"
-                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => handleNavigation("/employee-info")}
-                >
-                  <FaUsers className="w-4 h-4" />
-                  <span className="text-sm font-medium ml-3">
-                    Employee Records
-                  </span>
-                </div>
-
-                {/* DOCUMENT RECORDS */}
-                {/* <div
-                  className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                    activePage === "/document-records"
-                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => handleNavigation("/document-records")}
-                >
-                  <IoDocuments className="w-4 h-4" />
-                  <span className="text-sm font-medium ml-3">
-                    Document Records
-                  </span>
-                </div> */}
-
-                {/* Time Records */}
-                {/* <div
-                  className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                    activePage === "/time-records"
-                      ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-                  }`}
-                  onClick={() => handleNavigation("/time-records")}
-                >
-                  <IoMdCalendar className="w-4 h-4" />
-                  <span className="text-sm font-medium ml-3">
-                    Time Tracking Records
-                  </span>
-                </div> */}
-              </div>
-            )}
-          </div>
-
+          {/* TIME TRACKING */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
               ATTENDANCE & TIME TRACKING
@@ -242,6 +178,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <TbCalendarTime className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">
                 Attendance & Time Tracking
+              </span>
+            </div>
+
+            {/* CREATE EMPLOYEE WORK SCHEDULE */}
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer${
+                activePage === "/employee-schedule"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/employee-schedule")}
+            >
+              <AiOutlineSchedule className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">
+                Employee Schedule
               </span>
             </div>
           </div>
@@ -278,7 +229,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <span className="font-medium text-sm ml-3">OB Request</span>
             </div>
 
-            {/* POLICIES  */}
+            {/* POLICIES 
             <div
               className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
                 activePage === "/policy"
@@ -289,7 +240,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             >
               <MdOutlinePolicy className="w-5 h-5" />
               <span className="font-medium text-sm ml-3">Company Policy</span>
-            </div>
+            </div> */}
 
             {/* USER LOGS  */}
             {role?.toLowerCase() === "superadmin" && (
@@ -307,6 +258,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             )}
           </div>
 
+          {/* OFF BOARDING */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
               OFFBOARDING
@@ -327,6 +279,25 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </div>
           </div>
         </div>
+
+        {role?.toLowerCase() === "superadmin" && (
+          <div className="mt-4">
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-3 px-3">
+              USER LOGS
+            </h3>
+            <div
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                activePage === "/logs"
+                  ? "bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+              onClick={() => handleNavigation("/logs")}
+            >
+              <AiOutlineAudit className="w-5 h-5" />
+              <span className="font-medium text-sm ml-3">Audit Logs</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

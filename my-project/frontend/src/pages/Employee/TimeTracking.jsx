@@ -171,7 +171,7 @@ const TimeTracking = () => {
 
   const [loading, setLoading] = useState(false);
   const fullname = localStorage.getItem("fullName");
-  console.log(fullname);
+  console.log("Full Name:", fullname);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -205,7 +205,7 @@ const TimeTracking = () => {
       const email = localStorage.getItem("email");
       const descriptorArray = Array.from(faceDescriptor);
       const response = await axios.post(
-        `${LOCAL}/api/login-admin/verify-face`,
+        `${APIBASED_URL}/api/login-admin/verify-face`,
         {
           email,
           faceDescriptor: descriptorArray,
@@ -221,7 +221,9 @@ const TimeTracking = () => {
       console.error("❌ Face verification failed:", err);
       Swal.fire({
         title: "Face Verification Failed",
-        text: err.response?.data?.message || "Face verification failed. Please try again.",
+        text:
+          err.response?.data?.message ||
+          "Face verification failed. Please try again.",
         icon: "error",
       });
       return false;
@@ -243,11 +245,11 @@ const TimeTracking = () => {
           timer: 1200,
           showConfirmButton: false,
         });
-        
+
         // Execute pending action after verification
-        if (pendingAction === 'timeIn') {
+        if (pendingAction === "timeIn") {
           timeIn(true);
-        } else if (pendingAction === 'timeOut') {
+        } else if (pendingAction === "timeOut") {
           timeOut(true);
         }
         setPendingAction(null);
@@ -266,20 +268,20 @@ const TimeTracking = () => {
   // Time In Function
   const timeIn = async (skipFaceCheck = false) => {
     if (!skipFaceCheck) {
-      setPendingAction('timeIn');
+      setPendingAction("timeIn");
       setShowCamera(true);
       return;
     }
-    
+
     try {
       setLoading(true);
       const employeeId = localStorage.getItem("employeeId");
-  
+
       // Get schedule first
       const scheduleResponse = await axios.get(
-        `${LOCAL}/api/schedule/get-schedule/${employeeId}`
+        `${APIBASED_URL}/api/schedule/get-schedule/${employeeId}`
       );
-  
+
       const schedule = scheduleResponse.data[0];
       if (!schedule) {
         Swal.fire({
@@ -290,11 +292,13 @@ const TimeTracking = () => {
         setLoading(false);
         return;
       }
-  
+
       // Get Singapore time
-      const now = new Date().toLocaleString("en-US", { timeZone: "Asia/Singapore" });
+      const now = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Singapore",
+      });
       const sgTime = new Date(now);
-  
+
       // Check if today is a working day
       const currentDay = sgTime.toLocaleString("en-US", { weekday: "long" });
       if (!schedule.days.includes(currentDay)) {
@@ -306,11 +310,11 @@ const TimeTracking = () => {
         setLoading(false);
         return;
       }
-  
+
       // Determine shift based on current time
       const currentHour = sgTime.getHours();
       let shiftName = "";
-      
+
       if (currentHour >= 6 && currentHour < 14) {
         shiftName = "Morning Shift";
       } else if (currentHour >= 14 && currentHour < 22) {
@@ -318,17 +322,17 @@ const TimeTracking = () => {
       } else {
         shiftName = "Night Shift";
       }
-  
+
       // Check for existing time in
       const checkResponse = await axios.get(
-        `${LOCAL}/api/timetrack/check-time-in`,
+        `${APIBASED_URL}/api/timetrack/check-time-in`,
         {
           params: { employee_id: employeeId },
         }
       );
-  
+
       const { hasTimeIn, hasManualEntry } = checkResponse.data;
-  
+
       if (hasTimeIn) {
         Swal.fire({
           title: "Already Timed In",
@@ -338,7 +342,7 @@ const TimeTracking = () => {
         setLoading(false);
         return;
       }
-  
+
       if (hasManualEntry) {
         Swal.fire({
           title: "Manual Entry Exists",
@@ -348,38 +352,44 @@ const TimeTracking = () => {
         setLoading(false);
         return;
       }
-  
+
       // Calculate if late
-      const [scheduleStartHour, scheduleStartMinute] = schedule.startTime.split(":");
-      const scheduleStartInMinutes = parseInt(scheduleStartHour) * 60 + parseInt(scheduleStartMinute);
+      const [scheduleStartHour, scheduleStartMinute] =
+        schedule.startTime.split(":");
+      const scheduleStartInMinutes =
+        parseInt(scheduleStartHour) * 60 + parseInt(scheduleStartMinute);
       const currentTimeInMinutes = currentHour * 60 + sgTime.getMinutes();
       const isLate = currentTimeInMinutes > scheduleStartInMinutes;
-      const minutesLate = isLate ? currentTimeInMinutes - scheduleStartInMinutes : 0;
-  
+      const minutesLate = isLate
+        ? currentTimeInMinutes - scheduleStartInMinutes
+        : 0;
+
       // Make the time-in request with shift name
-      const response = await axios.post(`${LOCAL}/api/timetrack/time-in`, {
-        employee_id: employeeId,
-        employee_fullname: fullname,
-        position: localStorage.getItem("employeePosition"),
-        entry_status: isLate ? "late" : "on_time",
-        minutes_late: minutesLate,
-        shift_name: schedule.shiftName, // Add shift name here
-      });
-  
+      const response = await axios.post(
+        `${APIBASED_URL}/api/timetrack/time-in`,
+        {
+          employee_id: employeeId,
+          employee_fullname: fullname,
+          position: localStorage.getItem("employeePosition"),
+          entry_status: isLate ? "late" : "on_time",
+          minutes_late: minutesLate,
+          shift_name: schedule.shiftName, // Add shift name here
+        }
+      );
+
       setActiveSession(response.data.session);
-  
+
       const message = isLate
-        ? `Time in recorded successfully. You are ${Math.floor(minutesLate / 60)}h ${
-            minutesLate % 60
-          }m late.`
+        ? `Time in recorded successfully. You are ${Math.floor(
+            minutesLate / 60
+          )}h ${minutesLate % 60}m late.`
         : "Time in recorded successfully!";
-  
+
       Swal.fire({
         title: "Success!",
         text: `${message}\nShift: ${shiftName}`,
         icon: "success",
       });
-  
     } catch (error) {
       console.error("Error recording Time In:", error);
       Swal.fire({
@@ -395,16 +405,19 @@ const TimeTracking = () => {
   // Time Out Function
   const timeOut = async (skipFaceCheck = false) => {
     if (!skipFaceCheck) {
-      setPendingAction('timeOut');
+      setPendingAction("timeOut");
       setShowCamera(true);
       return;
     }
 
     try {
       const employeeId = localStorage.getItem("employeeId");
-      const response = await axios.put(`${LOCAL}/api/timetrack/time-out`, {
-        employee_id: employeeId,
-      });
+      const response = await axios.put(
+        `${APIBASED_URL}/api/timetrack/time-out`,
+        {
+          employee_id: employeeId,
+        }
+      );
 
       setActiveSession(null);
       Swal.fire("Success!", "Time Out recorded successfully!", "success");
@@ -418,10 +431,32 @@ const TimeTracking = () => {
     }
   };
 
-  const formatMinuteDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  const formatHours = (duration) => {
+    if (!duration) return "-";
+
+    // If duration is a number (minutes), convert to HH:MM:00 format
+    if (typeof duration === "number") {
+      const hours = Math.floor(duration / 60);
+      const minutes = duration % 60;
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:00`;
+    }
+
+    // If duration is a string with 'H' and 'M' format
+    if (typeof duration === "string") {
+      const hoursMatch = duration.match(/(\d+)H/);
+      const minutesMatch = duration.match(/(\d+)M/);
+
+      const hours = parseInt(hoursMatch?.[1] || 0);
+      const minutes = parseInt(minutesMatch?.[1] || 0);
+
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:00`;
+    }
+
+    return "-";
   };
 
   const [selectedRows, setSelectedRows] = useState([]);
@@ -476,7 +511,9 @@ const TimeTracking = () => {
 
               <div className="flex space-x-2">
                 <button
-                  onClick={() => activeSession ? timeOut(false) : timeIn(false)}
+                  onClick={() =>
+                    activeSession ? timeOut(false) : timeIn(false)
+                  }
                   className={`btn py-2 px-4 text-lg font-semibold ${
                     activeSession ? "btn-error" : "btn-success"
                   } flex items-center space-x-2`}
@@ -495,7 +532,6 @@ const TimeTracking = () => {
             </div>
           </div>
 
-   
           {/* Time Tracking History Table */}
           <div className="flex justify-between items-center mb-4">
             <div className="flex space-x-4">
@@ -567,27 +603,51 @@ const TimeTracking = () => {
                             )}
                           </td>
                           <td>
-                            {new Date(record.time_in).toLocaleTimeString()}
+                            {new Date(record.time_in).toLocaleTimeString(
+                              "en-US",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                              }
+                            )}
                             {record.entry_status === "late" && (
                               <span className="badge badge-warning ml-2">
-                                Late (
-                                {formatMinuteDuration(record.minutes_late)})
+                                Late ({formatHours(record.minutes_late)})
                               </span>
                             )}
                           </td>
                           <td>
                             {record.time_out
-                              ? new Date(record.time_out).toLocaleTimeString()
+                              ? new Date(record.time_out).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  }
+                                )
                               : "-"}
                           </td>
                           <td>
-                            {record.time_out
-                              ? formatDuration(record.total_hours)
-                              : "Active"}
+                            {record.time_out ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-sm">
+                                  {formatHours(record.total_hours)}
+                                </span>
+                                {record.overtime_hours > 0 && (
+                                  <span className="text-xs text-gray-500">
+                                    {formatHours(record.overtime_hours)}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              "Active"
+                            )}
                           </td>
                           <td>
                             {record.overtime_hours > 0
-                              ? formatDuration(record.overtime_hours)
+                              ? formatHours(record.overtime_hours)
                               : "No Overtime"}
                           </td>
                           <td>
@@ -668,7 +728,8 @@ const TimeTracking = () => {
               </button>
               <h3 className="font-semibold text-lg mb-2">Face Verification</h3>
               <p className="mb-2 text-gray-600 text-sm text-center">
-                Please show your face clearly in the camera preview below and click "Verify".
+                Please show your face clearly in the camera preview below and
+                click "Verify".
               </p>
               <div className="relative w-[240px] h-[180px] flex items-center justify-center mb-2">
                 <Webcam
@@ -683,7 +744,9 @@ const TimeTracking = () => {
                 {verifying && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-80 rounded-lg z-20">
                     <span className="loading loading-spinner loading-lg text-primary mb-2"></span>
-                    <span className="text-base font-semibold">Verifying face...</span>
+                    <span className="text-base font-semibold">
+                      Verifying face...
+                    </span>
                   </div>
                 )}
               </div>
@@ -693,7 +756,9 @@ const TimeTracking = () => {
                 onClick={handleFaceVerification}
                 disabled={verifying}
               >
-                {verifying && <span className="loading loading-spinner loading-xs mr-2"></span>}
+                {verifying && (
+                  <span className="loading loading-spinner loading-xs mr-2"></span>
+                )}
                 {verifying ? "Verifying..." : "Verify"}
               </button>
             </div>

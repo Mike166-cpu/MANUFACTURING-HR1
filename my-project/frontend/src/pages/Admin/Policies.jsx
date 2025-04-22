@@ -80,7 +80,7 @@ const Policies = () => {
 
     try {
       if (editingId) {
-        const res = await axios.put(`${LOCAL}/api/policies/update/${editingId}`, form);
+        const res = await axios.put(`${APIBASED_URL}/api/policies/update/${editingId}`, form);
         Swal.fire('Success', 'Policy updated successfully', 'success');
       } else {
         const res = await axios.post(`${APIBASED_URL}/api/policies/create`, form);
@@ -119,7 +119,7 @@ const Policies = () => {
         confirmButtonText: 'Yes, delete it!'
       }).then(async (result) => {
         if (result.isConfirmed) {
-          await axios.delete(`${LOCAL}/api/policies/delete/${id}`);
+          await axios.delete(`${APIBASED_URL}/api/policies/delete/${id}`);
           Swal.fire('Deleted!', 'Policy has been deleted.', 'success');
           fetchPolicies();
         }
@@ -153,7 +153,7 @@ const Policies = () => {
         if (result.isConfirmed) {
           // In a real app you'd have a bulk delete API endpoint
           for (const id of selectedPolicies) {
-            await axios.delete(`${LOCAL}/api/policies/delete/${id}`);
+            await axios.delete(`${APIBASED_URL}/api/policies/delete/${id}`);
           }
           Swal.fire('Deleted!', 'Selected policies have been deleted.', 'success');
           setSelectedPolicies([]);
@@ -171,7 +171,7 @@ const Policies = () => {
 
   const fetchPolicies = async () => {
     try {
-      const res = await axios.get(`${LOCAL}/api/policies/fetch`);
+      const res = await axios.get(`${APIBASED_URL}/api/policies/fetch`);
       setPolicies(res.data);
     } catch (error) {
       console.error("Error fetching policies:", error);

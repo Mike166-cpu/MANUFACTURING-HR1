@@ -20,7 +20,10 @@ const UserSchema = new mongoose.Schema(
     lastFaceUpdate: { 
       type: Date, 
       default: null 
-    }
+    },
+    active: { type: Boolean, default: true },
+    otp: String,
+    otpExpires: Date,
   },
   { timestamps: true }
 );

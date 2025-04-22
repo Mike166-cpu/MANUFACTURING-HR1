@@ -95,7 +95,7 @@ const FileLeave = () => {
 
     try {
       const response = await axios.get(
-        `${LOCAL}/api/leave/get-employee-leaves/${employeeId}`
+        `${APIBASED_URL}/api/leave/get-employee-leaves/${employeeId}`
       );
       setLeaves(response.data);
     } catch (error) {
@@ -138,7 +138,7 @@ const FileLeave = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${LOCAL}/api/leave/file-leave`, {
+      const response = await axios.post(`${APIBASED_URL}/api/leave/file-leave`, {
         employeeId: employeeId,
         employee_name: fullName,
         employee_department: employeeDepartment,
@@ -174,7 +174,7 @@ const FileLeave = () => {
     try {
       const employee_id = localStorage.getItem("employeeId");
       const response = await axios.get(
-        `${LOCAL}/api/leave-balance/get-leave-balance/${employee_id}`
+        `${APIBASED_URL}/api/leave-balance/get-leave-balance/${employee_id}`
       );
       console.log("Full API Response:", response.data);
 
@@ -199,7 +199,7 @@ const FileLeave = () => {
       if (!employeeId) return;
 
       const response = await axios.get(
-        `${LOCAL}/api/leave/check-active-leaves/${employeeId}`
+        `${APIBASED_URL}/api/leave/check-active-leaves/${employeeId}`
       );
       setHasActiveLeave(response.data.hasActiveLeave);
     } catch (error) {
@@ -292,7 +292,7 @@ const FileLeave = () => {
     const employeeId = localStorage.getItem("employeeId");
     try {
       const response = await axios.get(
-        `${LOCAL}/api/onboarding/employee/${employeeId}`
+        `${APIBASED_URL}/api/onboarding/employee/${employeeId}`
       );
       setData(response.data);
       setEmployeeGender(response.data.gender); // Store gender

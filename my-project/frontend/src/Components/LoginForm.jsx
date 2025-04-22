@@ -9,6 +9,13 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 
+const axiosInstance = axios.create({
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -89,7 +96,7 @@ const LoginForm = () => {
     }
 
     try {
-      const response = await axios.post(`${LOCAL}/api/login-admin/userLogin`, {
+      const response = await axiosInstance.post(`${APIBASED_URL}/api/login-admin/userLogin`, {
         email,
         password,
       });
@@ -124,7 +131,7 @@ const LoginForm = () => {
     }
 
     try {
-      const response = await axios.post(`${LOCAL}/api/login-admin/verify-otp`, {
+      const response = await axiosInstance.post(`${APIBASED_URL}/api/login-admin/verify-otp`, {
         email: loginEmail,
         otp,
       });
@@ -137,6 +144,7 @@ const LoginForm = () => {
       }
 
       localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("adminId", data.user.employeeId);
       localStorage.setItem("firstName", data.user.firstName);
       localStorage.setItem("lastName", data.user.lastName);
       localStorage.setItem("email", data.user.email);
@@ -186,15 +194,15 @@ const LoginForm = () => {
 
   const handleResendOtp = async () => {
     try {
-      const response = await axios.post(`${LOCAL}/api/login-admin/userLogin`, {
+      const response = await axiosInstance.post(`${APIBASED_URL}/api/login-admin/userLogin`, {
         email: loginEmail,
         password, // You might want to skip this or use a token/refresh logic for real cases
       });
 
       if (response.status === 200) {
-        toast.success("OTP resent to your email.");
+        toast.success("OTP resent to your email. Please check your inbox and spam folder.");
         setTimer(300);
-        setCanResend(false);
+        setResendDisabled(true);
       } else {
         toast.error("Failed to resend OTP.");
       }
@@ -305,14 +313,12 @@ const LoginForm = () => {
               placeholder="6-digit code"
             />
             <div className="text-center mt-2 text-gray-600">
-              {canResend ? (
-                <button
-                  onClick={handleResendOtp}
-                  className="text-blue-600 hover:underline"
-                >
-                  Resend OTP
-                </button>
-              ) : (
+              <span>
+                <b>Didn't receive the email?</b> Please check your spam/junk folder.
+              </span>
+            </div>
+            <div className="text-center mt-2 text-gray-600">
+              {resendDisabled ? (
                 <span>
                   Resend in{" "}
                   <span className="font-semibold">
@@ -322,9 +328,15 @@ const LoginForm = () => {
                     :{(timer % 60).toString().padStart(2, "0")}
                   </span>
                 </span>
+              ) : (
+                <button
+                  onClick={handleResendOtp}
+                  className="text-blue-600 hover:underline"
+                >
+                  Resend OTP
+                </button>
               )}
             </div>
-
             <div className="mt-4 flex justify-between">
               <button
                 onClick={() => setIsOtpModalOpen(false)}

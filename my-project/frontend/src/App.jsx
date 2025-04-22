@@ -27,7 +27,8 @@ import OnboardEmployee from "./pages/Admin/OnboardEmployee.jsx";
 import AddEmployee from "./pages/AddEmployee.jsx";
 import EmployeeDocuments from "./pages/Admin/EmployeeDocuments.jsx";
 import Policies from  "./pages/Admin/Policies.jsx";
-
+import Logs from "./pages/Admin/Logs.jsx";
+import Promotion from "./pages/Admin/Promotion.jsx";
 
 // EMPLOYEE IMPORTS
 // import TimeTracking from "./pages/submodules/TimeTracking.jsx";
@@ -108,6 +109,7 @@ function App() {
           <Route path="/upload-requirements" element={<EmployeeProtectedRoute><UploadRequiremens /></EmployeeProtectedRoute>} />  {/*EMPLOYEE UPLOAD REQUIREMENTS*/}
           <Route path="/my-calendar" element={<EmployeeProtectedRoute><UploadDocuments /></EmployeeProtectedRoute>} />
           <Route path="/settings" element={<EmployeeProtectedRoute><Settings /></EmployeeProtectedRoute>} />
+          
 
          
 
@@ -131,7 +133,8 @@ function App() {
           <Route path="/onboard-employee" element={<ProtectedRoute><OnboardEmployee /></ProtectedRoute>} />
           <Route path="/signup" element={<ProtectedRoute><SignUpForm /></ProtectedRoute>} />
           <Route path="/policy" element={<ProtectedRoute><Policies /></ProtectedRoute>} /> 
-          
+          <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} /> 
+          <Route path="/promotion" element={<ProtectedRoute><Promotion /></ProtectedRoute>} />
 
           
 

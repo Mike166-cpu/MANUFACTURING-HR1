@@ -2,8 +2,7 @@ const LeaveBalance = require("../models/LeaveBalance");
 const Employee = require("../models/Employee");
 const cron = require("node-cron");
 
-// Default Leave Balances (Non-Government, Philippines)
-const DEFAULT_VACATION_LEAVE = 15; // Common practice
+const DEFAULT_VACATION_LEAVE = 15; 
 const DEFAULT_SICK_LEAVE = 10;
 const SERVICE_INCENTIVE_LEAVE = 5;
 const MATERNITY_LEAVE = 105;

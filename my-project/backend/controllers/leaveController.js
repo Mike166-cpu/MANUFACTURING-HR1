@@ -108,58 +108,39 @@ exports.fileLeave = async (req, res) => {
       paid_days = Math.min(leaveDays, leaveBalance.vacation_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.vacation_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "Sick Leave") 
-    {
+    } else if (leave_type === "Sick Leave") {
       paid_days = Math.min(leaveDays, leaveBalance.sick_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.sick_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "Service Incentive Leave") {
+    } else if (leave_type === "Service Incentive Leave") {
       paid_days = Math.min(leaveDays, leaveBalance.service_incentive_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.service_incentive_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "Bereavement Leave") {
+    } else if (leave_type === "Bereavement Leave") {
       paid_days = Math.min(leaveDays, leaveBalance.bereavement_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.bereavement_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "PWD Parental Leave") {
+    } else if (leave_type === "PWD Parental Leave") {
       paid_days = Math.min(leaveDays, leaveBalance.pwd_parental_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.pwd_parental_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "Maternity Leave") {
+    } else if (leave_type === "Maternity Leave") {
       paid_days = Math.min(leaveDays, leaveBalance.maternity_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.maternity_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "Paternity Leave") {
+    } else if (leave_type === "Paternity Leave") {
       paid_days = Math.min(leaveDays, leaveBalance.paternity_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.paternity_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "Solo Parent Leave") {
+    } else if (leave_type === "Solo Parent Leave") {
       paid_days = Math.min(leaveDays, leaveBalance.solo_parent_leave);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.solo_parent_leave -= paid_days;
-    } 
-    
-    else if (leave_type === "Special Leave for Women") {
+    } else if (leave_type === "Special Leave for Women") {
       paid_days = Math.min(leaveDays, leaveBalance.special_leave_for_women);
       unpaid_days = leaveDays - paid_days;
       leaveBalance.special_leave_for_women -= paid_days;
-    } 
-    
-    else {
+    } else {
       unpaid_days = leaveDays;
       paid_days = 0;
     }
@@ -186,9 +167,16 @@ exports.fileLeave = async (req, res) => {
 
     await leaveBalance.save();
 
-    const leave_id = uuidv4();
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    const shortId = uuidv4().split("-")[0]; // Only take first segment of UUID
+    const leave_id = `LV-${year}${month}${day}-${shortId}`;
+
     const newLeave = new Leave({
-      leave_id,
+      leave_id: leave_id,
       employeeId,
       employee_name,
       employee_department,
@@ -201,7 +189,7 @@ exports.fileLeave = async (req, res) => {
       remaining_leaves: leaveBalance.total_remaining_leaves,
       paid_days,
       unpaid_days,
-      payment_status
+      payment_status,
     });
 
     await newLeave.save();
@@ -237,39 +225,25 @@ exports.updateLeaveStatus = async (req, res) => {
       return res.status(404).json({ message: "Leave request not found" });
     }
 
-    // Only deduct balance if the status is being set to "Approved"
     if (status === "Approved") {
-      const leaveBalance = await LeaveBalance.findOne({
-        employeeId: leave.employeeId,
-      });
+      const leaveBalance = await LeaveBalance.findOne({ employeeId: leave.employeeId });
       if (!leaveBalance) {
         return res.status(404).json({ message: "Leave balance not found" });
       }
+      console.log(
+        `Approving ${leave.leave_type} for employee ${leave.employeeId}.`,
+        `Paid: ${leave.paid_days}, Unpaid: ${leave.unpaid_days}, Payment status: ${leave.payment_status}`
+      );
 
-      // Check current balance before deducting
-      if (leave.leave_type === "Vacation Leave") {
-        if (leaveBalance.vacation_leave < leave.days_requested) {
-          return res
-            .status(400)
-            .json({ message: "Insufficient vacation leave balance" });
-        }
-        leaveBalance.vacation_leave -= leave.days_requested;
-      } else if (leave.leave_type === "Sick Leave") {
-        if (leaveBalance.sick_leave < leave.days_requested) {
-          return res
-            .status(400)
-            .json({ message: "Insufficient sick leave balance" });
-        }
-        leaveBalance.sick_leave -= leave.days_requested;
+      // Optional validation: warn if paid days are > current balance (e.g., admin manually edited balance)
+      const balanceField = getBalanceField(leave.leave_type);
+      if (balanceField && leave.paid_days > leaveBalance[balanceField]) {
+        return res.status(400).json({ 
+          message: `Leave is marked as paid, but current ${leave.leave_type} balance is too low.`
+        });
       }
-
-      // Update total remaining leaves
-      leaveBalance.total_remaining_leaves =
-        leaveBalance.vacation_leave + leaveBalance.sick_leave;
-      await leaveBalance.save();
     }
 
-    // Update leave status
     leave.status = status;
     await leave.save();
 
@@ -277,7 +251,6 @@ exports.updateLeaveStatus = async (req, res) => {
     if (global.io) {
       global.io.emit("notification-employee", {
         message: `Your leave request has been ${status.toLowerCase()}`,
-        // employee_id: leave.employee_id,
         request_id: leaveId,
         type: "leave_status_update",
         status: status,
@@ -290,11 +263,26 @@ exports.updateLeaveStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating leave status:", error);
-    res
-      .status(500)
-      .json({ message: "Error updating leave status", error: error.message });
+    res.status(500).json({ message: "Error updating leave status", error: error.message });
   }
 };
+
+// 🧠 Helper function to map leave types to balance fields
+function getBalanceField(leaveType) {
+  const map = {
+    "Vacation Leave": "vacation_leave",
+    "Sick Leave": "sick_leave",
+    "Service Incentive Leave": "service_incentive_leave",
+    "Bereavement Leave": "bereavement_leave",
+    "PWD Parental Leave": "pwd_parental_leave",
+    "Maternity Leave": "maternity_leave",
+    "Paternity Leave": "paternity_leave",
+    "Solo Parent Leave": "solo_parent_leave",
+    "Special Leave for Women": "special_leave_for_women"
+  };
+  return map[leaveType] || null;
+}
+
 
 // Get all leave requests
 exports.getAllLeaves = async (req, res) => {
@@ -367,7 +355,6 @@ exports.getLeaveById = async (req, res) => {
 
 exports.getApprovedLeaves = async (req, res) => {
   try {
-
     const approvedLeaves = await Leave.find(
       { status: "Approved" },
       {

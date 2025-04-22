@@ -24,6 +24,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const isMobileView = useMediaQuery("(max-width: 768px)");
   const LOCAL = "http://localhost:7685";
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
+
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -118,7 +120,7 @@ const Dashboard = () => {
       };
 
       const response = await axios.post(
-        `${LOCAL}/api/schedule/create-shift`,
+        `${APIBASED_URL}/api/schedule/create-shift`,
         shiftPayload
       );
       toast.success("Shift created successfully!");
@@ -142,7 +144,7 @@ const Dashboard = () => {
   //delete shift
   const handleDeleteShift = async (id) => {
     try {
-      await axios.delete(`${LOCAL}/api/schedule/delete-shift/${id}`);
+      await axios.delete(`${APIBASED_URL}/api/schedule/delete-shift/${id}`);
       toast.success("Shift deleted successfully!");
       fetchShifts();
     } catch (error) {

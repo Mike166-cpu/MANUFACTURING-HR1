@@ -20,6 +20,8 @@ import { VscFeedback } from "react-icons/vsc";
 import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
 import logo from "../../src/assets/logo-2.png";
 import { FaRegCalendarAlt } from "react-icons/fa";
+import { MdOutlineSettings } from "react-icons/md";
+
 
 const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
@@ -168,7 +170,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
      
 
       const response = await axios.get(
-        `${LOCAL}/api/onboarding/getEmployee/${employeeId}`
+        `${APIBASED_URL}/api/employeeData/${employeeId}`
       );
       const employeeData = response.data;
       const updatedProfile = {
@@ -252,6 +254,7 @@ const EmployeeSidebar = ({ onSidebarToggle, isSidebarOpen }) => {
           <NavItem to="/employeedashboard" icon={IoHomeOutline} label="Home" />
           <NavItem to="/userProfile" icon={FaRegUser} label="Profile" />
           <NavItem to="/my-calendar" icon={FaRegCalendarAlt} label="Calendar" />
+          <NavItem to="/settings" icon={MdOutlineSettings} label="Settings" />
         </MenuSection>
 
         <div className="py-3">

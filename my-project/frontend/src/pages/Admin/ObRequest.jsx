@@ -94,7 +94,7 @@ const obRequest = () => {
     const fetchRequests = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${LOCAL}/api/timetrack/get-request`);
+        const res = await axios.get(`${APIBASED_URL}/api/timetrack/get-request`);
         setObRequests(res.data);
       } catch (err) {
         console.error("Error fetching OB requests:", err);
@@ -128,7 +128,7 @@ const obRequest = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        `${LOCAL}/api/timetrack/request-review`,
+        `${APIBASED_URL}/api/timetrack/request-review`,
         {
           requestId: id,
           status,

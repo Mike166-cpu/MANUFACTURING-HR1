@@ -1,17 +1,66 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { loginUser, employeeLogin, verifyOtp, employeeFaceLogin, verifyFaceOnly } = require("../../controllers/loginController");
+const { loginUser, employeeLogin, verifyOtp, employeeFaceLogin, verifyFaceOnly, verifyOtpEmployee } = require("../../controllers/loginController");
 const {generateServiceToken} = require("../../middleware/gatewayTokenGenerator");
 const router = express.Router();
 const LoginData = require("../../models/LoginAccount");
 const faceId = require("../faceId");
+const User = require("../../models/User");
+const bcrypt = require("bcryptjs");
 
+const Employee = require("../../models/Employee");
 // Rate limiter for login attempts
 // const loginLimiter = rateLimit({
 //   windowMs: 15 * 60 * 1000,
 //   max: 5,
 //   message: { status: 429, error: "Too many login attempts. Please try again after 15 minutes." },
 // });
+
+router.put('/status/:id', async (req, res) => {
+  try {
+    const { status, remarks } = req.body;
+    const employee = await Employee.findByIdAndUpdate(
+      req.params.id,
+      { 
+        status,
+        $push: {
+          statusHistory: {
+            status,
+            remarks,
+            updatedAt: new Date(),
+            updatedBy: req.user?._id
+          }
+        }
+      },
+      { new: true }
+    );
+    
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+    
+    res.json(employee);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+router.post('/verify-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.json({ success: false });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    res.json({ success: isMatch });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 router.post("/verify-face", verifyFaceOnly)
 
@@ -51,6 +100,8 @@ router.post("/face-login", employeeFaceLogin);
 
 
 router.post("/emp-login", employeeLogin);
+router.post("/verify-otp-employee", verifyOtpEmployee)
+
 router.post("/", loginUser);
 router.post("/userLogin", loginUser);
 

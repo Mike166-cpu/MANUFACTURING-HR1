@@ -44,7 +44,7 @@ const LeaveManagement = () => {
   const fetchLeaveRequests = async () => {
     try {
       const response = await axios.get(
-        `${LOCAL}/api/leave/get-employees-leave`
+        `${APIBASED_URL}/api/leave/get-employees-leave`
       );
       setLeaveRequests(response.data);
       console.log("Leave", response.data);
@@ -57,8 +57,8 @@ const LeaveManagement = () => {
   const fetchDashboardStats = async () => {
     try {
       const [employeesRes, leavesRes] = await Promise.all([
-        axios.get(`${LOCAL}/api/hr/employee-data`),
-        axios.get(`${LOCAL}/api/leave/get-employees-leave`),
+        axios.get(`${APIBASED_URL}/api/hr/employee-data`),
+        axios.get(`${APIBASED_URL}/api/leave/get-employees-leave`),
       ]);
 
       const today = new Date();
@@ -100,7 +100,7 @@ const LeaveManagement = () => {
   const handleStatusUpdate = async (leaveId, newStatus) => {
     try {
       const response = await axios.put(
-        `${LOCAL}/api/leave/update-leave-status/${leaveId}`,
+        `${APIBASED_URL}/api/leave/update-leave-status/${leaveId}`,
         { status: newStatus }
       );
 
@@ -205,7 +205,7 @@ const LeaveManagement = () => {
 
         <div className="p-6">
           {/* Dashboard Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {loading ? (
               // Replace the entire loading skeleton section
               <>
@@ -227,20 +227,6 @@ const LeaveManagement = () => {
               </>
             ) : (
               <>
-                {/* Total Employees Card */}
-                <div className="bg-white rounded-lg p-8 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <p className="text-base text-gray-500">Total Employees</p>
-                      <p className="text-3xl font-bold text-gray-800">
-                        {dashboardStats.totalEmployees}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-blue-100 rounded-full">
-                      <FaUsers className="text-blue-500 text-2xl" />
-                    </div>
-                  </div>
-                </div>
 
                 {/* Currently on Leave Card */}
                 <div className="bg-white rounded-lg p-8 border-l-4 border-yellow-500 shadow-sm hover:shadow-md transition-shadow">
@@ -320,7 +306,8 @@ const LeaveManagement = () => {
               <thead className="bg-white border-b text-xs text-gray-600 uppercase tracking-wider">
                 <tr>
                   <th className="p-3"></th>
-                  <th className="p-3 text-left">Employee</th>
+                  <th className="p-3 text-left">Leave Id</th>
+                  <th className="p-3 text-left">Employee Name</th>
                   <th className="p-3 text-left">Leave</th>
                   <th className="p-3 text-left">Duration</th>
                   <th className="p-3 text-left">Status</th>
@@ -354,6 +341,13 @@ const LeaveManagement = () => {
                             checked={selectedRows.includes(leave.leave_id)}
                             onChange={() => toggleRowSelection(leave.leave_id)}
                           />
+                        </td>
+                        <td className="p-3 capitalize">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                              {leave.leave_id}
+                            </span>
+                          </div>
                         </td>
                         <td className="p-3 capitalize">
                           <div className="flex items-center gap-2">

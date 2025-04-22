@@ -60,7 +60,7 @@ const AttendanceTime = () => {
 
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${LOCAL}/api/onboarding/employee`);
+        const response = await axios.get(`${APIBASED_URL}/api/onboarding/employee`);
         setEmployees(response.data);
         console.log("Fetched employees:", response.data);
       } catch (error) {
@@ -71,7 +71,7 @@ const AttendanceTime = () => {
     const fetchAllTimeTrackingSessions = async () => {
       try {
         const response = await axios.get(
-          `${LOCAL}/api/timetrack/admin/all-sessions`
+          `${APIBASED_URL}/api/timetrack/admin/all-sessions`
         );
         console.log("Raw sessions data:", response.data);
         console.log(
@@ -95,7 +95,7 @@ const AttendanceTime = () => {
   const approveSession = async (sessionId) => {
     try {
       await axios.put(
-        `${LOCAL}/api/timetrack/admin/update-status/${sessionId}`,
+        `${APIBASED_URL}/api/timetrack/admin/update-status/${sessionId}`,
         {
           status: "approved",
           remarks: "Approved by admin",
@@ -143,7 +143,7 @@ const AttendanceTime = () => {
 
       if (rejectionReason) {
         await axios.put(
-          `${LOCAL}/api/timetrack/admin/update-status/${sessionId}`,
+          `${APIBASED_URL}/api/timetrack/admin/update-status/${sessionId}`,
           {
             status: "rejected",
             remarks: rejectionReason,
@@ -175,9 +175,15 @@ const AttendanceTime = () => {
     }
   };
 
+  const filteredSessions = allTimeTrackingSessions.filter(session => {
+    if (statusFilter === 'all') return true;
+    if (!session.time_out && statusFilter === 'active') return true;
+    return session.status?.toLowerCase() === statusFilter;
+  });
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentSessions = allTimeTrackingSessions.slice(startIndex, endIndex);
+  const currentSessions = filteredSessions.slice(startIndex, endIndex);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -429,7 +435,8 @@ const AttendanceTime = () => {
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
-                    <option value="all">Status</option>
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
                     <option value="pending">Pending</option>
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
@@ -602,14 +609,14 @@ const AttendanceTime = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm">
                     Showing {startIndex + 1} to{" "}
-                    {Math.min(endIndex, allTimeTrackingSessions.length)} of{" "}
-                    {allTimeTrackingSessions.length} entries
+                    {Math.min(endIndex, filteredSessions.length)} of{" "}
+                    {filteredSessions.length} entries
                   </span>
                   <div className="join">
                     {Array.from(
                       {
                         length: Math.ceil(
-                          allTimeTrackingSessions.length / itemsPerPage
+                          filteredSessions.length / itemsPerPage
                         ),
                       },
                       (_, i) => (

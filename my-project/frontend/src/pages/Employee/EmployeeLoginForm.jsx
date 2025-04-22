@@ -4,8 +4,10 @@ import logo from "../../../src/assets/logo-2.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Swal from "sweetalert2";
 import ReCAPTCHA from "react-google-recaptcha";
-import * as faceapi from 'face-api.js';
-import axios from 'axios';
+import * as faceapi from "face-api.js";
+import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const EmployeeLoginForm = () => {
   const [loading, setLoading] = useState(false);
@@ -26,16 +28,14 @@ const EmployeeLoginForm = () => {
   }, []);
 
   const LOCAL = "http://localhost:7685"; // Localhost URL
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com"; // Production URL
 
   const checkAuthStatus = () => {
     const token = localStorage.getItem("employeeToken");
     if (token) {
-      Swal.fire({
-        icon: "info",
-        title: "Already Logged In",
-        text: "Redirecting to dashboard...",
-        showConfirmButton: false,
-        timer: 1500,
+      toast.info("Already logged in. Redirecting...", {
+        position: "top-right",
+        autoClose: 1500,
       });
 
       navigate("/employeedashboard", { replace: true }); // Redirect user away
@@ -52,9 +52,13 @@ const EmployeeLoginForm = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [useFaceId, setUseFaceId] = useState(false);
-  const [faceLoginStatus, setFaceLoginStatus] = useState('');
+  const [faceLoginStatus, setFaceLoginStatus] = useState("");
   const videoRef = useRef();
   const canvasRef = useRef();
+
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
 
   useEffect(() => {
     if (useFaceId) {
@@ -66,47 +70,50 @@ const EmployeeLoginForm = () => {
 
   const initializeFaceLogin = async () => {
     try {
-      setFaceLoginStatus('Loading face detection models...');
+      setFaceLoginStatus("Loading face detection models...");
       await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-        faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+        faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
+        faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
+        faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
       ]);
-      
-      setFaceLoginStatus('Starting camera...');
+
+      setFaceLoginStatus("Starting camera...");
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
     } catch (error) {
-      console.error('Error:', error);
-      setFaceLoginStatus('Error initializing face login');
+      console.error("Error:", error);
+      setFaceLoginStatus("Error initializing face login");
     }
   };
 
   const stopVideo = () => {
     const stream = videoRef.current?.srcObject;
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
     }
   };
 
   const handleFaceLogin = async () => {
     try {
       setLoading(true);
-      setFaceLoginStatus('Detecting face...');
+      setFaceLoginStatus("Detecting face...");
 
-      const detections = await faceapi.detectSingleFace(videoRef.current,
-        new faceapi.SsdMobilenetv1Options())
+      const detections = await faceapi
+        .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options())
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (!detections) {
-        throw new Error('No face detected');
+        throw new Error("No face detected");
       }
 
-      const { data } = await axios.post(`${LOCAL}/api/login-admin/face-login`, {
-        email: formData.email,
-        faceDescriptor: Array.from(detections.descriptor)
-      });
+      const { data } = await axios.post(
+        `${APIBASED_URL}/api/login-admin/face-login`,
+        {
+          email: formData.email,
+          faceDescriptor: Array.from(detections.descriptor),
+        }
+      );
 
       // Handle successful login
       localStorage.setItem("employeeToken", data.token);
@@ -156,7 +163,7 @@ const EmployeeLoginForm = () => {
       return false;
     }
 
-    setError(""); 
+    setError("");
     return true;
   };
 
@@ -187,53 +194,82 @@ const EmployeeLoginForm = () => {
     if (!validateForm()) return;
     setLoading(true);
 
-    if (rememberMe) {
-      localStorage.setItem("rememberedEmail", formData.email);
-      localStorage.setItem("rememberedPassword", formData.password);
-    } else {
-      localStorage.removeItem("rememberedEmail");
-      localStorage.removeItem("rememberedPassword");
+    try {
+      const { data } = await axios.post(
+        `${APIBASED_URL}/api/login-admin/emp-login`,
+        formData
+      );
+
+      setLoginEmail(formData.email);
+      setIsOtpModalOpen(true);
+
+      toast.success("OTP sent! Check your email for the verification code", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      setError(error.response?.data?.message || error.message);
+      toast.error(error.response?.data?.message || error.message, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async () => {
+    if (!otp) {
+      toast.error("Please enter the OTP", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
     }
 
-    const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com"; 
-    const LOCAL = "http://localhost:7685";
-
     try {
-      const { data } = await axios.post(`${APIBASED_URL}/api/login-admin/emp-login`, formData);
+      const { data } = await axios.post(
+        `${APIBASED_URL}/api/login-admin/verify-otp-employee`,
+        {
+          email: loginEmail,
+          otp,
+        }
+      );
 
       localStorage.setItem("employeeToken", data.token);
       localStorage.setItem("employeeId", data.user.employeeId);
       localStorage.setItem("fullName", data.user.name);
       localStorage.setItem("email", data.user.email);
 
-     
-      Swal.fire({
-        icon: "success",
-        title: "Login successful!",
-        text: `Welcome back, ${data.user.firstName}!`,
-        showConfirmButton: false,
-        timer: 1500,
+      toast.success(`Welcome back, ${data.user.name}!`, {
+        position: "top-right",
+        autoClose: 1500,
       });
-
       navigate("/employeedashboard");
     } catch (error) {
-      console.error(error);
-      setError(error.response?.data?.message || error.message);
-
-      Swal.fire({
-        icon: "error",
-        title: "Login failed",
-        text: error.response?.data?.message || error.message,
-        confirmButtonColor: "#d33",
+      toast.error(error.response?.data?.message || "Invalid OTP", {
+        position: "top-right",
+        autoClose: 3000,
       });
-    } finally {
-      setLoading(false); // Stop loading after request is done
     }
   };
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-opacity-15 px-4">
       {loading && <LoadingOverlay />}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <div className="p-6 py-10 w-full max-w-xs h-auto bg-white shadow-lg rounded-lg border">
         <div className="flex justify-center gap-x-2 pb-2">
           <img
@@ -249,7 +285,7 @@ const EmployeeLoginForm = () => {
         {error && (
           <p className="text-red-500 text-xs text-center mb-2">{error}</p>
         )}
-{/* 
+        {/* 
         <div className="mb-4">
           <label className="flex items-center space-x-2 text-sm">
             <input
@@ -276,7 +312,9 @@ const EmployeeLoginForm = () => {
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               placeholder="Enter your email"
               className="w-full px-3 py-2 border rounded-md"
             />
@@ -286,7 +324,9 @@ const EmployeeLoginForm = () => {
             >
               Login with Face ID
             </button>
-            <p className="text-sm text-center text-gray-600">{faceLoginStatus}</p>
+            <p className="text-sm text-center text-gray-600">
+              {faceLoginStatus}
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -365,11 +405,41 @@ const EmployeeLoginForm = () => {
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-md transition-colors flex items-center justify-center"
             >
-            Login
+              Login
             </button>
           </form>
         )}
       </div>
+
+      {isOtpModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-lg">
+            <h3 className="text-xl font-bold mb-2 text-center">Enter OTP</h3>
+            <input
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              maxLength={6}
+              className="input input-bordered w-full p-3 text-center text-xl tracking-widest"
+              placeholder="6-digit code"
+            />
+            <div className="mt-4 flex justify-between">
+              <button
+                onClick={() => setIsOtpModalOpen(false)}
+                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleOtpSubmit}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-200"
+              >
+                Verify OTP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="fixed bottom-0 text-center w-full bg-white p-4 shadow-md">
         <span className="text-xs">All right reserved 2025</span>

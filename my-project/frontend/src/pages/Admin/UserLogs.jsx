@@ -66,7 +66,7 @@ const UserLogs = () => {
     }
   };
   useEffect(() => {
-    if (role !== "Superadmin") {
+    if (role !== "superadmin") {
       Swal.fire({
         icon: "warning",
         title: "Unauthorized",

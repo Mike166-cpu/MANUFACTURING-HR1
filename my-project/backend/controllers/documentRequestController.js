@@ -1,18 +1,19 @@
 const DocumentRequest = require("../models/DocumentRequest");
 const Employee = require("../models/Employee");
+const Onboarding = require("../models/Onboarding");
 const UploadedDocument = require("../models/UploadedDocument");
 const { v4: uuidv4 } = require("uuid");
 
 exports.createDocumentRequest = async (req, res) => {
   try {
     const { employeeId, document_name } = req.body;
-    console.log("Received request:", { employeeId, document_name }); // Debug log
+    console.log("Received request:", { employeeId, document_name }); 
 
     if (!employeeId || !document_name) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const employee = await Employee.findOne({ employeeId });
+    const employee = await Onboarding.findOne({ employeeId });
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
@@ -21,7 +22,7 @@ exports.createDocumentRequest = async (req, res) => {
 
     const newRequest = new DocumentRequest({
       request_id,
-      employeeId,  // Store the employeeId string directly
+      employeeId,  
       document_name,
       status: "Submitted for Approval"
     });
@@ -92,7 +93,6 @@ exports.updateRequestStatus = async (req, res) => {
       return res.status(404).json({ message: "Request not found" });
     }
 
-    // Also update the status in UploadedDocument
     const uploadedDoc = await UploadedDocument.findOneAndUpdate(
       { request_id },
       { status },
@@ -103,15 +103,14 @@ exports.updateRequestStatus = async (req, res) => {
 
     const { employeeId, document_name } = request;
 
-    // ✅ Push the uploaded document to employee's documents array if approved
     if (status === "Approved" && uploadedDoc?.document_url) {
-      const updatedEmployee = await Employee.findOneAndUpdate(
+      const updatedEmployee = await Onboarding.findOneAndUpdate(
         { employeeId },
         {
           $push: {
             documents: {
               name: document_name,
-              url: uploadedDoc.document_url, // Map to the correct field
+              url: uploadedDoc.document_url, 
               uploadedAt: new Date(),
             },
           },
@@ -128,7 +127,6 @@ exports.updateRequestStatus = async (req, res) => {
       console.warn(`[WARN] Document approved but no uploadedDoc or missing document_url`);
     }
 
-    // Send notification
     global.io.emit(`notification-${employeeId}`, {
       message: `ADMIN: Your document request for "${document_name}" has been updated to: ${status}`,
       request_id,

@@ -38,6 +38,7 @@ const Settings = () => {
   const [hasFaceId, setHasFaceId] = useState(false);
 
   const LOCAL = "http://localhost:7685";
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -215,7 +216,7 @@ const Settings = () => {
 
       setStatus("Processing registration...");
 
-      const response = await axios.post(`${LOCAL}/api/faceid/register-face-id`, {
+      const response = await axios.post(`${APIBASED_URL}/api/faceid/register-face-id`, {
         email,
         descriptor: Array.from(detections.descriptor)
       });
@@ -244,7 +245,7 @@ const Settings = () => {
   //const check if there is faceIdalready
   const checkFaceId = async () => {
     try {
-      const response = await axios.get(`${LOCAL}/api/login-admin/check-face-id/${email}`);
+      const response = await axios.get(`${APIBASED_URL}/api/login-admin/check-face-id/${email}`);
       setHasFaceId(response.data.hasFaceId);
       if (response.data.hasFaceId) {
         setStatus("Face ID already registered ✓");

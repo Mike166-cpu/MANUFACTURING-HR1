@@ -33,6 +33,10 @@ const { initializeLeaveBalances, initializeEmployeeLeaveBalance, cronjob } = req
 const model = require("./routes/predictiveAnalyticsRoutes");
 const onboard = require("./routes/onboardingRoutes");
 const faceIdRoutes = require("./routes/faceId");
+const logs = require("./routes/logs");
+
+const employeeData = require("./routes/employeeDataRoutes");
+const promotion = require("./routes/promotionRoutes");
 
 const app = express();
 app.set("trust proxy", true);
@@ -113,9 +117,13 @@ app.use("/api/analytics", model);
 app.use("/api/onboarding", onboard);
 app.use("/api/hr", integrationRoutes);
 app.use("/api/faceid", faceIdRoutes);
+app.use("/api/logs", logs);
+app.use("/api/promotion", promotion);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+
+app.use("/api/employeeData", employeeData);
 
 
 mongoose

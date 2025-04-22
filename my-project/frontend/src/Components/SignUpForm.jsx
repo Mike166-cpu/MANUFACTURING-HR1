@@ -43,7 +43,7 @@ const SignUpForm = () => {
 
     try {
       const response = await axios.post(
-        `${LOCAL}/api/admin/create-account`,
+        `${APIBASE_URL}/api/admin/create-account`,
         formData,
         {
           headers: {
