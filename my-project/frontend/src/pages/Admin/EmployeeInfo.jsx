@@ -5,6 +5,7 @@ import BreadCrumbs from "../../Components/BreadCrumb";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import SecureScreen from "../../Components/SecureScreen";
 
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -103,15 +104,9 @@ const EmployeeInfo = () => {
     }));
   };
 
-  const maskData = (data, type = "text") => {
+  const maskData = (data) => {
     if (!data) return "";
-    if (type === "email") {
-      const [username, domain] = data.split("@");
-      return `${username.charAt(0)}${"*".repeat(
-        username.length - 2
-      )}${username.charAt(username.length - 1)}@${domain}`;
-    }
-    return `${"*".repeat(data.length - 4)}${data.slice(-4)}`;
+    return "*".repeat(data.toString().length);
   };
 
   useEffect(() => {
@@ -157,9 +152,45 @@ const EmployeeInfo = () => {
     fetchLoginData();
   }, []);
 
+  // Add these for document password modal
+  const [showDocumentPasswordModal, setShowDocumentPasswordModal] =
+    useState(false);
+  const [documentPassword, setDocumentPassword] = useState("");
+  const [documentVerifying, setDocumentVerifying] = useState(false);
+  const [pendingDocument, setPendingDocument] = useState(null);
+
+  // Modified openDocumentModal to require password
   const openDocumentModal = (doc) => {
-    setSelectedDocument(doc);
-    setIsModalOpen(true);
+    setPendingDocument(doc);
+    setShowDocumentPasswordModal(true);
+    setDocumentPassword("");
+  };
+
+  // Document password verification
+  const handleDocumentPasswordSubmit = async () => {
+    setDocumentVerifying(true);
+    try {
+      const response = await axios.post(
+        `${APIBASED_URL}/api/login-admin/verify-password`,
+        {
+          email: localStorage.getItem("email"),
+          password: documentPassword,
+        }
+      );
+      if (response.data.success) {
+        setShowDocumentPasswordModal(false);
+        setSelectedDocument(pendingDocument);
+        setIsModalOpen(true);
+        setDocumentPassword("");
+        setPendingDocument(null);
+      } else {
+        toast.error("Invalid password");
+      }
+    } catch (error) {
+      toast.error("Verification failed");
+    } finally {
+      setDocumentVerifying(false);
+    }
   };
 
   const email = localStorage.getItem("email");
@@ -292,7 +323,6 @@ const EmployeeInfo = () => {
   };
 
   //fetch promotion
-  // ...existing code...
   const [promotionHistory, setPromotionHistory] = useState([]);
   const [loadingPromotionHistory, setLoadingPromotionHistory] = useState(false);
 
@@ -315,8 +345,160 @@ const EmployeeInfo = () => {
     fetchPromotionHistory();
   }, [selectedEmployee]);
 
+  // Add these with your other state declarations
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedEmployee, setEditedEmployee] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleSaveChanges = async () => {
+    try {
+      // First verify password
+      const passwordResponse = await axios.post(
+        `${APIBASED_URL}/api/login-admin/verify-password`,
+        {
+          email: localStorage.getItem("email"),
+          password: confirmPassword,
+        }
+      );
+
+      if (!passwordResponse.data.success) {
+        toast.error("Invalid password");
+        return;
+      }
+
+      // If password is valid, proceed with update
+      const response = await axios.put(
+        `${APIBASED_URL}/api/employeeData/${editedEmployee.employeeId}`,
+        editedEmployee,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        }
+      );
+
+      if (response.data) {
+        setSelectedEmployee(response.data);
+        setEditedEmployee(null);
+        setIsEditing(false);
+        setShowPasswordModal(false);
+        setConfirmPassword("");
+        toast.success("Employee information updated successfully");
+
+        // Log the action
+        await axios.post(`${APIBASED_URL}/api/logs/user-logs`, {
+          adminId: adminId,
+          adminEmail: email,
+          employeeId: editedEmployee.employeeId,
+          employeeName: editedEmployee.fullname,
+          action: "Updated employee information",
+          details: `Updated information for employee ${editedEmployee.employeeId}`,
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to update employee information");
+      console.error(error);
+    }
+  };
+
+  // For blurred field password modal
+  const [showFieldPasswordModal, setShowFieldPasswordModal] = useState(false);
+  const [fieldPassword, setFieldPassword] = useState("");
+  const [fieldVerifying, setFieldVerifying] = useState(false);
+  const [pendingField, setPendingField] = useState(null);
+
+  // For screenshot/visibility overlay
+  const [isPageBlurred, setIsPageBlurred] = useState(false);
+
+  // Replace handleRevealField with this toggle-aware version:
+  const handleRevealField = (fieldName) => {
+    if (revealedFields[fieldName]) {
+      // Hide the field if already revealed
+      setRevealedFields((prev) => ({
+        ...prev,
+        [fieldName]: false,
+      }));
+    } else {
+      // Show password modal to reveal
+      setPendingField(fieldName);
+      setShowFieldPasswordModal(true);
+      setFieldPassword("");
+    }
+  };
+
+  // Prevent screenshot/snipping tool and blur page on focus loss
+  useEffect(() => {
+    // Disable PrintScreen key and copy
+    const handleKeyDown = (e) => {
+      if (e.key === "PrintScreen") {
+        e.preventDefault();
+        navigator.clipboard && navigator.clipboard.writeText("");
+        alert("Screenshots are disabled on this page.");
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+      }
+    };
+    const handleContextMenu = (e) => e.preventDefault();
+    const handleDragStart = (e) => e.preventDefault();
+
+    // Blur page and hide revealed fields on focus loss
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") {
+        setIsPageBlurred(true);
+        setRevealedFields({});
+      } else {
+        setIsPageBlurred(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("dragstart", handleDragStart);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", () => {
+      setIsPageBlurred(true);
+      setRevealedFields({});
+    });
+    window.addEventListener("focus", () => setIsPageBlurred(false));
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("dragstart", handleDragStart);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", () => {});
+      window.removeEventListener("focus", () => {});
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col min-h-screen bg-base-200">
+    <div
+      className="flex flex-col min-h-screen bg-base-200 select-none"
+      style={{ userSelect: "none", position: "relative" }}
+    >
+      {/* Overlay for blur when not focused */}
+
+      {isPageBlurred && (
+        <div
+          style={{
+            position: "fixed",
+            zIndex: 99999,
+            inset: 0,
+            background: "rgba(255,255,255,0.8)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "all",
+          }}
+        >
+          <div className="text-xl font-bold text-gray-700 bg-white bg-opacity-80 p-8 rounded shadow-lg border">
+            Sensitive information hidden while page is not focused.
+            <br />
+            Please return to this tab to continue.
+          </div>
+        </div>
+      )}
       {showPrivacyNotice ? (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-base-100 rounded-lg max-w-sm w-full mx-4 p-6">
@@ -383,7 +565,7 @@ const EmployeeInfo = () => {
               <BreadCrumbs />
               <div className="flex items-center mt-2">
                 <span className="text-2xl px-4 font-bold">
-                  Employee Information
+                  Employee Records
                 </span>
               </div>
             </div>
@@ -398,12 +580,41 @@ const EmployeeInfo = () => {
                     <div className="flex justify-between items-center mb-4">
                       <div className="card-actions justify-end mt-4">
                         <button
-                          className="btn btn-outline"
+                          className="p-3 hover:text-blue-500 hover:underline transition duration-200"
                           onClick={() => setSelectedEmployee(null)}
                         >
-                          Back to List
+                          Back
                         </button>
                       </div>
+                      {!isEditing ? (
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => {
+                            setEditedEmployee({ ...selectedEmployee });
+                            setIsEditing(true);
+                          }}
+                        >
+                          Update Employee
+                        </button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => {
+                              setIsEditing(false);
+                              setEditedEmployee(null);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => setShowPasswordModal(true)}
+                          >
+                            Save Changes
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="divider"></div>
@@ -421,36 +632,53 @@ const EmployeeInfo = () => {
                               Full Name
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={
-                              revealedFields.fullname
-                                ? selectedEmployee.fullname
-                                : maskData(selectedEmployee.fullname)
-                            }
-                            disabled
-                            onClick={() => toggleFieldReveal("fullname")}
-                          />
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="input input-bordered"
+                              value={editedEmployee.fullname}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  fullname: e.target.value,
+                                })
+                              }
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              className={inputStyles}
+                              value={selectedEmployee.fullname}
+                              disabled
+                            />
+                          )}
                         </div>
-
                         <div className="form-control">
                           <label className="label">
                             <span className="label-text font-semibold">
                               Email
                             </span>
                           </label>
-                          <input
-                            type="email"
-                            className={inputStyles}
-                            value={
-                              revealedFields.email
-                                ? selectedEmployee.email
-                                : maskData(selectedEmployee.email, "email")
-                            }
-                            disabled
-                            onClick={() => toggleFieldReveal("email")}
-                          />
+                          {isEditing ? (
+                            <input
+                              type="email"
+                              className="input input-bordered"
+                              value={editedEmployee.email}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  email: e.target.value,
+                                })
+                              }
+                            />
+                          ) : (
+                            <input
+                              type="email"
+                              className={inputStyles}
+                              value={selectedEmployee.email}
+                              disabled
+                            />
+                          )}
                         </div>
 
                         <div className="form-control">
@@ -459,12 +687,30 @@ const EmployeeInfo = () => {
                               Gender
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={selectedEmployee.gender}
-                            disabled
-                          />
+                          {isEditing ? (
+                            <select
+                              className="select select-bordered w-full"
+                              value={editedEmployee.gender}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  gender: e.target.value,
+                                })
+                              }
+                            >
+                              <option value="">Select Gender</option>
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              className={inputStyles}
+                              value={selectedEmployee.gender}
+                              disabled
+                            />
+                          )}
                         </div>
 
                         <div className="form-control">
@@ -473,31 +719,26 @@ const EmployeeInfo = () => {
                               Nationality
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={selectedEmployee.nationality}
-                            disabled
-                          />
-                        </div>
-
-                        <div className="form-control w-full">
-                          <label className="label mb-1">
-                            <span className="label-text text-sm font-medium text-gray-700">
-                              Status
-                            </span>
-                          </label>
-                          <div className="flex items-center justify-between gap-4 p-2 rounded-md border border-gray-200 bg-gray-50">
-                            <span
-                              className={`badge text-sm px-3 py-1 ${
-                                statusColors[selectedEmployee.status] ||
-                                "badge-ghost"
-                              }`}
-                            >
-                              {selectedEmployee.status}
-                            </span>
-                            <StatusUpdateButton />
-                          </div>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="input input-bordered"
+                              value={editedEmployee.nationality}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  nationality: e.target.value,
+                                })
+                              }
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              className={inputStyles}
+                              value={selectedEmployee.nationality}
+                              disabled
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -506,29 +747,29 @@ const EmployeeInfo = () => {
                         <div className="form-control">
                           <label className="label">
                             <span className="label-text font-semibold">
-                              Employee ID
-                            </span>
-                          </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={selectedEmployee.employeeId}
-                            disabled
-                          />
-                        </div>
-
-                        <div className="form-control">
-                          <label className="label">
-                            <span className="label-text font-semibold">
                               Department
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={selectedEmployee.department}
-                            disabled
-                          />
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="input input-bordered"
+                              value={editedEmployee.department}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  department: e.target.value,
+                                })
+                              }
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              className={inputStyles}
+                              value={selectedEmployee.department}
+                              disabled
+                            />
+                          )}
                         </div>
 
                         <div className="form-control">
@@ -537,43 +778,53 @@ const EmployeeInfo = () => {
                               Position
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={selectedEmployee.position}
-                            disabled
-                          />
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="input input-bordered"
+                              value={editedEmployee.position}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  position: e.target.value,
+                                })
+                              }
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              className={inputStyles}
+                              value={selectedEmployee.position}
+                              disabled
+                            />
+                          )}
                         </div>
+
                         <div className="form-control">
                           <label className="label">
                             <span className="label-text font-semibold">
                               Address
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={selectedEmployee.address}
-                            disabled
-                          />
-                        </div>
-
-                        <div className="form-control">
-                          <label className="label">
-                            <span className="label-text font-semibold">
-                              Skills
-                            </span>
-                          </label>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {selectedEmployee.skills.map((skill, index) => (
-                              <span
-                                key={index}
-                                className="badge badge-secondary"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
+                          {isEditing ? (
+                            <textarea
+                              className="textarea textarea-bordered"
+                              value={editedEmployee.address}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  address: e.target.value,
+                                })
+                              }
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              className={inputStyles}
+                              value={selectedEmployee.address}
+                              disabled
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -585,19 +836,42 @@ const EmployeeInfo = () => {
                               Salary
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={`${inputStyles} ${
-                              !revealedFields.salary && "blur-sm"
-                            }`}
-                            value={
-                              revealedFields.salary
-                                ? selectedEmployee.salary
-                                : "*****"
-                            }
-                            disabled
-                            onClick={() => toggleFieldReveal("salary")}
-                          />
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              className="input input-bordered"
+                              value={editedEmployee.salary}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  salary: parseFloat(e.target.value),
+                                })
+                              }
+                            />
+                          ) : (
+                            <div className="relative group">
+                              <input
+                                type="text"
+                                className={`${inputStyles} ${
+                                  revealedFields["salary"] ? "" : "blur-sm"
+                                } transition-all duration-200 pr-10`}
+                                value={`₱ ${
+                                  selectedEmployee.salary?.toLocaleString() ||
+                                  "0"
+                                }`}
+                                disabled
+                                style={{ pointerEvents: "none" }}
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-xs btn-outline"
+                                onClick={() => handleRevealField("salary")}
+                                tabIndex={0}
+                              >
+                                {revealedFields["salary"] ? "Hide" : "Reveal"}
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         <div className="form-control">
@@ -606,35 +880,31 @@ const EmployeeInfo = () => {
                               Civil Status
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={`${inputStyles} ${
-                              !revealedFields.civilStatus && "blur-sm"
-                            }`}
-                            value={
-                              revealedFields.civilStatus
-                                ? selectedEmployee.civilStatus
-                                : "****"
-                            }
-                            disabled
-                            onClick={() => toggleFieldReveal("civilStatus")}
-                          />
-                        </div>
-
-                        <div className="form-control">
-                          <label className="label">
-                            <span className="label-text font-semibold">
-                              Hired Date
-                            </span>
-                          </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={new Date(
-                              selectedEmployee.createdAt
-                            ).toLocaleDateString()}
-                            disabled
-                          />
+                          {isEditing ? (
+                            <select
+                              className="select select-bordered w-full"
+                              value={editedEmployee.civilStatus}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  civilStatus: e.target.value,
+                                })
+                              }
+                            >
+                              <option value="">Select Status</option>
+                              <option value="Single">Single</option>
+                              <option value="Married">Married</option>
+                              <option value="Divorced">Divorced</option>
+                              <option value="Widowed">Widowed</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              className={inputStyles}
+                              value={selectedEmployee.civilStatus}
+                              disabled
+                            />
+                          )}
                         </div>
 
                         <div className="form-control">
@@ -643,12 +913,41 @@ const EmployeeInfo = () => {
                               Contact Number
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            className={inputStyles}
-                            value={selectedEmployee.phoneNumber}
-                            disabled
-                          />
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="input input-bordered"
+                              value={editedEmployee.phoneNumber}
+                              onChange={(e) =>
+                                setEditedEmployee({
+                                  ...editedEmployee,
+                                  phoneNumber: e.target.value,
+                                })
+                              }
+                            />
+                          ) : (
+                            <div className="relative group">
+                              <input
+                                type="text"
+                                className={`${inputStyles} ${
+                                  revealedFields["phoneNumber"] ? "" : "blur-sm"
+                                } transition-all duration-200 pr-10`}
+                                value={selectedEmployee.phoneNumber}
+                                disabled
+                                style={{ pointerEvents: "none" }}
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-xs btn-outline"
+                                onClick={() => handleRevealField("phoneNumber")}
+                                tabIndex={0}
+                              >
+                                {revealedFields["phoneNumber"]
+                                  ? "Hide"
+                                  : "Reveal"}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -692,51 +991,49 @@ const EmployeeInfo = () => {
                     </div>
 
                     <div className="divider"></div>
-                          <div>
-                            <h3 className="font-bold text-lg mb-2">
-                              Promotion History
-                            </h3>
-                            {loadingPromotionHistory ? (
-                              <div className="text-sm text-gray-500">
-                                Loading promotion history...
-                              </div>
-                            ) : promotionHistory.length === 0 ? (
-                              <div className="text-sm text-gray-500">
-                                No promotion history found.
-                              </div>
-                            ) : (
-                              <div className="overflow-x-auto">
-                                <table className="table table-zebra w-full">
-                                  <thead>
-                                    <tr>
-                                      <th>Date</th>
-                                      <th>Old Position</th>
-                                      <th>New Position</th>
-                                      <th>Remarks</th>
-                                      <th>Status</th>
-                                      <th>Promoted By</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {promotionHistory.map((promo) => (
-                                      <tr key={promo._id}>
-                                        <td>
-                                          {new Date(
-                                            promo.requestedAt
-                                          ).toLocaleDateString()}
-                                        </td>
-                                        <td>{promo.oldPosition || "-"}</td>
-                                        <td>{promo.newPosition || "-"}</td>
-                                        <td>{promo.remarks || "-"}</td>
-                                        <td>{promo.status}</td>
-                                        <td>{promo.requestedBy || "-"}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-                          </div>
+                    <div>
+                      <h3 className="font-bold text-lg mb-2">
+                        Promotion History
+                      </h3>
+                      {loadingPromotionHistory ? (
+                        <div className="text-sm text-gray-500">
+                          Loading promotion history...
+                        </div>
+                      ) : promotionHistory.length === 0 ? (
+                        <div className="text-sm text-gray-500">
+                          No promotion history found.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="table table-zebra w-full">
+                            <thead>
+                              <tr>
+                                <th>Date</th>
+                                <th>Old Position</th>
+                                <th>New Position</th>
+                                <th>Remarks</th>
+                                <th>Promoted By</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {promotionHistory.map((promo) => (
+                                <tr key={promo._id}>
+                                  <td>
+                                    {new Date(
+                                      promo.requestedAt
+                                    ).toLocaleDateString()}
+                                  </td>
+                                  <td>{promo.oldPosition || "-"}</td>
+                                  <td>{promo.newPosition || "-"}</td>
+                                  <td>{promo.remarks || "-"}</td>
+                                  <td>{promo.requestedBy || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
 
                     <div className="divider"></div>
 
@@ -810,26 +1107,37 @@ const EmployeeInfo = () => {
                                 <div className="p-4">
                                   <div className="relative w-full min-h-[70vh]">
                                     {selectedDocument.url.endsWith(".pdf") ? (
-                                      <div className="absolute inset-0 bg-white bg-opacity-60 blur-md hover:blur-none transition-all">
+                                      <div className="relative w-full h-[70vh] group">
                                         <embed
                                           src={selectedDocument.url}
                                           type="application/pdf"
-                                          className="w-full h-full"
+                                          className="w-full h-full blur-sm group-hover:blur-none transition-all duration-200"
                                         />
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-100 group-hover:opacity-0 transition-opacity duration-200">
+                                          <p className="text-gray-500 bg-white/80 px-4 py-2 rounded">
+                                            Hover to view document
+                                          </p>
+                                        </div>
                                       </div>
                                     ) : (
-                                      <img
-                                        src={selectedDocument.url}
-                                        alt="Document"
-                                        className="max-h-[70vh] mx-auto"
-                                      />
+                                      <div className="relative w-full h-[70vh] flex items-center justify-center group">
+                                        <img
+                                          src={selectedDocument.url}
+                                          alt="Document"
+                                          className="max-h-[70vh] mx-auto blur-sm group-hover:blur-none transition-all duration-200"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-100 group-hover:opacity-0 transition-opacity duration-200">
+                                          <p className="text-gray-500 bg-white/80 px-4 py-2 rounded">
+                                            Hover to view document
+                                          </p>
+                                        </div>
+                                      </div>
                                     )}
                                   </div>
                                 </div>
                               </div>
                             </div>
                           )}
-                     
                         </>
                       )}
                   </div>
@@ -1029,6 +1337,57 @@ const EmployeeInfo = () => {
             </div>
           </div>
 
+          {/* Password Confirmation Modal */}
+          {showPasswordModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div
+                className="fixed inset-0 bg-black opacity-50"
+                onClick={() => setShowPasswordModal(false)}
+              ></div>
+              <div className="relative bg-base-100 rounded-lg w-96 shadow-xl">
+                <div className="p-6">
+                  <h3 className="text-lg font-bold mb-4">
+                    Confirm Your Password
+                  </h3>
+                  <div className="space-y-4">
+                    <p className="text-sm text-base-content/70">
+                      Please enter your password to confirm these changes.
+                    </p>
+
+                    <div className="form-control">
+                      <input
+                        type="password"
+                        className="input input-bordered"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Enter your password"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 mt-6">
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => {
+                          setShowPasswordModal(false);
+                          setConfirmPassword("");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleSaveChanges}
+                        disabled={!confirmPassword}
+                      >
+                        Confirm Changes
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Add Privacy Confirmation Modal */}
           {showPrivacyModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -1169,6 +1528,145 @@ const EmployeeInfo = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Document Password Modal */}
+      {showDocumentPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={() => {
+              setShowDocumentPasswordModal(false);
+              setDocumentPassword("");
+              setPendingDocument(null);
+            }}
+          ></div>
+          <div className="relative bg-base-100 rounded-lg w-96 shadow-xl">
+            <div className="p-6">
+              <h3 className="text-lg font-bold mb-4">
+                Enter Password to View Document
+              </h3>
+              <div className="space-y-4">
+                <p className="text-sm text-base-content/70">
+                  For security, please enter your password to view this
+                  document.
+                </p>
+                <div className="form-control">
+                  <input
+                    type="password"
+                    className="input input-bordered"
+                    value={documentPassword}
+                    onChange={(e) => setDocumentPassword(e.target.value)}
+                    placeholder="Password"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setShowDocumentPasswordModal(false);
+                      setDocumentPassword("");
+                      setPendingDocument(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={`btn btn-primary ${
+                      documentVerifying ? "loading" : ""
+                    }`}
+                    onClick={handleDocumentPasswordSubmit}
+                    disabled={!documentPassword || documentVerifying}
+                  >
+                    {documentVerifying ? "Verifying..." : "View Document"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Field Password Modal */}
+      {showFieldPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={() => {
+              setShowFieldPasswordModal(false);
+              setFieldPassword("");
+              setPendingField(null);
+            }}
+          ></div>
+          <div className="relative bg-base-100 rounded-lg w-96 shadow-xl">
+            <div className="p-6">
+              <h3 className="text-lg font-bold mb-4">
+                Enter Password to Reveal Field
+              </h3>
+              <div className="space-y-4">
+                <p className="text-sm text-base-content/70">
+                  For security, please enter your password to reveal this field.
+                </p>
+                <div className="form-control">
+                  <input
+                    type="password"
+                    className="input input-bordered"
+                    value={fieldPassword}
+                    onChange={(e) => setFieldPassword(e.target.value)}
+                    placeholder="Password"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setShowFieldPasswordModal(false);
+                      setFieldPassword("");
+                      setPendingField(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={`btn btn-primary ${
+                      fieldVerifying ? "loading" : ""
+                    }`}
+                    onClick={async () => {
+                      setFieldVerifying(true);
+                      try {
+                        const response = await axios.post(
+                          `${APIBASED_URL}/api/login-admin/verify-password`,
+                          {
+                            email: localStorage.getItem("email"),
+                            password: fieldPassword,
+                          }
+                        );
+                        if (response.data.success) {
+                          setShowFieldPasswordModal(false);
+                          setRevealedFields((prev) => ({
+                            ...prev,
+                            [pendingField]: true,
+                          }));
+                          setFieldPassword("");
+                          setPendingField(null);
+                        } else {
+                          toast.error("Invalid password");
+                        }
+                      } catch (error) {
+                        toast.error("Verification failed");
+                      } finally {
+                        setFieldVerifying(false);
+                      }
+                    }}
+                    disabled={!fieldPassword || fieldVerifying}
+                  >
+                    {fieldVerifying ? "Verifying..." : "Reveal"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,63 +1,59 @@
 const express = require("express");
 const Employee = require("../models/Employee");
 const PromotionRequest = require("../models/Promotion");
+const TimeTracking = require("../models/TimeTracking");
 
 const router = express.Router();
 
-// Admin creates a promotion request for an employee by employeeId
+const MINIMUM_SALARY = 30000; // Base minimum salary
+const PROMOTION_INCREASE = 0.15; // 15% increase
+
 router.post("/request/:employeeId", async (req, res) => {
   const { employeeId } = req.params;
-  const { newPosition, newRole, remarks, requestedBy } = req.body;
-
-  console.log("🔍 Incoming promotion request:");
-  console.log("Params - employeeId:", employeeId);
-  console.log(
-    "Body - newPosition:",
-    newPosition,
-    "| newRole:",
-    newRole,
-    "| remarks:",
-    remarks,
-    "| requestedBy:",
-    requestedBy
-  );
+  const { oldPosition, newPosition, remarks, requestedBy } = req.body;
 
   try {
     const employee = await Employee.findOne({ employeeId });
 
     if (!employee) {
-      console.log("❌ Employee not found with ID:", employeeId);
       return res.status(404).json({ message: "Employee not found." });
     }
 
-    console.log("✅ Found Employee:", {
-      fullname: employee.fullname,
-      position: employee.position,
-      role: employee.role,
-      hiredDate: employee.createdAt, // debug
-    });
-    
     const now = new Date();
+    
+    // Calculate salaries
+    const currentSalary = employee.salary || MINIMUM_SALARY;
+    const newSalary = Math.round(currentSalary * (1 + PROMOTION_INCREASE));
 
     const promotion = new PromotionRequest({
       employeeId: employee.employeeId,
-      oldPosition: employee.position,
-      newPosition,
+      oldPosition: oldPosition || employee.position, 
+      newPosition, 
       oldRole: employee.role,
+      oldSalary: currentSalary,
+      newSalary: newSalary,
       remarks,
       requestedBy,
-      hiredDate: employee.createdAt, 
+      hiredDate: employee.createdAt,
       positionEndedAt: now,
       positionEffectiveAt: now,
     });
 
-    await promotion.save();
+    // Update employee with new position and salary
+    employee.position = newPosition;
+    employee.salary = newSalary;
+    
+    await Promise.all([
+      promotion.save(),
+      employee.save()
+    ]);
 
-    console.log("📦 Promotion request saved:", promotion);
-
-    res.status(201).json({ message: "Promotion request created.", promotion });
+    res.status(201).json({ 
+      message: "Promotion request created successfully.",
+      promotionId: promotion._id 
+    });
   } catch (error) {
-    console.error("🔥 Error requesting promotion:", error);
+    console.error("Error requesting promotion:", error);
     res.status(500).json({ message: "Server error." });
   }
 });
@@ -165,7 +161,9 @@ router.put("/review/:promotionId", async (req, res) => {
 
     // If approved, update the employee's position and role
     if (formattedStatus === "Approved") {
-    const employee = await Employee.findOne({ employeeId: promotion.employeeId });
+      const employee = await Employee.findOne({
+        employeeId: promotion.employeeId,
+      });
       if (!employee) {
         console.warn(
           "[WARN] Employee not found for promotion:",
@@ -210,10 +208,47 @@ router.put("/review/:promotionId", async (req, res) => {
 router.get("/history/:employeeId", async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const history = await PromotionRequest.find({ employeeId }).sort({ requestedAt: -1 });
+    const history = await PromotionRequest.find({ employeeId }).sort({
+      requestedAt: -1,
+    });
     res.json(history);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch promotion history" });
+  }
+});
+
+router.get("/performance/:employeeId", async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const timeTrackings = await TimeTracking.find({
+      employee_id: employeeId,
+      createdAt: { $gte: thirtyDaysAgo }
+    });
+
+    const performance = {
+      totalDays: timeTrackings.length,
+      onTimeCount: timeTrackings.filter(t => t.entry_status === 'on_time').length,
+      lateCount: timeTrackings.filter(t => t.entry_status === 'late').length,
+      absentCount: timeTrackings.filter(t => t.entry_status === 'absent').length,
+      totalHours: timeTrackings.reduce((acc, curr) => acc + parseFloat(curr.total_hours), 0),
+      overtimeHours: timeTrackings.reduce((acc, curr) => acc + parseFloat(curr.overtime_hours), 0),
+      punctualityRate: 0,
+      attendanceRate: 0
+    };
+
+    // Calculate rates
+    if (performance.totalDays > 0) {
+      performance.punctualityRate = (performance.onTimeCount / performance.totalDays) * 100;
+      performance.attendanceRate = ((performance.totalDays - performance.absentCount) / performance.totalDays) * 100;
+    }
+
+    res.json(performance);
+  } catch (error) {
+    console.error("Error fetching performance data:", error);
+    res.status(500).json({ message: "Error fetching performance data" });
   }
 });
 

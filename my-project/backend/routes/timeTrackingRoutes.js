@@ -95,17 +95,23 @@ const markAbsents = async () => {
       });
       if (hasLeave) continue;
 
-      const holidayInfo = isHoliday(dateOnly); // 
+      const holidayInfo = isHoliday(dateOnly);
       if (holidayInfo) continue;
 
+      // Generate time_tracking_id for absent entry
+      const monthYear = `${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getFullYear()}`;
+      const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const time_tracking_id = `TRID-${monthYear}-${randomStr}`;
+
       const absentEntry = new TimeTracking({
+        time_tracking_id, // Add this line
         employee_id: employeeId,
         employee_fullname: employee.fullname,
         position: employee.position,
         time_in: null,
         entry_type: "System Entry",
         entry_status: "absent",
-        status: "active",
+        status: "absent",
         remarks: "Marked absent due to no time-in",
         shift_name: sched.shift_name || null,
         shift_period: null,

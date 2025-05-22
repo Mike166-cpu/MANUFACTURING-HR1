@@ -175,7 +175,7 @@ const UploadRequirements = () => {
         );
         if (existingDoc) {
           await axios.put(
-            `${APIBASED_URl}/api/uploaded-documents/${existingDoc._id}`,
+            `${APIBASED_URL}/api/uploaded-documents/${existingDoc._id}`,
             {
               document_url: uploadFile.secure_url,
               request_id: selectedRequestId,

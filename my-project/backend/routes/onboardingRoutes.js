@@ -137,7 +137,7 @@ router.post("/accept", async (req, res) => {
     await newUser.save();
 
     // Create onboarding record
-    const onboardingRecord = new Onboarding({
+    const onboardingRecord = new Employee({
       employeeId,
       fullname: applicant.fullname,
       email: applicant.email,
@@ -161,7 +161,6 @@ router.post("/accept", async (req, res) => {
 
     await onboardingRecord.save();
 
-    // Send login credentials
     await sendLoginEmail(applicant.email, generatedPassword);
 
     res.status(201).json({

@@ -77,7 +77,9 @@ const EmployeeSchedule = () => {
   // Modify the schedules fetch to be a function we can reuse
   const fetchSchedules = async () => {
     try {
-      const response = await axios.get(`${APIBASE_URL}/api/schedule/all-schedules`);
+      const response = await axios.get(
+        `${APIBASE_URL}/api/schedule/all-schedules`
+      );
       setSchedules(response.data);
       console.log("Fetched Schedules:", response.data);
       return response.data; // Return the data for immediate use
@@ -97,7 +99,9 @@ const EmployeeSchedule = () => {
   useEffect(() => {
     const fetchShiftSchedule = async () => {
       try {
-        const response = await axios.get(`${APIBASE_URL}/api/schedule/fetch-shift`);
+        const response = await axios.get(
+          `${APIBASE_URL}/api/schedule/fetch-shift`
+        );
         setSchedule(response.data);
         console.log("Shifting Schedule", response.data);
       } catch (error) {
@@ -134,7 +138,9 @@ const EmployeeSchedule = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${APIBASE_URL}/api/onboarding/employee`);
+        const response = await axios.get(
+          `${APIBASE_URL}/api/onboarding/employee`
+        );
         setEmployees(response.data);
         console.log("Fetched Employees:", response.data);
       } catch (error) {
@@ -163,7 +169,9 @@ const EmployeeSchedule = () => {
       setError(null);
 
       const [scheduleResponse, shiftsResponse] = await Promise.all([
-        axios.get(`${APIBASE_URL}/api/schedule/view-schedule/${employee.employeeId}`),
+        axios.get(
+          `${APIBASE_URL}/api/schedule/view-schedule/${employee.employeeId}`
+        ),
         axios.get(`${APIBASE_URL}/api/schedule/fetch-shift`),
       ]);
 
@@ -206,7 +214,9 @@ const EmployeeSchedule = () => {
 
       // Get both schedule and shifts data
       const [scheduleResponse, shiftsResponse] = await Promise.all([
-        axios.get(`${APIBASE_URL}/api/schedule/view-schedule/${employee.employeeId}`),
+        axios.get(
+          `${APIBASE_URL}/api/schedule/view-schedule/${employee.employeeId}`
+        ),
         axios.get(`${APIBASE_URL}/api/schedule/fetch-shift`),
       ]);
 
@@ -325,65 +335,74 @@ const EmployeeSchedule = () => {
   // Replace existing handlePrintSchedule function
   const handlePrintSchedule = () => {
     if (!selectedEmployeeSchedule) return;
-  
+
     const doc = new jsPDF();
-    
+
     // Add company header with logo (if available)
     doc.setFontSize(24);
     doc.setTextColor(41, 128, 185);
     doc.text("Employee Schedule", 105, 20, { align: "center" });
-    
+
     // Add line separator
     doc.setDrawColor(41, 128, 185);
     doc.line(20, 25, 190, 25);
-    
+
     // Add employee information
     doc.setFontSize(12);
     doc.setTextColor(52, 73, 94);
-    
+
     const employeeInfo = [
       ["Employee ID:", selectedEmployeeSchedule.employeeId],
-      ["Name:", `${selectedEmployeeSchedule.firstName} ${selectedEmployeeSchedule.lastName}`],
+      [
+        "Name:",
+        `${selectedEmployeeSchedule.firstName} ${selectedEmployeeSchedule.lastName}`,
+      ],
       ["Department:", selectedEmployeeSchedule.department],
       ["Position:", selectedEmployeeSchedule.role],
       ["Email:", selectedEmployeeSchedule.email],
     ];
-  
+
     doc.autoTable({
       startY: 35,
       head: [["Employee Information", ""]],
       body: employeeInfo,
       theme: "grid",
-      headStyles: { 
+      headStyles: {
         fillColor: [41, 128, 185],
         fontSize: 12,
-        fontStyle: 'bold',
-        halign: 'center'
+        fontStyle: "bold",
+        halign: "center",
       },
       styles: {
         cellPadding: 5,
         fontSize: 10,
-        lineColor: [200, 200, 200]
+        lineColor: [200, 200, 200],
       },
       columnStyles: {
         0: { fontStyle: "bold", cellWidth: 40 },
-        1: { cellWidth: 100 }
+        1: { cellWidth: 100 },
       },
     });
-  
+
     // Add schedule information
     const scheduleInfo = [
       ["Shift Type:", selectedEmployeeSchedule.shiftname],
-      ["Working Hours:", `${selectedEmployeeSchedule.startTime} - ${selectedEmployeeSchedule.endTime}`],
+      [
+        "Working Hours:",
+        `${selectedEmployeeSchedule.startTime} - ${selectedEmployeeSchedule.endTime}`,
+      ],
     ];
-  
-    if (selectedEmployeeSchedule.breakStart && selectedEmployeeSchedule.breakEnd) {
+
+    if (
+      selectedEmployeeSchedule.breakStart &&
+      selectedEmployeeSchedule.breakEnd
+    ) {
       scheduleInfo.push([
         "Break Time:",
         `${selectedEmployeeSchedule.breakStart} - ${selectedEmployeeSchedule.breakEnd}`,
       ]);
     }
-  
+
     doc.autoTable({
       startY: doc.lastAutoTable.finalY + 10,
       head: [["Schedule Details", ""]],
@@ -392,51 +411,71 @@ const EmployeeSchedule = () => {
       headStyles: {
         fillColor: [41, 128, 185],
         fontSize: 12,
-        fontStyle: 'bold',
-        halign: 'center'
+        fontStyle: "bold",
+        halign: "center",
       },
       styles: {
         cellPadding: 5,
         fontSize: 10,
-        lineColor: [200, 200, 200]
+        lineColor: [200, 200, 200],
       },
       columnStyles: {
         0: { fontStyle: "bold", cellWidth: 40 },
-        1: { cellWidth: 100 }
+        1: { cellWidth: 100 },
       },
     });
-  
+
     // Add weekly schedule with improved styling
-    const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-    const weeklyScheduleData = weekDays.map(day => {
+    const weekDays = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+    const weeklyScheduleData = weekDays.map((day) => {
       const isWorkDay = selectedEmployeeSchedule.days.includes(day);
       return [
         day,
         isWorkDay ? "Work Day" : "Day Off",
-        isWorkDay ? new Date(`1970-01-01T${selectedEmployeeSchedule.startTime}`).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        }) : "-",
-        isWorkDay ? new Date(`1970-01-01T${selectedEmployeeSchedule.endTime}`).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        }) : "-",
-        isWorkDay && selectedEmployeeSchedule.breakStart ? 
-          `${new Date(`1970-01-01T${selectedEmployeeSchedule.breakStart}`).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-          })} - ${new Date(`1970-01-01T${selectedEmployeeSchedule.breakEnd}`).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-          })}` : 
-          "-"
+        isWorkDay
+          ? new Date(
+              `1970-01-01T${selectedEmployeeSchedule.startTime}`
+            ).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : "-",
+        isWorkDay
+          ? new Date(
+              `1970-01-01T${selectedEmployeeSchedule.endTime}`
+            ).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : "-",
+        isWorkDay && selectedEmployeeSchedule.breakStart
+          ? `${new Date(
+              `1970-01-01T${selectedEmployeeSchedule.breakStart}`
+            ).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })} - ${new Date(
+              `1970-01-01T${selectedEmployeeSchedule.breakEnd}`
+            ).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })}`
+          : "-",
       ];
     });
-  
+
     doc.autoTable({
       startY: doc.lastAutoTable.finalY + 10,
       head: [["Day", "Status", "Start Time", "End Time", "Break Time"]],
@@ -445,17 +484,17 @@ const EmployeeSchedule = () => {
       headStyles: {
         fillColor: [41, 128, 185],
         fontSize: 11,
-        fontStyle: 'bold',
-        halign: 'center'
+        fontStyle: "bold",
+        halign: "center",
       },
       styles: {
         cellPadding: 5,
         fontSize: 10,
         lineColor: [200, 200, 200],
-        halign: 'center'
+        halign: "center",
       },
     });
-  
+
     // Add footer
     const printDate = new Date().toLocaleDateString("en-US", {
       year: "numeric",
@@ -464,30 +503,34 @@ const EmployeeSchedule = () => {
     });
     doc.setFontSize(10);
     doc.setTextColor(128, 128, 128);
-    doc.text(`Generated on: ${printDate}`, 20, doc.internal.pageSize.height - 10);
-  
+    doc.text(
+      `Generated on: ${printDate}`,
+      20,
+      doc.internal.pageSize.height - 10
+    );
+
     // Return the doc for preview
     return doc;
   };
-  
+
   // Add this new function for actual printing
   const handlePrint = () => {
     const doc = handlePrintSchedule();
     doc.save(`schedule-${selectedEmployeeSchedule.employeeId}.pdf`);
   };
-  
+
   // Add this JSX for the preview modal just before the return statement
   const printPreviewModal = showPrintPreview && (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowPrintPreview(false)}></div>
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50"
+        onClick={() => setShowPrintPreview(false)}
+      ></div>
       <div className="relative bg-white rounded-lg w-[90%] max-h-[90vh] overflow-y-auto p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Print Preview</h2>
           <div className="flex gap-2">
-            <button
-              onClick={handlePrint}
-              className="btn btn-primary"
-            >
+            <button onClick={handlePrint} className="btn btn-primary">
               <FaPrint className="mr-2" /> Print
             </button>
             <button
@@ -498,10 +541,10 @@ const EmployeeSchedule = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="bg-gray-100 p-4 rounded-lg">
           <iframe
-            src={handlePrintSchedule().output('datauristring')}
+            src={handlePrintSchedule().output("datauristring")}
             className="w-full h-[70vh]"
             title="Print Preview"
           />
@@ -523,7 +566,10 @@ const EmployeeSchedule = () => {
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
   const indexOfLastItem = currentPage * itemsPerPage;
-  const paginatedEmployees = filteredEmployees.slice(indexOfFirstItem, indexOfLastItem);
+  const paginatedEmployees = filteredEmployees.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
 
   // Add this function before tableContent
   const toggleRowSelection = (employeeId) => {
@@ -569,16 +615,20 @@ const EmployeeSchedule = () => {
                       : ""
                   } hover:bg-gray-50`}
                 >
-                  <td className="p-3">
+                  <td className="p-3 text-sm">
                     <input
                       type="checkbox"
                       checked={selectedRows.includes(employee.employeeId)}
                       onChange={() => toggleRowSelection(employee.employeeId)}
                     />
                   </td>
-                  <td className="p-3 whitespace-nowrap">{employee.employeeId}</td>
+                  <td className="p-3 whitespace-nowrap">
+                    {employee.employeeId}
+                  </td>
                   <td className="p-3 whitespace-nowrap">{employee.fullname}</td>
-                  <td className="p-3 whitespace-nowrap">{employee.department}</td>
+                  <td className="p-3 whitespace-nowrap">
+                    {employee.department}
+                  </td>
                   <td className="p-3 whitespace-nowrap">{employee.email}</td>
                   <td className="p-3 whitespace-nowrap">
                     <div className="flex space-x-2">
@@ -618,21 +668,21 @@ const EmployeeSchedule = () => {
               <tr>
                 <td colSpan="6" className="text-center py-4">
                   <div className="flex flex-col items-center justify-center gap-2 p-4 text-gray-500">
-                    <svg 
+                    <svg
                       className="w-12 h-12 text-gray-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                         strokeWidth={1.5}
-                        d="M20 12H4M8 16l-4-4m0 0l4-4m-4 4h16" 
+                        d="M20 12H4M8 16l-4-4m0 0l4-4m-4 4h16"
                       />
                     </svg>
                     <p>No employees found matching your search criteria</p>
-                    <button 
+                    <button
                       onClick={() => setSearchTerm("")}
                       className="text-blue-500 hover:text-blue-700 text-sm mt-2"
                     >
@@ -916,11 +966,13 @@ const EmployeeSchedule = () => {
           </div>
 
           <div className="mt-6">
-            <h3 className="font-bold text-lg mb-4 text-gray-800">Weekly Schedule</h3>
+            <h3 className="font-bold text-lg mb-4 text-gray-800">
+              Weekly Schedule
+            </h3>
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
-                  <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
+                  <tr className="bg-gradient-to-r from-blue-600 to-blue-500 text">
                     <th className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider rounded-tl-lg">
                       Day
                     </th>
@@ -940,7 +992,10 @@ const EmployeeSchedule = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {weeklySchedule.map((day) => (
-                    <tr key={day.day} className="hover:bg-gray-50 transition-colors duration-200">
+                    <tr
+                      key={day.day}
+                      className="hover:bg-gray-50 transition-colors duration-200"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {day.day}
                       </td>
@@ -948,43 +1003,51 @@ const EmployeeSchedule = () => {
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${
                             day.isWorking
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {day.isWorking ? 'Work Day' : 'Day Off'}
+                          {day.isWorking ? "Work Day" : "Day Off"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {day.isWorking
-                          ? new Date(`1970-01-01T${day.startTime}`).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
+                          ? new Date(
+                              `1970-01-01T${day.startTime}`
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
                               hour12: true,
                             })
-                          : '-'}
+                          : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {day.isWorking
-                          ? new Date(`1970-01-01T${day.endTime}`).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
+                          ? new Date(
+                              `1970-01-01T${day.endTime}`
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
                               hour12: true,
                             })
-                          : '-'}
+                          : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {day.isWorking && day.breakStart
-                          ? `${new Date(`1970-01-01T${day.breakStart}`).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
+                          ? `${new Date(
+                              `1970-01-01T${day.breakStart}`
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
                               hour12: true,
-                            })} - ${new Date(`1970-01-01T${day.breakEnd}`).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
+                            })} - ${new Date(
+                              `1970-01-01T${day.breakEnd}`
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
                               hour12: true,
                             })}`
-                          : '-'}
+                          : "-"}
                       </td>
                     </tr>
                   ))}
@@ -995,6 +1058,14 @@ const EmployeeSchedule = () => {
         </div>
       </div>
     );
+  };
+
+  const formatTo12Hour = (timeStr) => {
+    const [hour, minute] = timeStr.split(":");
+    const hourNum = parseInt(hour, 10);
+    const ampm = hourNum >= 12 ? "PM" : "AM";
+    const adjustedHour = hourNum % 12 || 12;
+    return `${adjustedHour}:${minute} ${ampm}`;
   };
 
   return (
@@ -1093,8 +1164,9 @@ const EmployeeSchedule = () => {
                                 <span className="font-medium text-gray-600 w-32">
                                   Working Hours:
                                 </span>
-                                <span className="text-gray-800">
-                                  {shift.startTime} - {shift.endTime}
+                                <span className="text-gray-800 text-sm">
+                                  {formatTo12Hour(shift.startTime)} -{" "}
+                                  {formatTo12Hour(shift.endTime)}
                                 </span>
                               </p>
                               {shift.breakStart && shift.breakEnd && (
@@ -1102,8 +1174,9 @@ const EmployeeSchedule = () => {
                                   <span className="font-medium text-gray-600 w-32">
                                     Break Time:
                                   </span>
-                                  <span className="text-gray-800">
-                                    {shift.breakStart} - {shift.breakEnd}
+                                  <span className="text-gray-800 text-sm">
+                                    {formatTo12Hour(shift.breakStart)} -{" "}
+                                    {formatTo12Hour(shift.breakEnd)}
                                   </span>
                                 </p>
                               )}
@@ -1166,6 +1239,7 @@ const EmployeeSchedule = () => {
             </div>
           )}
           {/* END OF MAIN CONTENT */}
+
           {viewScheduleModal}
           {printPreviewModal}
         </div>

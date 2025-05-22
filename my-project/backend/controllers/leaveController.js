@@ -218,52 +218,88 @@ exports.fileLeave = async (req, res) => {
 exports.updateLeaveStatus = async (req, res) => {
   try {
     const { leaveId } = req.params;
-    const { status } = req.body;
+    const { status, updatedBy } = req.body;
 
     const leave = await Leave.findOne({ leave_id: leaveId });
     if (!leave) {
       return res.status(404).json({ message: "Leave request not found" });
     }
 
-    if (status === "Approved") {
-      const leaveBalance = await LeaveBalance.findOne({ employeeId: leave.employeeId });
-      if (!leaveBalance) {
-        return res.status(404).json({ message: "Leave balance not found" });
-      }
-      console.log(
-        `Approving ${leave.leave_type} for employee ${leave.employeeId}.`,
-        `Paid: ${leave.paid_days}, Unpaid: ${leave.unpaid_days}, Payment status: ${leave.payment_status}`
-      );
+    // Calculate the actual number of days between dates
+    const startDate = new Date(leave.start_date);
+    const endDate = new Date(leave.end_date);
+    const daysDifference =
+      Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-      // Optional validation: warn if paid days are > current balance (e.g., admin manually edited balance)
+    // Validate maternity leave duration
+    if (leave.leave_type === "Maternity Leave" && daysDifference > 105) {
+      return res.status(400).json({
+        message: `Requested leave duration (${daysDifference} days) exceeds maximum allowed maternity leave (105 days)`,
+      });
+    }
+
+    const leaveBalance = await LeaveBalance.findOne({
+      employeeId: leave.employeeId,
+    });
+    if (!leaveBalance) {
+      return res.status(404).json({ message: "Leave balance not found" });
+    }
+
+    if (status === "Approved") {
       const balanceField = getBalanceField(leave.leave_type);
-      if (balanceField && leave.paid_days > leaveBalance[balanceField]) {
-        return res.status(400).json({ 
-          message: `Leave is marked as paid, but current ${leave.leave_type} balance is too low.`
-        });
+
+      // Special handling for maternity leave
+      if (leave.leave_type === "Maternity Leave") {
+        if (daysDifference <= 105) {
+          leave.paid_days = daysDifference;
+          leave.unpaid_days = 0;
+          leave.payment_status = "Paid";
+          leaveBalance.maternity_leave = Math.max(
+            0,
+            leaveBalance.maternity_leave - daysDifference
+          );
+        }
+      } else {
+        // Handle other leave types
+        const availableBalance = leaveBalance[balanceField];
+        if (daysDifference <= availableBalance) {
+          leave.paid_days = daysDifference;
+          leave.unpaid_days = 0;
+          leave.payment_status = "Paid";
+          leaveBalance[balanceField] -= daysDifference;
+        } else {
+          leave.paid_days = availableBalance;
+          leave.unpaid_days = daysDifference - availableBalance;
+          leave.payment_status =
+            availableBalance > 0 ? "Partially Paid" : "Unpaid";
+          leaveBalance[balanceField] = 0;
+        }
       }
+
+      await leaveBalance.save();
     }
 
     leave.status = status;
+    leave.updated_by = updatedBy;
+    leave.updated_at = new Date();
     await leave.save();
-
-    // Notify employee
-    if (global.io) {
-      global.io.emit("notification-employee", {
-        message: `Your leave request has been ${status.toLowerCase()}`,
-        request_id: leaveId,
-        type: "leave_status_update",
-        status: status,
-      });
-    }
 
     res.status(200).json({
       message: `Leave request ${status.toLowerCase()} successfully`,
       leave,
+      paymentDetails: {
+        paidDays: leave.paid_days,
+        unpaidDays: leave.unpaid_days,
+        paymentStatus: leave.payment_status,
+        totalDays: daysDifference,
+      },
     });
   } catch (error) {
     console.error("Error updating leave status:", error);
-    res.status(500).json({ message: "Error updating leave status", error: error.message });
+    res.status(500).json({
+      message: "Error updating leave status",
+      error: error.message,
+    });
   }
 };
 
@@ -278,11 +314,10 @@ function getBalanceField(leaveType) {
     "Maternity Leave": "maternity_leave",
     "Paternity Leave": "paternity_leave",
     "Solo Parent Leave": "solo_parent_leave",
-    "Special Leave for Women": "special_leave_for_women"
+    "Special Leave for Women": "special_leave_for_women",
   };
   return map[leaveType] || null;
 }
-
 
 // Get all leave requests
 exports.getAllLeaves = async (req, res) => {

@@ -126,6 +126,7 @@ const loginUser = async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        position: user.position,
         role: user.role,
         accessLevel:
           user.role === "superadmin"
@@ -171,6 +172,7 @@ const verifyOtp = async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
+        position: user.position,
       },
     });
   } catch (error) {

@@ -291,9 +291,9 @@ const EmployeeDashboard = () => {
 
                   <div className="md:ml-6 text-center md:text-left">
                     <h2 className="text-xl font-bold text-gray-800">
-                      {employeeFirstName} {employeeLastName}
+                      {profileImage.fullname}
                     </h2>
-                    <p className="text-gray-600 mb-1">{position}</p>
+                    <span>{profileImage.position}</span>
 
                     <button
                       onClick={goToProfile}

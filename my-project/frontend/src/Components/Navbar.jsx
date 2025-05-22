@@ -4,9 +4,9 @@ import { MdLogout } from "react-icons/md";
 import { IoNotificationsOutline } from "react-icons/io5";
 import { io } from "socket.io-client";
 import { GiHamburgerMenu } from "react-icons/gi";
+import { IoSettingsOutline } from "react-icons/io5";
 
 const socket = io("http://localhost:7685");
-
 
 const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
   const [initials, setInitials] = useState("");
@@ -16,13 +16,24 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
   const firstName = localStorage.getItem("firstName");
   const lastName = localStorage.getItem("lastName");
   const userRole = localStorage.getItem("role");
+  const position = localStorage.getItem("position") || "Not Specified";
+  
+  
+  const [userPosition, setUserPosition] = useState(position);
+
+  useEffect(() => {
+    const storedPosition = localStorage.getItem("position");
+    if (storedPosition) {
+      setUserPosition(storedPosition);
+    }
+  }, []);
 
   const [notifications, setNotifications] = useState(() => {
     const savedNotifications = localStorage.getItem("notifications");
     if (savedNotifications) {
       // Filter to only show admin notifications
       const parsedNotifications = JSON.parse(savedNotifications);
-      return parsedNotifications.filter(notif => notif.dashboard === 'admin');
+      return parsedNotifications.filter((notif) => notif.dashboard === "admin");
     }
     return [];
   });
@@ -33,6 +44,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
     const firstName = localStorage.getItem("firstName");
     const lastName = localStorage.getItem("lastName");
     const userRole = localStorage.getItem("role");
+   
 
     if (firstName && lastName) {
       const initials = `${firstName[0]}${lastName[0]}`.toUpperCase();
@@ -41,14 +53,17 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
   }, []);
 
   const APIBased_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const LOCAL = "http://localhost:7685";
 
   useEffect(() => {
     const handleAdminNotification = (notif) => {
       // Only process notifications meant for admin dashboard
-      if (notif.dashboard === 'admin') {
+      if (notif.dashboard === "admin") {
         console.log("New admin notification received:", notif);
         setNotifications((prev) => {
-          const updatedNotifications = [notif, ...prev].filter(n => n.dashboard === 'admin');
+          const updatedNotifications = [notif, ...prev].filter(
+            (n) => n.dashboard === "admin"
+          );
           localStorage.setItem(
             "notifications",
             JSON.stringify(updatedNotifications)
@@ -67,7 +82,6 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
     };
   }, []);
 
-
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
     localStorage.removeItem("firstName");
@@ -84,9 +98,15 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
       setHasNewNotifications(false);
       localStorage.setItem("hasNewNotifications", JSON.stringify(false));
       // Mark all notifications as read
-      const updatedNotifications = notifications.map(notif => ({ ...notif, read: true }));
+      const updatedNotifications = notifications.map((notif) => ({
+        ...notif,
+        read: true,
+      }));
       setNotifications(updatedNotifications);
-      localStorage.setItem("notifications", JSON.stringify(updatedNotifications));
+      localStorage.setItem(
+        "notifications",
+        JSON.stringify(updatedNotifications)
+      );
     }
   };
 
@@ -96,6 +116,9 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
     setShowNotifications(false);
   };
 
+  const goToSettings = () => {
+    navigate('/user-settings');
+  };
 
   return (
     <div
@@ -120,11 +143,12 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
               className="relative btn btn-ghost btn-circle"
             >
               <IoNotificationsOutline size={24} />
-              {notifications.length > 0 && notifications.some(notif => !notif.read) && (
-                <span className="badge badge-error badge-xs absolute -top-1 -right-1">
-                  {notifications.filter(notif => !notif.read).length}
-                </span>
-              )}
+              {notifications.length > 0 &&
+                notifications.some((notif) => !notif.read) && (
+                  <span className="badge badge-error badge-xs absolute -top-1 -right-1">
+                    {notifications.filter((notif) => !notif.read).length}
+                  </span>
+                )}
             </button>
 
             {showNotifications && (
@@ -145,7 +169,9 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
                     notifications.map((notif, index) => (
                       <li
                         key={index}
-                        className={`p-3 hover:bg-gray-100 transition-all border-b flex flex-col ${notif.read ? 'bg-gray-200' : ''}`}
+                        className={`p-3 hover:bg-gray-100 transition-all border-b flex flex-col ${
+                          notif.read ? "bg-gray-200" : ""
+                        }`}
                       >
                         <span>{notif.message}</span>
                         <span className="text-sm text-gray-500">
@@ -192,6 +218,10 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
             className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
           >
             <li>
+              <a onClick={goToSettings} style={{ cursor: "pointer" }}>
+                <IoSettingsOutline size={"18px"} />
+                Settings
+              </a>
               <a onClick={handleLogout} className="text-red-600">
                 <MdLogout size={"18px"} />
                 Logout
@@ -204,7 +234,9 @@ const Navbar = ({ toggleSidebar, isSidebarOpen, employee_id }) => {
         <div>
           <span className="text-xs font-medium">
             {firstName} <br />
-            <span className="block text-gray-400 capitalize">{userRole}</span>
+            <span className="block text-gray-400 capitalize">
+              {position}
+            </span>
           </span>
         </div>
       </div>

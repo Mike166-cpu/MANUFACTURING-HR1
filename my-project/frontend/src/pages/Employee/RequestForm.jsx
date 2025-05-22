@@ -276,9 +276,182 @@ const RequestForm = () => {
     }
   };
 
+  // Liveness state
+  const [livenessPassed, setLivenessPassed] = useState(false);
+  const [livenessChecking, setLivenessChecking] = useState(false);
+  const [livenessError, setLivenessError] = useState(null);
+
+  const [livenessTimer, setLivenessTimer] = useState(10);
+  const [livenessAttempt, setLivenessAttempt] = useState(1);
+  const [mouthOpenProgress, setMouthOpenProgress] = useState(0); 
+  const MAX_ATTEMPTS = 3;
+  const TIMER_DURATION = 10; 
+
+
+  const calculateMAR = (mouth) => {
+   
+    const A = Math.hypot(mouth[13].x - mouth[19].x, mouth[13].y - mouth[19].y); // 62-68
+    const B = Math.hypot(mouth[14].x - mouth[18].x, mouth[14].y - mouth[18].y); // 63-67
+    const C = Math.hypot(mouth[15].x - mouth[17].x, mouth[15].y - mouth[17].y); // 64-66
+    const D = Math.hypot(mouth[12].x - mouth[16].x, mouth[12].y - mouth[16].y); // 61-65
+    if (D === 0) return 0;
+    return (A + B + C) / (2.0 * D);
+  };
+
+  // Liveness check: require 2 mouth opens, with timer and attempts
+  const runLivenessCheck = React.useCallback(async () => {
+    setLivenessChecking(true);
+    setLivenessError(null);
+    setLivenessPassed(false);
+    setMouthOpenProgress(0);
+
+    let mouthOpenCount = 0;
+    let tries = 0;
+    let lastMAR = 0.3;
+
+    const MAR_OPEN = 0.6;
+    const MAR_CLOSED = 0.3;
+    const MAX_TRIES = 240;
+    const SLEEP_INTERVAL = 100;
+
+    // Timer logic
+    let timer = TIMER_DURATION;
+    setLivenessTimer(timer);
+
+    // Timer interval
+    let timerInterval = setInterval(() => {
+      timer -= 1;
+      setLivenessTimer(timer);
+    }, 1000);
+
+    let timedOut = false;
+    // Timeout promise
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        timedOut = true;
+        clearInterval(timerInterval);
+        setLivenessTimer(0);
+        resolve(false);
+      }, TIMER_DURATION * 1000);
+    });
+
+    // Liveness detection promise
+    const livenessPromise = (async () => {
+      while (mouthOpenCount < 2 && tries < MAX_TRIES && !timedOut) {
+        tries++;
+        if (!webcamRef.current?.video) {
+          await new Promise((r) => setTimeout(r, SLEEP_INTERVAL));
+          continue;
+        }
+        const video = webcamRef.current.video;
+        try {
+          const detection = await faceapi
+            .detectSingleFace(
+              video,
+              new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })
+            )
+            .withFaceLandmarks();
+
+          if (!detection || !detection.landmarks) {
+            await new Promise((r) => setTimeout(r, SLEEP_INTERVAL));
+            continue;
+          }
+
+          const mouth = detection.landmarks.getMouth();
+          if (!mouth || mouth.length < 20) {
+            await new Promise((r) => setTimeout(r, SLEEP_INTERVAL));
+            continue;
+          }
+
+          const mar = calculateMAR(mouth);
+
+          if (lastMAR < MAR_CLOSED && mar > MAR_OPEN) {
+            mouthOpenCount++;
+            setMouthOpenProgress(mouthOpenCount); // update progress
+            let closedDetected = false;
+            let closeTries = 0;
+            while (!closedDetected && closeTries < 30) {
+              closeTries++;
+              await new Promise((r) => setTimeout(r, 100));
+              const detection2 = await faceapi
+                .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks();
+              if (detection2 && detection2.landmarks) {
+                const mouth2 = detection2.landmarks.getMouth();
+                if (mouth2 && mouth2.length >= 20) {
+                  const mar2 = calculateMAR(mouth2);
+                  if (mar2 < MAR_CLOSED) {
+                    closedDetected = true;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          lastMAR = mar;
+        } catch (e) {
+          console.error("❌ Detection error:", e);
+        }
+        await new Promise((r) => setTimeout(r, SLEEP_INTERVAL));
+      }
+      clearInterval(timerInterval);
+      return mouthOpenCount >= 2;
+    })();
+
+    // Race liveness and timeout
+    const result = await Promise.race([livenessPromise, timeoutPromise]);
+
+    if (result) {
+      setLivenessPassed(true);
+      setLivenessChecking(false);
+      setLivenessError(null);
+      setLivenessTimer(TIMER_DURATION);
+      setLivenessAttempt(1);
+      setMouthOpenProgress(0);
+      return true;
+    } else {
+      setLivenessPassed(false);
+      setLivenessChecking(false);
+      setLivenessError(
+        "Mouth open gesture not detected in time. Please open your mouth wide (like saying 'ahh') twice in front of the camera."
+      );
+      setLivenessTimer(TIMER_DURATION);
+      setMouthOpenProgress(0);
+      return false;
+    }
+  }, []);
+
+  // Modified handleFaceVerification to include liveness with attempts
   const handleFaceVerification = async () => {
     setVerifying(true);
     try {
+      let success = false;
+      let attempt = livenessAttempt;
+      while (attempt <= MAX_ATTEMPTS && !success) {
+        setLivenessAttempt(attempt);
+        setLivenessTimer(TIMER_DURATION);
+        const livenessOk = await runLivenessCheck();
+        if (livenessOk) {
+          success = true;
+          break;
+        } else if (attempt < MAX_ATTEMPTS) {
+          // Wait a moment before next attempt
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+        attempt++;
+      }
+      setLivenessAttempt(1);
+
+      if (!success) {
+        Swal.fire({
+          title: "Liveness Check Failed",
+          text: "Liveness check failed after 3 attempts. Please try again.",
+          icon: "error",
+        });
+        setVerifying(false);
+        return;
+      }
+
       const faceDescriptor = await getFaceDescriptorFromWebcam();
       const isVerified = await verifyFaceBeforeSubmit(faceDescriptor);
       if (isVerified) {
@@ -781,10 +954,46 @@ const RequestForm = () => {
                     <h3 className="font-semibold text-lg mb-2">
                       Face Verification
                     </h3>
-                    <p className="mb-2 text-gray-600 text-sm text-center">
-                      Please show your face clearly in the camera preview below
-                      and click "Verify".
-                    </p>
+                    {!livenessPassed && (
+                      <div className="mb-2 text-blue-600 text-sm text-center">
+                        Please <b>open your mouth wide</b> (like saying "ahh") <b>twice</b> to pass the liveness check before face
+                        verification.
+                        <br />
+                        <span>
+                          Attempt {livenessAttempt} of {MAX_ATTEMPTS} &nbsp;|&nbsp; Time left: <b>{livenessTimer}s</b>
+                        </span>
+                        <div className="flex justify-center items-center gap-2 mt-2">
+                          <span
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                              mouthOpenProgress >= 1
+                                ? "bg-green-400 border-green-600 text-white"
+                                : "bg-gray-200 border-gray-400 text-gray-400"
+                            }`}
+                            title="First mouth open"
+                          >
+                            {mouthOpenProgress >= 1 ? "✓" : "1"}
+                          </span>
+                          <span
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                              mouthOpenProgress >= 2
+                                ? "bg-green-400 border-green-600 text-white"
+                                : "bg-gray-200 border-gray-400 text-gray-400"
+                            }`}
+                            title="Second mouth open"
+                          >
+                            {mouthOpenProgress >= 2 ? "✓" : "2"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {livenessChecking && (
+                      <div className="mb-2 text-sm text-gray-500">
+                        Checking for blink...
+                      </div>
+                    )}
+                    {livenessError && (
+                      <div className="mb-2 text-red-500 text-sm">{livenessError}</div>
+                    )}
                     <div className="relative w-[240px] h-[180px] flex items-center justify-center mb-2">
                       <Webcam
                         audio={false}
@@ -799,7 +1008,9 @@ const RequestForm = () => {
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-80 rounded-lg z-20">
                           <span className="loading loading-spinner loading-lg text-primary mb-2"></span>
                           <span className="text-base font-semibold">
-                            Verifying face...
+                            {livenessChecking
+                              ? "Checking liveness..."
+                              : "Verifying face..."}
                           </span>
                         </div>
                       )}
@@ -813,7 +1024,11 @@ const RequestForm = () => {
                       {verifying && (
                         <span className="loading loading-spinner loading-xs mr-2"></span>
                       )}
-                      {verifying ? "Verifying..." : "Verify"}
+                      {verifying
+                        ? livenessChecking
+                          ? "Checking Liveness..."
+                          : "Verifying..."
+                        : "Verify"}
                     </button>
                   </div>
                 </div>

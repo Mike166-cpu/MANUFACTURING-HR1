@@ -7,9 +7,9 @@ const LeaveBalanceSchema = new mongoose.Schema({
   sick_leave: { type: Number, default: 10 }, 
   service_incentive_leave: { type: Number, default: 5 }, 
 
-  maternity_leave: { type: Number, default: 0 }, 
-  paternity_leave: { type: Number, default: 0 }, 
-  solo_parent_leave: { type: Number, default: 0 }, 
+  maternity_leave: { type: Number, default: 105 }, 
+  paternity_leave: { type: Number, default: 7 }, 
+  solo_parent_leave: { type: Number, default: 7 }, 
   special_leave_for_women: { type: Number, default: 0 }, 
   bereavement_leave: { type: Number, default: 5 }, 
   pwd_parental_leave: { type: Number, default: 7 }, 

@@ -74,34 +74,36 @@ const Settings = () => {
       try {
         setStatus("Loading face detection models...");
         // Use absolute path instead of process.env
-        const MODEL_URL = '/models';
-        
+        const MODEL_URL = "/models";
+
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
         ]);
-        
+
         setStatus("Models loaded successfully. Starting camera...");
         startVideo();
       } catch (error) {
         console.error("Error loading models:", error);
-        setStatus("Failed to load face detection models. Please check console for details.");
+        setStatus(
+          "Failed to load face detection models. Please check console for details."
+        );
         Swal.fire({
-          icon: 'error',
-          title: 'Model Loading Error',
-          text: 'Could not load face detection models. Please make sure the model files exist in the public folder.'
+          icon: "error",
+          title: "Model Loading Error",
+          text: "Could not load face detection models. Please make sure the model files exist in the public folder.",
         });
       }
     };
 
     loadModels();
-    
+
     // Cleanup function
     return () => {
       const stream = videoRef.current?.srcObject;
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
@@ -109,84 +111,96 @@ const Settings = () => {
   const startVideo = async () => {
     try {
       // Add timeout promise
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Camera access timeout')), 10000)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Camera access timeout")), 10000)
       );
 
-      const videoPromise = navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const videoPromise = navigator.mediaDevices.getUserMedia({
+        video: {
           width: { ideal: 640 },
-          height: { ideal: 480 }
-        } 
+          height: { ideal: 480 },
+        },
       });
 
       const stream = await Promise.race([videoPromise, timeout]);
       videoRef.current.srcObject = stream;
       setStatus("Camera ready. Position your face in the frame.");
     } catch (err) {
-      if (err.message === 'Camera access timeout') {
-        setStatus("Camera access timed out. Please refresh the page and try again.");
+      if (err.message === "Camera access timeout") {
+        setStatus(
+          "Camera access timed out. Please refresh the page and try again."
+        );
       } else {
-        setStatus("Error accessing camera. Please check permissions and refresh.");
+        setStatus(
+          "Error accessing camera. Please check permissions and refresh."
+        );
       }
       console.error(err);
     }
   };
 
   const captureFrame = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
+    const video = videoRef.current; // Use the existing videoRef
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    return canvas.toDataURL('image/jpeg');
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    return canvas.toDataURL("image/jpeg");
   }, []);
+  
 
   const handleRegister = async () => {
     if (isProcessing || hasFaceId) return;
     setIsProcessing(true);
-
-    // Immediately capture the frame
+  
     const imageUrl = captureFrame();
     setCapturedImage(imageUrl);
-
+  
     try {
       setStatus("Checking face quality...");
-
-      // Now process the captured frame
+  
       const img = new window.Image();
       img.src = imageUrl;
-      await new Promise((resolve) => { img.onload = resolve; });
-
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+  
+      const isLivenessDetected = await checkForLiveness(img);
+      if (!isLivenessDetected) {
+        setStatus("No liveness detected. Please move your face or blink.");
+        setIsProcessing(false);
+        return; // STOP the registration process here
+      }
+  
       // Create a canvas and draw the captured image for face-api
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = img.width;
       canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-
+      canvas.getContext("2d").drawImage(img, 0, 0);
+  
       // Run detection on the captured image
       const detections = await faceapi
         .detectSingleFace(canvas, new faceapi.SsdMobilenetv1Options())
         .withFaceLandmarks()
         .withFaceDescriptor();
-
-      Swal.close();
-
+  
       if (!detections) {
         setStatus("No face detected. Please center your face in the frame.");
         setIsProcessing(false);
         return;
       }
-
+  
       if (detections.detection.score < 0.8) {
-        setStatus("Face not clear enough. Please ensure good lighting and face the camera directly.");
+        setStatus(
+          "Face not clear enough. Please ensure good lighting and face the camera directly."
+        );
         setIsProcessing(false);
         return;
       }
-
+  
       // Show confirmation dialog with captured image
       const result = await Swal.fire({
-        title: 'Confirm Registration Image',
+        title: "Confirm Registration Image",
         html: `
           <div class="text-center">
             <img src="${imageUrl}" style="max-width: 100%; margin: 0 auto;" />
@@ -194,77 +208,100 @@ const Settings = () => {
           </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Yes, register',
-        cancelButtonText: 'No, retake'
+        confirmButtonText: "Yes, register",
+        cancelButtonText: "No, retake",
       });
-
+  
       if (!result.isConfirmed) {
         setIsProcessing(false);
         setStatus("Registration cancelled. You can try again.");
         return;
       }
-
-      // Show loading modal for registration
-      Swal.fire({
-        title: 'Registering Face ID',
-        html: 'Please wait...',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
+  
+      // Proceed to register face ID now that everything is validated
+      const response = await axios.post(
+        `${APIBASED_URL}/api/faceid/register-face-id`,
+        {
+          email,
+          descriptor: Array.from(detections.descriptor),
         }
-      });
-
-      setStatus("Processing registration...");
-
-      const response = await axios.post(`${APIBASED_URL}/api/faceid/register-face-id`, {
-        email,
-        descriptor: Array.from(detections.descriptor)
-      });
-
+      );
+  
       setStatus("✅ " + response.data.message);
       Swal.fire({
-        icon: 'success',
-        title: 'Success',
-        text: 'Face ID registered successfully!'
+        icon: "success",
+        title: "Success",
+        text: "Face ID registered successfully!",
       });
-
     } catch (error) {
       Swal.close();
       setStatus("❌ " + (error.response?.data?.error || "Registration failed"));
       Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.error || "Failed to register Face ID"
+        icon: "error",
+        title: "Error",
+        text: error.response?.data?.error || "Failed to register Face ID",
       });
     } finally {
       setIsProcessing(false);
       setCapturedImage(null);
     }
   };
+  
+
+  const checkForLiveness = async (img) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d").drawImage(img, 0, 0);
+
+    // Detect the face landmarks in the frame
+    const detections = await faceapi
+      .detectSingleFace(canvas)
+      .withFaceLandmarks();
+
+    // Basic check for head movement
+    if (detections) {
+      const { landmarks } = detections;
+      // Check for change in the position of the eyes or face landmarks
+      const leftEye = landmarks.getLeftEye();
+      const rightEye = landmarks.getRightEye();
+
+      // If there are substantial movements (e.g., eyes change positions between frames), consider the face as "alive"
+      if (Math.abs(leftEye[0].x - rightEye[0].x) > 2) {
+        return true; // Detected head movement or blink
+      }
+    }
+
+    return false; // No significant movement detected
+  };
 
   //const check if there is faceIdalready
   const checkFaceId = async () => {
     try {
-      const response = await axios.get(`${APIBASED_URL}/api/login-admin/check-face-id/${email}`);
+      const response = await axios.get(
+        `${APIBASED_URL}/api/login-admin/check-face-id/${email}`
+      );
       setHasFaceId(response.data.hasFaceId);
       if (response.data.hasFaceId) {
         setStatus("Face ID already registered ✓");
         // Stop video stream if face ID is already registered
         const stream = videoRef.current?.srcObject;
         if (stream) {
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
         }
       }
     } catch (err) {
       setStatus("Error checking Face ID status");
-      console.error("Failed to check Face ID:", err.response?.data?.error || err.message);
+      console.error(
+        "Failed to check Face ID:",
+        err.response?.data?.error || err.message
+      );
     }
   };
-  
+
   useEffect(() => {
     checkFaceId();
-  }
-, []);
+  }, []);
 
   return (
     <div>
@@ -298,15 +335,21 @@ const Settings = () => {
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 {/* Settings Header */}
                 <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-2xl font-semibold text-gray-800">Security Settings</h2>
-                  <p className="text-gray-600 mt-1">Manage your account security preferences</p>
+                  <h2 className="text-2xl font-semibold text-gray-800">
+                    Security Settings
+                  </h2>
+                  <p className="text-gray-600 mt-1">
+                    Manage your account security preferences
+                  </p>
                 </div>
 
                 {/* Face ID Section */}
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900">Face ID Authentication</h3>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Face ID Authentication
+                      </h3>
                       <p className="text-gray-600 text-sm mt-1">
                         Use facial recognition for secure login
                       </p>
@@ -314,13 +357,23 @@ const Settings = () => {
                     <div className="flex items-center">
                       {hasFaceId ? (
                         <div className="flex items-center text-green-600">
-                          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                           <span className="font-medium">Registered</span>
                         </div>
                       ) : (
-                        <span className="text-gray-500 text-sm">Not registered</span>
+                        <span className="text-gray-500 text-sm">
+                          Not registered
+                        </span>
                       )}
                     </div>
                   </div>
@@ -331,11 +384,29 @@ const Settings = () => {
                         {/* Loading state above video */}
                         {isProcessing && (
                           <div className="flex flex-col items-center mb-4">
-                            <svg className="animate-spin h-8 w-8 text-blue-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            <svg
+                              className="animate-spin h-8 w-8 text-blue-600 mb-2"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v8z"
+                              ></path>
                             </svg>
-                            <span className="text-blue-600 font-medium">Processing...</span>
+                            <span className="text-blue-600 font-medium">
+                              Processing...
+                            </span>
                           </div>
                         )}
                         {!hasFaceId && (
@@ -352,18 +423,30 @@ const Settings = () => {
                             <canvas
                               ref={canvasRef}
                               className="absolute top-4 left-1/2 transform -translate-x-1/2"
-                              style={{ width: '400px', height: '300px' }}
+                              style={{ width: "400px", height: "300px" }}
                             />
                           </>
                         )}
                         {hasFaceId && (
                           <div className="text-center py-8">
                             <div className="text-green-600 flex items-center justify-center">
-                              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              <svg
+                                className="w-12 h-12"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
                               </svg>
                             </div>
-                            <p className="mt-2 text-lg font-medium">Face ID is registered and active</p>
+                            <p className="mt-2 text-lg font-medium">
+                              Face ID is registered and active
+                            </p>
                           </div>
                         )}
                       </div>
@@ -374,9 +457,9 @@ const Settings = () => {
                         }}
                         disabled={isProcessing}
                         className={`mt-4 w-full py-3 px-4 rounded-lg text-white font-medium transition-colors ${
-                          isProcessing 
-                            ? 'bg-gray-400 cursor-not-allowed' 
-                            : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                          isProcessing
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         }`}
                       >
                         Register Face ID

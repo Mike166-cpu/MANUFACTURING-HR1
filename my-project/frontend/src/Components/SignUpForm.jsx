@@ -12,11 +12,12 @@ const SignUpForm = () => {
     email: "",
     password: "",
     role: "employee",
+    position: "", // add position to state
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const APIBASE_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
   const LOCAL = "http://localhost:7685";
 
   const validatePassword = (password) => {
@@ -43,7 +44,7 @@ const SignUpForm = () => {
 
     try {
       const response = await axios.post(
-        `${APIBASE_URL}/api/admin/create-account`,
+        `${APIBASED_URL}/api/admin/create-account`,
         formData,
         {
           headers: {
@@ -149,6 +150,33 @@ const SignUpForm = () => {
               <option value="employee">Employee</option>
               <option value="admin">Admin</option>
               <option value="superadmin">Superadmin</option>
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Position
+            </label>
+            <select
+              name="position"
+              value={formData.position}
+              onChange={handleChange}
+              className="input input-bordered w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select position</option>
+              <option value="HR Assistant">HR Assistant</option>
+              <option value="HR Coordinator">HR Coordinator</option>
+              <option value="HR Specialist">HR Specialist</option>
+              <option value="HR Generalist">HR Generalist</option>
+              <option value="HR Manager">HR Manager</option>
+              <option value="HR Director">HR Director</option>
+              <option value="Recruiter">Recruiter</option>
+              <option value="Talent Acquisition Specialist">Talent Acquisition Specialist</option>
+              <option value="Compensation and Benefits Specialist">Compensation and Benefits Specialist</option>
+              <option value="Training and Development Specialist">Training and Development Specialist</option>
+              <option value="Employee Relations Specialist">Employee Relations Specialist</option>
+              {/* Add more HR positions as needed */}
             </select>
           </div>
 

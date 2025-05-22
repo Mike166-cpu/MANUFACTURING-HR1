@@ -203,6 +203,17 @@ const Dashboard = () => {
     setModalOpen(true);
   };
 
+  // Add this helper function before the return statement
+  const isNightShift = () => {
+    if (!shiftData.startTime || !shiftData.endTime) return false;
+    const [startHour, startMin] = shiftData.startTime.split(":").map(Number);
+    const [endHour, endMin] = shiftData.endTime.split(":").map(Number);
+    return (
+      endHour < startHour ||
+      (endHour === startHour && endMin < startMin)
+    );
+  };
+
   return (
     <div className="flex min-h-screen bg-base-200">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -224,6 +235,15 @@ const Dashboard = () => {
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
               <h2 className="card-title text-2xl mb-4">Create Shift Schedule</h2>
+
+              {/* Night shift hint */}
+              {isNightShift() && (
+                <div className="alert alert-info mb-4 text-sm">
+                  <span>
+                    <b>Night Shift Detected:</b> This shift crosses midnight. Employees scheduled on <b>{shiftData.days.join(", ")}</b> will be able to time in from <b>{shiftData.startTime}</b> until <b>{shiftData.endTime}</b> the next day. For example, if you select "Monday", employees can time in on Monday night and after midnight (early Tuesday morning).
+                  </span>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Shift Name */}

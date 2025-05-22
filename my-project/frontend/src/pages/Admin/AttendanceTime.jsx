@@ -46,8 +46,12 @@ const AttendanceTime = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
 
+  // Fetch position from localStorage
+  const userPosition = localStorage.getItem("position");
+  console.log(userPosition);
+
   const userRole = localStorage.getItem("role") || "";
-  console.log(userRole);
+
 
   const navigate = useNavigate();
   const LOCAL = "http://localhost:7685";
@@ -584,18 +588,18 @@ const AttendanceTime = () => {
                               onClick={() => approveSession(session._id)}
                               className="btn btn-success btn-xs"
                               title="Approve"
+                              disabled={userPosition !== "Supervisor"}
                             >
                               <FiCheckCircle className="w-4 h-4" />
                             </button>
-                            {userRole === "Superadmin" && (
-                              <button
-                                onClick={() => rejectSession(session._id)}
-                                className="btn btn-error btn-xs"
-                                title="Reject"
-                              >
-                                <FiAlertCircle className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => rejectSession(session._id)}
+                              className="btn btn-error btn-xs"
+                              title="Reject"
+                              disabled={userPosition !== "Supervisor"}
+                            >
+                              <FiAlertCircle className="w-4 h-4" />
+                            </button>
                           </div>
                         )}
                       </td>

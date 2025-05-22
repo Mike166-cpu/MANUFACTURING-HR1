@@ -29,6 +29,7 @@ import EmployeeDocuments from "./pages/Admin/EmployeeDocuments.jsx";
 import Policies from  "./pages/Admin/Policies.jsx";
 import Logs from "./pages/Admin/Logs.jsx";
 import Promotion from "./pages/Admin/Promotion.jsx";
+import AdminSettings from "./pages/Admin/AdminSettings.jsx";
 
 // EMPLOYEE IMPORTS
 // import TimeTracking from "./pages/submodules/TimeTracking.jsx";
@@ -135,6 +136,7 @@ function App() {
           <Route path="/policy" element={<ProtectedRoute><Policies /></ProtectedRoute>} /> 
           <Route path="/logs" element={<ProtectedRoute><Logs /></ProtectedRoute>} /> 
           <Route path="/promotion" element={<ProtectedRoute><Promotion /></ProtectedRoute>} />
+          <Route path="/user-settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} /> {/* ADD EMPLOYEE */}
 
           
 

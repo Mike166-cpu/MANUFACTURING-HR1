@@ -18,8 +18,11 @@ const Logs = () => {
   const itemsPerPage = 10;
   const navigate = useNavigate();
 
-  const APIBASE_URL = "https://backend-hr1.jjm-manufacturing.com";
+  const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
   const LOCAL = "http://localhost:7685";
+  
+  const role = localStorage.getItem("role");
+  console.log("Role from localStorage:", role);
 
   useEffect(() => {
     const role = localStorage.getItem("role");

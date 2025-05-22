@@ -36,12 +36,17 @@ const Promotion = () => {
   const [loadingPromotionHistory, setLoadingPromotionHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filter, setFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`${APIBASED_URL}/api/employeeData/employees`);
+      const response = await axios.get(
+        `${APIBASED_URL}/api/employeeData/employees`
+      );
       setEmployees(response.data);
     } catch (error) {
       console.error("Error fetching employee data:", error);
@@ -53,16 +58,18 @@ const Promotion = () => {
 
   useEffect(() => {
     fetchEmployees();
+    document.title = "Promotion Management | HRMS";
   }, []);
 
   const handleViewDetails = async (employee) => {
     try {
+      // Get performance data from new endpoint
       const timeTrackingRes = await axios.get(
-        `${APIBASED_URL}/api/timetrack/attendance-stats/${employee.employeeId}`
+        `${APIBASED_URL}/api/promotion/performance/${employee.employeeId}`
       );
       setTimeTrackingData(timeTrackingRes.data);
       setViewingEmployee(employee);
-  
+
       // Fetch promotion history
       setLoadingPromotionHistory(true);
       const promoRes = await axios.get(
@@ -70,7 +77,10 @@ const Promotion = () => {
       );
       setPromotionHistory(promoRes.data);
     } catch (error) {
-      console.error("Error fetching employee details or promotion history:", error);
+      console.error(
+        "Error fetching employee details or promotion history:",
+        error
+      );
       setPromotionHistory([]);
     } finally {
       setLoadingPromotionHistory(false);
@@ -79,7 +89,6 @@ const Promotion = () => {
 
   const handlePromoteEmployee = async () => {
     try {
-      // Validate inputs
       if (!promotionDetails.newPosition.trim()) {
         toast.error("Please enter a new position");
         return;
@@ -93,21 +102,23 @@ const Promotion = () => {
       setLoading(true);
       setError(null);
 
-      // Make API calls
+      // First create the promotion request
+      await axios.post(
+        `${APIBASED_URL}/api/promotion/request/${viewingEmployee.employeeId}`,
+        {
+          oldPosition: viewingEmployee.position,
+          newPosition: promotionDetails.newPosition,
+          remarks: promotionDetails.remarks,
+          requestedBy: firstName + " " + lastName,
+          positionEffectiveAt: new Date().toISOString(),
+        }
+      );
+
+      // Then update the employee position
       await axios.put(
         `${APIBASED_URL}/api/employeeData/${viewingEmployee.employeeId}`,
         {
           position: promotionDetails.newPosition,
-        }
-      );
-
-      await axios.post(
-        `${APIBASED_URL}/api/promotion/request/${viewingEmployee.employeeId}`,
-        {
-          newPosition: promotionDetails.newPosition,
-          remarks: promotionDetails.remarks,
-          requestedBy: firstName + " " + lastName,
-          positionEffectiveAt: promotionDetails.positionEffectiveAt,
         }
       );
 
@@ -122,18 +133,49 @@ const Promotion = () => {
     } finally {
       setLoading(false);
     }
+  }
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesDepartment = filter === "All" || emp.department === filter;
+    const matchesSearch =
+      emp.fullname.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.position.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesDepartment && matchesSearch;
+  });
+
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const paginatedEmployees = filteredEmployees.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const handleSelectEmployee = (employeeId) => {
+    setSelectedEmployees((prev) => {
+      if (prev.includes(employeeId)) {
+        return prev.filter((id) => id !== employeeId);
+      } else {
+        return [...prev, employeeId];
+      }
+    });
   };
 
-  const performanceData = {
-    totalHoursWorked: 160, // Total hours worked in a month
-    tasksCompleted: 45, // Number of tasks completed
-    meetingsAttended: 12, // Number of meetings attended
-    performanceRating: 4.2, // Employee's performance rating out of 5
-    trend: "up", // performance trend (can be 'up', 'down', or 'stable')
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      setSelectedEmployees(paginatedEmployees.map((emp) => emp.employeeId));
+    } else {
+      setSelectedEmployees([]);
+    }
   };
 
   return (
-    <div>
+    <div className="bg-gray-100">
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -163,7 +205,7 @@ const Promotion = () => {
             <h1 className="font-bold px-4 text-xl">Promotion Management</h1>
           </div>
 
-          <div className="bg-gray-100 min-h-screen">
+          <div className="min-h-screen">
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded m-4">
                 {error}
@@ -175,7 +217,7 @@ const Promotion = () => {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
               </div>
             ) : viewingEmployee ? (
-              <div className="m-5 p-4 bg-white rounded-lg shadow-md">
+              <div className="m-5 p-5 bg-white rounded-lg shadow-md">
                 <h2 className="text-xl font-bold text-gray-800 p-4">
                   Employee Details
                 </h2>
@@ -251,7 +293,6 @@ const Promotion = () => {
                             <th>Old Position</th>
                             <th>New Position</th>
                             <th>Remarks</th>
-                            <th>Status</th>
                             <th>Promoted By</th>
                           </tr>
                         </thead>
@@ -268,7 +309,6 @@ const Promotion = () => {
                               <td>{promo.oldPosition || "-"}</td>
                               <td>{promo.newPosition || "-"}</td>
                               <td>{promo.remarks || "-"}</td>
-                              <td>{promo.status}</td>
                               <td>{promo.requestedBy || "-"}</td>
                             </tr>
                           ))}
@@ -278,87 +318,107 @@ const Promotion = () => {
                   )}
                 </div>
 
-                {performanceData && (
-                  <div className="mt-6 p-4 border rounded-lg">
-                    <h3 className="font-semibold text-gray-800 mb-4">
-                      Employee Performance Metrics
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          Total Hours Worked
-                        </p>
-                        <p className="font-medium text-xl">
-                          {performanceData.totalHoursWorked} hrs
-                        </p>
+                <div className="mt-6 p-4 border rounded-lg">
+                  <h3 className="font-semibold text-gray-800 mb-4">
+                    Performance Summary
+                  </h3>
+
+                  {timeTrackingData ? (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white p-4 rounded-lg shadow">
+                          <div className="text-gray-600 text-sm">Attendance Rate</div>
+                          <div className="text-xl font-semibold mt-2">
+                            {timeTrackingData.attendanceRate?.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                          <div className="text-gray-600 text-sm">Punctuality Rate</div>
+                          <div className="text-xl font-semibold mt-2">
+                            {timeTrackingData.punctualityRate?.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                          <div className="text-gray-600 text-sm">Total Hours</div>
+                          <div className="text-xl font-semibold mt-2">
+                            {timeTrackingData.totalHours?.toFixed(1)}h
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                          <div className="text-gray-600 text-sm">Overtime Hours</div>
+                          <div className="text-xl font-semibold mt-2">
+                            {timeTrackingData.overtimeHours?.toFixed(1)}h
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-4 bg-orange-50 rounded-lg">
-                        <p className="text-sm text-gray-600">Tasks Completed</p>
-                        <p className="font-medium text-xl">
-                          {performanceData.tasksCompleted}
-                        </p>
+
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <h4 className="font-medium text-gray-700 mb-3">Attendance Summary</h4>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <div className="text-sm text-gray-600">On Time</div>
+                            <div className="text-lg font-semibold text-green-600">
+                              {timeTrackingData.onTimeCount || 0} days
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-gray-600">Late</div>
+                            <div className="text-lg font-semibold text-yellow-600">
+                              {timeTrackingData.lateCount || 0} days
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-gray-600">Absent</div>
+                            <div className="text-lg font-semibold text-red-600">
+                              {timeTrackingData.absentCount || 0} days
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-4 bg-purple-50 rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          Meetings Attended
-                        </p>
-                        <p className="font-medium text-xl">
-                          {performanceData.meetingsAttended}
-                        </p>
-                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      Loading performance data...
                     </div>
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600">
-                        Performance Rating:
-                        <span className="ml-2 font-medium">
-                          {performanceData.performanceRating} / 5
-                        </span>
-                      </p>
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600">
-                        Performance Trend:
-                        <span
-                          className={`ml-2 font-medium ${
-                            performanceData.trend === "up"
-                              ? "text-green-600"
-                              : performanceData.trend === "down"
-                              ? "text-red-600"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          {performanceData.trend === "up"
-                            ? "↑ Improving"
-                            : performanceData.trend === "down"
-                            ? "↓ Declining"
-                            : "→ Stable"}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <div className="mt-6 p-4 border rounded-lg">
                   <h3 className="font-semibold text-gray-800 mb-4">
                     Promote Employee
                   </h3>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600">
-                        New Position
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full p-2 border rounded"
-                        value={promotionDetails.newPosition}
-                        onChange={(e) =>
-                          setPromotionDetails((prev) => ({
-                            ...prev,
-                            newPosition: e.target.value,
-                          }))
-                        }
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600">
+                          Current Position
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full p-2 border rounded bg-gray-100"
+                          value={viewingEmployee.position}
+                          readOnly
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600">
+                          New Position
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full p-2 border rounded"
+                          value={promotionDetails.newPosition}
+                          onChange={(e) =>
+                            setPromotionDetails((prev) => ({
+                              ...prev,
+                              newPosition: e.target.value,
+                            }))
+                          }
+                          placeholder="Enter new position"
+                        />
+                      </div>
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-600">
                         Remarks
@@ -374,18 +434,19 @@ const Promotion = () => {
                         }
                       />
                     </div>
+
                     <div className="flex space-x-4">
                       <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded"
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                         onClick={handlePromoteEmployee}
                       >
                         Confirm Promotion
                       </button>
                       <button
-                        className="bg-gray-500 text-white px-4 py-2 rounded"
+                        className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                         onClick={() => setViewingEmployee(null)}
                       >
-                        Cancel
+                        Back
                       </button>
                     </div>
                   </div>
@@ -393,30 +454,76 @@ const Promotion = () => {
               </div>
             ) : (
               <div className="p-4">
-                <div className="overflow-x-auto bg-white rounded shadow">
+                <div className="p-4 bg-white rounded-lg shadow-md mb-4">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {/* Search Input */}
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        placeholder="Search by name, ID, or position..."
+                        className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Department Filter */}
+                    <div className="w-full md:w-48">
+                      <select
+                        className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                      >
+                        <option value="All">All Departments</option>
+                        <option value="HR">HR</option>
+                        <option value="IT">IT</option>
+                        <option value="Finance">Finance</option>
+                        {/* Add more departments as needed */}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
                   <table className="min-w-full table-auto">
-                    <thead className="bg-gray-200">
+                    <thead className="bg-white border-b text-xs text-gray-600 uppercase tracking-wider">
                       <tr>
-                        <th className="px-4 py-2">Employee ID</th>
-                        <th className="px-4 py-2">Name</th>
-                        <th className="px-4 py-2">Department</th>
-                        <th className="px-4 py-2">Current Position</th>
-                        <th className="px-4 py-2">Actions</th>
+                        <th> </th>
+                        <th className="p-3 text-left">Employee ID</th>
+                        <th className="p-3 text-left">Name</th>
+                        <th className="p-3 text-left">Department</th>
+                        <th className="p-3 text-left">Current Position</th>
+                        <th className="p-3 text-left">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {employees.map((employee) => (
+                    <tbody className="divide-y divide-gray-200 text-sm">
+                      {paginatedEmployees.map((employee) => (
                         <tr
                           key={employee.employeeId}
-                          className="text-center border-t"
+                          className={`hover:bg-gray-50 ${
+                            selectedEmployees.includes(employee.employeeId)
+                              ? "bg-blue-50"
+                              : "bg-white"
+                          }`}
                         >
-                          <td className="px-4 py-2">{employee.employeeId}</td>
-                          <td className="px-4 py-2">{employee.fullname}</td>
-                          <td className="px-4 py-2">{employee.department}</td>
-                          <td className="px-4 py-2">{employee.position}</td>
-                          <td className="px-4 py-2">
+                          <td className="p-3">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-gray-300"
+                              checked={selectedEmployees.includes(
+                                employee.employeeId
+                              )}
+                              onChange={() =>
+                                handleSelectEmployee(employee.employeeId)
+                              }
+                            />
+                          </td>
+                          <td className="p-3">{employee.employeeId}</td>
+                          <td className="p-3">{employee.fullname}</td>
+                          <td className="p-3">{employee.department}</td>
+                          <td className="p-3">{employee.position}</td>
+                          <td className="p-3">
                             <button
-                              className="bg-blue-500 text-white px-4 py-1 rounded"
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded text-xs"
                               onClick={() => handleViewDetails(employee)}
                             >
                               Promote
@@ -426,6 +533,51 @@ const Promotion = () => {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Pagination Controls */}
+                  <div className="flex justify-between items-center mt-4 p-4 border-t">
+                    <span className="text-sm text-gray-600">
+                      Showing entries {indexOfFirstItem + 1} to{" "}
+                      {Math.min(indexOfLastItem, filteredEmployees.length)} of{" "}
+                      {filteredEmployees.length}
+                    </span>
+
+                    {totalPages > 1 && (
+                      <div className="join">
+                        <button
+                          className="join-item btn btn-sm"
+                          disabled={currentPage === 1}
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.max(prev - 1, 1))
+                          }
+                        >
+                          «
+                        </button>
+                        {[...Array(totalPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            className={`join-item btn btn-sm ${
+                              currentPage === i + 1 ? "btn-primary" : ""
+                            }`}
+                            onClick={() => setCurrentPage(i + 1)}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          className="join-item btn btn-sm"
+                          disabled={currentPage === totalPages}
+                          onClick={() =>
+                            setCurrentPage((prev) =>
+                              Math.min(prev + 1, totalPages)
+                            )
+                          }
+                        >
+                          »
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

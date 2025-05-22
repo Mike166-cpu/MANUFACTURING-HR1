@@ -21,6 +21,9 @@ const TimeTrackingSchema = new mongoose.Schema({
     holiday_name: { type: String, default: null },
     shift_period: { type: String, enum: ['morning', 'afternoon']},
     shift_name: { type: String, default: null },
+    break_duration: { type: Number, default: 0 }, // in minutes
+    break_start: { type: Date, default: null },
+    break_end: { type: Date, default: null },
 }
 , { timestamps: true });
 

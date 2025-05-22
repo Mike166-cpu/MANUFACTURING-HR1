@@ -143,13 +143,16 @@ const LoginForm = () => {
         return;
       }
 
+      // Ensure we store all necessary user data including position
       localStorage.setItem("adminToken", data.token);
       localStorage.setItem("adminId", data.user.employeeId);
       localStorage.setItem("firstName", data.user.firstName);
       localStorage.setItem("lastName", data.user.lastName);
       localStorage.setItem("email", data.user.email);
       localStorage.setItem("role", data.user.role);
-      localStorage.setItem("accessLevel", data.user.accessLevel);
+      localStorage.setItem("position", data.user.position || "Not Specified"); // Add default value
+      localStorage.setItem("accessLevel", data.user.role === "superadmin" ? "Super Admin" : 
+                                        data.user.role === "admin" ? "Admin" : "User");
 
       toast.success("Login successful!", { autoClose: 1500 });
 

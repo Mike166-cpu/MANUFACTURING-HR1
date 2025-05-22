@@ -16,6 +16,7 @@ const EmployeeSchema = new mongoose.Schema(
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
     }],
     profilePicture: { type: String },
+    salary: {type: Number, default: 30000},
     employeeId: { type: String, required: true, unique: true },
     fullname: { type: String, required: true },
     email: { type: String, required: true, unique: true },

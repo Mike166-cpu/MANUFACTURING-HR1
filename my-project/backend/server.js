@@ -6,8 +6,6 @@ const socketIo = require("socket.io");
 const cors = require("cors");
 require("dotenv").config();
 
-
-
 const incidentRoutes = require("./routes/incidentReport");
 const employeeRoutes = require("./routes/employee");
 const policyRoutes = require("./routes/policyRoutes");
@@ -29,14 +27,21 @@ const uploadedDocument = require("./routes/uploadedDocumentRoutes");
 const timeTracking = require("./routes/timeTrackingRoutes");
 const integrationRoutes = require("./routes/integrationRoutes");
 const resignationRoutes = require("./routes/resignationRoutes");
-const { initializeLeaveBalances, initializeEmployeeLeaveBalance, cronjob } = require("./controllers/leave");
-const model = require("./routes/predictiveAnalyticsRoutes");
+const {
+  initializeLeaveBalances,
+  initializeEmployeeLeaveBalance,
+  cronjob,
+} = require("./controllers/leave");
 const onboard = require("./routes/onboardingRoutes");
 const faceIdRoutes = require("./routes/faceId");
 const logs = require("./routes/logs");
 
 const employeeData = require("./routes/employeeDataRoutes");
 const promotion = require("./routes/promotionRoutes");
+const test = require("./routes/testAzureAI");
+const ml = require("./routes/renderRoutes");
+
+
 
 const app = express();
 app.set("trust proxy", true);
@@ -49,6 +54,7 @@ app.use((req, res, next) => {
 // CORS CONFIG
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:3001",
   "http://localhost:5000",
   "http://localhost:5173",
   "http://localhost:7687",
@@ -77,7 +83,7 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: "*", 
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -90,40 +96,43 @@ io.on("connection", (socket) => {
 });
 
 // Serve static files for face-api models
-app.use('/models', express.static(path.join(__dirname, 'public/models')));
+app.use("/models", express.static(path.join(__dirname, "public/models")));
 
 // Routes
 app.use("/api/employee", employeeRoutes);
 app.use("/api/incidentreport", incidentRoutes(io));
-app.use("/api/policies", policyRoutes);
+app.use("/api/policies", policyRoutes); //in use
 app.use("/api/user", userProfile);
 app.use("/api/admin", signupRoutes);
-app.use("/api/login-admin", loginRoutes);
+app.use("/api/login-admin", loginRoutes);  //IN-USE
 app.use("/api", uploadRoutes);
 app.use("/api", profilePictureRoutes);
 app.use("/api/create-account", createSuperadminRoutes);
 app.use("/api", timeTrackingRoutes); //totalTime.js
-app.use("/api/schedule", scheduleRoutes);
+app.use("/api/schedule", scheduleRoutes); //in use
 app.use("/api/time-tracking", require("./routes/totalTimeRoutes"));
-app.use("/api/leave", leaveRoutes);
+app.use("/api/leave", leaveRoutes);  //inuse
 app.use("/api/ob", obRoutes);
-app.use("/api/leave-balance", leaveBalanceRoutes);
+app.use("/api/leave-balance", leaveBalanceRoutes); // in use
 app.use("/api/auth", logoutRoutes);
-app.use("/api/document-request", documentRequest);
-app.use("/api/uploaded-documents", uploadedDocument);
-app.use("/api/timetrack", timeTracking);
-app.use("/api/resignation", resignationRoutes);
-app.use("/api/analytics", model);
-app.use("/api/onboarding", onboard);
-app.use("/api/hr", integrationRoutes);
+app.use("/api/document-request", documentRequest); //in use
+app.use("/api/uploaded-documents", uploadedDocument);  // in use
+app.use("/api/timetrack", timeTracking);  //in-sue
+app.use("/api/resignation", resignationRoutes); //in use
+app.use("/api/onboarding", onboard);  //in-use
+app.use("/api/hr", integrationRoutes);  //in use
 app.use("/api/faceid", faceIdRoutes);
-app.use("/api/logs", logs);
-app.use("/api/promotion", promotion);
+app.use("/api/logs", logs);  // in use
+app.use("/api/promotion", promotion); //in use
+app.use("/api/test", test);
+app.use("/api", ml);
+app.use("/api/employeeData", employeeData);  //inuse
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(express.json({ limit: '50mb' }));
 
 
-app.use("/api/employeeData", employeeData);
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
 mongoose
@@ -132,7 +141,6 @@ mongoose
     console.log("MongoDB Connected");
     cronjob();
     await initializeLeaveBalances();
-  
   })
   .catch((err) => console.error("MongoDB connection error:", err));
 
@@ -172,9 +180,22 @@ app.get("/", (req, res) => {
   `);
 });
 
+// Add error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    message: err.message 
+  });
+});
+
 global.io = io;
 
-// Start the server
+
+
+console.log("MONGO_URI from env:", process.env.MONGO_URI);
+
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () =>
   console.log(`Server is running on http://localhost:${PORT}`)

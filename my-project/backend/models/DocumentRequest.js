@@ -13,6 +13,10 @@ const DocumentRequestSchema = new mongoose.Schema({
     ref: "Employee", 
     required: true,
   },
+  employeeName: { // Add this new field
+    type: String,
+    required: true,
+  },
   document_name: {
     type: String,
     required: true,

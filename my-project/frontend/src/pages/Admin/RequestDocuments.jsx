@@ -63,10 +63,12 @@ const RequestDocuments = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${APIBASED_URL}/api/onboarding/onboard`);
+        const response = await axios.get(
+          `${APIBASED_URL}/api/employeeData/employees `
+        );
         console.log("Employee data:", response.data);
-  
-        setEmployees(response.data || []); 
+
+        setEmployees(response.data || []);
       } catch (error) {
         console.error("Error fetching employees:", error);
       }
@@ -96,14 +98,16 @@ const RequestDocuments = () => {
     }
 
     try {
-      const employee = employees.find(emp => emp.employeeId === selectedEmployee);
+      const employee = employees.find(
+        (emp) => emp.employeeId === selectedEmployee
+      );
       if (!employee) {
         toast.error("Invalid employee selection");
         return;
       }
 
       const payload = {
-        employeeId: selectedEmployee, 
+        employeeId: selectedEmployee,
         document_name: documentName,
       };
       console.log("Sending request:", payload);
@@ -120,7 +124,9 @@ const RequestDocuments = () => {
       setIsModalOpen(false);
 
       // Refresh document requests
-      const refreshResponse = await axios.get(`${APIBASED_URL}/api/document-request`);
+      const refreshResponse = await axios.get(
+        `${APIBASED_URL}/api/document-request`
+      );
       setDocumentRequests(refreshResponse.data);
     } catch (error) {
       console.error("Error submitting request:", error);
@@ -136,7 +142,7 @@ const RequestDocuments = () => {
 
       toast.success(`Request ${newStatus.toLowerCase()} successfully!`);
 
-      // Refresh the document requests
+      // Refresh the document LOCA
       const response = await axios.get(`${APIBASED_URL}/api/document-request`);
       setDocumentRequests(response.data);
     } catch (error) {
@@ -168,7 +174,9 @@ const RequestDocuments = () => {
       const employee = employees.find(
         (emp) => emp.employeeId === request.employeeId
       );
-      const searchString = `${employee?.fullname || ''} ${request.document_name}`.toLowerCase();
+      const searchString = `${employee?.fullname || ""} ${
+        request.document_name
+      }`.toLowerCase();
       return searchString.includes(searchTerm.toLowerCase());
     });
 
@@ -313,7 +321,8 @@ const RequestDocuments = () => {
                     <tr>
                       <th>{""}</th>
                       <th>Request ID</th>
-                      <th className="hidden md:table-cell">Document Name</th>
+                      <th className="hidden md:table-cell">Requsted To</th>
+                      <th>Document Type</th>
                       <th>Status</th>
                       <th className="hidden md:table-cell">Date</th>
                       <th>Actions</th>
@@ -327,7 +336,10 @@ const RequestDocuments = () => {
                         );
                         const isSelected = selectedRows.includes(request._id);
                         return (
-                          <tr key={request._id} className={isSelected ? "bg-blue-100" : ""}>
+                          <tr
+                            key={request._id}
+                            className={isSelected ? "bg-blue-100" : ""}
+                          >
                             <td>
                               <input
                                 type="checkbox"
@@ -339,35 +351,60 @@ const RequestDocuments = () => {
                               {request.request_id}
                             </td>
                             <td className="font-medium capitalize">
+                              {request.employeeName}
+                            </td>
+                            <td className="font-medium capitalize">
                               {request.document_name}
                             </td>
                             <td>
-                              <div className={`badge ${getStatusBadgeClass(request.status)} gap-2`}>
+                              <div
+                                className={`badge ${getStatusBadgeClass(
+                                  request.status
+                                )} gap-2`}
+                              >
                                 {request.status}
                               </div>
                             </td>
                             <td className="hidden md:table-cell">
-                              {new Date(request.requested_at).toLocaleDateString()}
+                              {new Date(
+                                request.requested_at
+                              ).toLocaleDateString()}
                             </td>
                             <td>
                               <div className="flex gap-2">
-                                {request.status === "Submitted for Approval" && (
+                                {request.status ===
+                                  "Submitted for Approval" && (
                                   <>
                                     <button
-                                      onClick={() => handleStatusUpdate(request.request_id, "Approved")}
-                                      className="btn btn-success btn-xs">
+                                      onClick={() =>
+                                        handleStatusUpdate(
+                                          request.request_id,
+                                          "Approved"
+                                        )
+                                      }
+                                      className="btn btn-success btn-xs"
+                                    >
                                       <FiCheck />
                                     </button>
                                     <button
-                                      onClick={() => handleStatusUpdate(request.request_id, "Rejected")}
-                                      className="btn btn-error btn-xs">
+                                      onClick={() =>
+                                        handleStatusUpdate(
+                                          request.request_id,
+                                          "Rejected"
+                                        )
+                                      }
+                                      className="btn btn-error btn-xs"
+                                    >
                                       <FiX />
                                     </button>
                                   </>
                                 )}
                                 <button
-                                  onClick={() => fetchUploadedDocuments(request.request_id)}
-                                  className="btn btn-info btn-xs">
+                                  onClick={() =>
+                                    fetchUploadedDocuments(request.request_id)
+                                  }
+                                  className="btn btn-info btn-xs"
+                                >
                                   View
                                 </button>
                               </div>
@@ -446,7 +483,10 @@ const RequestDocuments = () => {
                       <option value="">Select Employee</option>
                       {employees && employees.length > 0 ? (
                         employees.map((employee) => (
-                          <option key={employee.employeeId} value={employee.employeeId}>
+                          <option
+                            key={employee.employeeId}
+                            value={employee.employeeId}
+                          >
                             {employee.employeeId} - {employee.fullname}
                           </option>
                         ))

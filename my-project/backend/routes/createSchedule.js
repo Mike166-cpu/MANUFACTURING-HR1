@@ -76,9 +76,25 @@ router.post("/create-shift", async (req, res) => {
     const newShift = new Shift(shiftData);
     await newShift.save();
 
+    // Night shift validation and warning
+    let nightShiftWarning = null;
+    if (startTime && endTime) {
+      const [startHour, startMin] = startTime.split(":").map(Number);
+      const [endHour, endMin] = endTime.split(":").map(Number);
+      const crossesMidnight = endHour < startHour || (endHour === startHour && endMin < startMin);
+      if (crossesMidnight) {
+        nightShiftWarning = "This shift crosses midnight. Employees scheduled on " +
+          days.join(", ") +
+          " will be able to time in from " + startTime +
+          " until " + endTime +
+          " the next day. For example, if you select 'Monday', employees can time in on Monday night and after midnight (early Tuesday morning).";
+      }
+    }
+
     res.status(201).json({
       message: "Shift created successfully",
-      shift: newShift
+      shift: newShift,
+      ...(nightShiftWarning && { nightShiftWarning })
     });
   } catch (error) {
     console.error("Error creating shift:", error);

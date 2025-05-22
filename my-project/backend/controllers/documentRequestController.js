@@ -13,7 +13,7 @@ exports.createDocumentRequest = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const employee = await Onboarding.findOne({ employeeId });
+    const employee = await Employee.findOne({ employeeId });
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
@@ -23,6 +23,7 @@ exports.createDocumentRequest = async (req, res) => {
     const newRequest = new DocumentRequest({
       request_id,
       employeeId,  
+      employeeName: employee.fullname,
       document_name,
       status: "Submitted for Approval"
     });
@@ -104,7 +105,7 @@ exports.updateRequestStatus = async (req, res) => {
     const { employeeId, document_name } = request;
 
     if (status === "Approved" && uploadedDoc?.document_url) {
-      const updatedEmployee = await Onboarding.findOneAndUpdate(
+      const updatedEmployee = await Employee.findOneAndUpdate(
         { employeeId },
         {
           $push: {

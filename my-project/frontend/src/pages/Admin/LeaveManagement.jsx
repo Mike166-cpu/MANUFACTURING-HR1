@@ -24,6 +24,17 @@ const useMediaQuery = (query) => {
 };
 
 const LeaveManagement = () => {
+  // Add userRole state
+  const [userRole, setUserRole] = useState(null);
+
+  // Add useEffect to check role
+  useEffect(() => {
+    const position = localStorage.getItem("position");
+    if (position) {
+      setUserRole(position.toLowerCase());
+    }
+  }, []);
+
   const navigate = useNavigate();
   const isMobileView = useMediaQuery("(max-width: 768px)");
   const [selectedLeave, setSelectedLeave] = useState(null);
@@ -39,7 +50,8 @@ const LeaveManagement = () => {
 
   const APIBASED_URL = "https://backend-hr1.jjm-manufacturing.com";
   const LOCAL = "http://localhost:7685";
-
+  const userPosition = localStorage.getItem("position");
+  console.log("User Position:", userPosition);
   // Fetch all leave requests
   const fetchLeaveRequests = async () => {
     try {
@@ -98,17 +110,39 @@ const LeaveManagement = () => {
   }, []);
 
   const handleStatusUpdate = async (leaveId, newStatus) => {
+    if (userPosition !== "Supervisor") {
+      Swal.fire({
+        icon: "warning",
+        title: "Action Blocked",
+        text: "Only Supervisor can perform this action.",
+      });
+      return;
+    }
+    const firstName = localStorage.getItem("firstName");
+    const lastName = localStorage.getItem("lastName");
     try {
+      console.log(`Updating leave ${leaveId} to status: ${newStatus}`);
+
       const response = await axios.put(
         `${APIBASED_URL}/api/leave/update-leave-status/${leaveId}`,
-        { status: newStatus }
+        {
+          status: newStatus,
+          updatedBy: firstName + " " + lastName, // Add who approved/rejected
+        }
       );
 
       if (response.status === 200) {
+        const { leave, paymentDetails } = response.data;
+
+        let message = `Leave request ${newStatus.toLowerCase()} successfully`;
+        if (paymentDetails?.paymentStatus === "Partially Paid") {
+          message += `. ${paymentDetails.paidDays} days paid, ${paymentDetails.unpaidDays} days unpaid`;
+        }
+
         Swal.fire({
           icon: "success",
           title: "Success!",
-          text: `Leave request ${newStatus.toLowerCase()} successfully`,
+          text: message,
         });
 
         // Refresh data
@@ -116,10 +150,15 @@ const LeaveManagement = () => {
       }
     } catch (error) {
       console.error("Error updating leave status:", error);
+
+      // Show more specific error message from backend
+      const errorMessage =
+        error.response?.data?.message || "Failed to update leave status";
+
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Failed to update leave status",
+        text: errorMessage,
       });
     }
   };
@@ -188,6 +227,8 @@ const LeaveManagement = () => {
       year: "numeric",
     });
 
+  const disabledButtonStyle = "opacity-50 cursor-not-allowed pointer-events-none";
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
@@ -227,7 +268,6 @@ const LeaveManagement = () => {
               </>
             ) : (
               <>
-
                 {/* Currently on Leave Card */}
                 <div className="bg-white rounded-lg p-8 border-l-4 border-yellow-500 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
@@ -403,27 +443,20 @@ const LeaveManagement = () => {
                             >
                               View Details
                             </button>
+                            {/* Only allow if position is exactly "Supervisor" and leave is pending */}
                             {leave.status === "Pending" && (
                               <>
                                 <button
-                                  onClick={() =>
-                                    handleStatusUpdate(
-                                      leave.leave_id,
-                                      "Approved"
-                                    )
-                                  }
-                                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                                  onClick={() => handleStatusUpdate(leave.leave_id, "Approved")}
+                                  className={`btn btn-success btn-sm ${userRole !== "supervisor" ? "btn-disabled" : ""}`}
+                                  disabled={userRole !== "supervisor"}
                                 >
                                   Approve
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    handleStatusUpdate(
-                                      leave.leave_id,
-                                      "Rejected"
-                                    )
-                                  }
-                                  className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                  onClick={() => handleStatusUpdate(leave.leave_id, "Rejected")}
+                                  className={`btn btn-error btn-sm ${userRole !== "supervisor" ? "btn-disabled" : ""}`}
+                                  disabled={userRole !== "supervisor"}
                                 >
                                   Reject
                                 </button>
@@ -457,8 +490,8 @@ const LeaveManagement = () => {
                     </p>
                     <p>
                       <strong>Duration:</strong>{" "}
-                      {formatDate(selectedLeave.start_date)}{" "}
-                      - {formatDate(selectedLeave.end_date)}
+                      {formatDate(selectedLeave.start_date)} -{" "}
+                      {formatDate(selectedLeave.end_date)}
                     </p>
                     <p>
                       <strong>Reason:</strong> {selectedLeave.reason}
